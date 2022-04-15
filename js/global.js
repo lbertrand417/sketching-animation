@@ -1,6 +1,5 @@
 "use strict;"
 
-
 var global = {
     camera : null,
     renderer : null,
@@ -20,8 +19,22 @@ var global = {
     },
 };
 
+const cylinderCount = 5;
+const segmentHeight = 50 / 7;
+const segmentCount = 7;
+const height = segmentHeight * segmentCount;
+const halfHeight = height * 0.5;
+
+const sizing = {
+    segmentHeight,
+    segmentCount,
+    height,
+    halfHeight
+};
+
 // Store all objects with their info
 var objects = [];
 
 // Store selected objects
 var selectedObjects = [];
+
