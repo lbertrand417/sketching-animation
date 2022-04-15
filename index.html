@@ -7,19 +7,40 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     </head>
     <body>
-        <div id="flex-container">
-            <i class="fa fa-play" id="play" ></i>
-            <i class="fa fa-pause" id="pause"></i>
-            <i class="fa fa-stop" id="stop"></i>
-            <input type="range" min="0" max="0" value="0" class="slider" id="timeline">
+        <div id="toolbar">
+            <div id="commands">
+                <div id="flex-container">
+                    <i class="fa fa-play" id="play" ></i>
+                    <i class="fa fa-pause" id="pause"></i>
+                    <i class="fa fa-stop" id="stop"></i>
+                    <input type="range" min="0" max="0" value="0" class="slider" id="timeline">
+                </div>
+
+                <div id="flex-buttons">
+                    <button type="button" id="draw">Draw</button>
+                    <button type="button" id="paste">Paste</button>
+                    <button type="button" id="offset">Random Timing Offset</button>
+                    <button type="button" id="select">Auto Select</button>
+                </div>
+
+                <div id="flex-display">
+                    Display :
+                    <button type="button" id="root">Root</button>
+                    <button type="button" id="effector">Effector</button>
+                    <button type="button" id="links">Links</button>
+                    <button type="button" id="bones">Bones</button>
+                    <button type="button" id="axes">Axes Helper</button>
+                    <button type="button" id="path">Path</button>
+                </div>
+            </div>
+            <div id="scenes">
+                <button type="button" id="scene1">Example 1</button>
+                <button type="button" id="scene2">Anenome</button>
+                <button type="button" id="scene3">Scale</button>
+            </div>
         </div>
 
-        <div id="flex-buttons">
-            <button type="button" id="draw">Draw</button>
-            <button type="button" id="paste">Paste</button>
-            <button type="button" id="offset">Offset</button>
-            <button type="button" id="select">Auto Select</button>
-        </div>
+        
 
         <div class="stack"><canvas id="canvas"></canvas></div>
 

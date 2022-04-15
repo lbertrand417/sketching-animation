@@ -2,32 +2,55 @@
 
 // Import libraries
 import * as THREE from 'three';
+import { materials as materials1, allObjects as allObjects1, detailObjects as detailObjects1, effectors as effectors1 } from './scene1.js';
+import { materials as materials2, allObjects as allObjects2, detailObjects as detailObjects2, effectors as effectors2 } from './scene2.js';
+import { materials as materials3, allObjects as allObjects3, detailObjects as detailObjects3, effectors as effectors3 } from './scene3.js';
 
-let materials = {
-    unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034 }),
-    selected : new THREE.MeshPhongMaterial( { color: 0x28faa4 }),
-    selectedBis : new THREE.MeshPhongMaterial( { color: 0x1246bf }),
-    effector : new THREE.MeshBasicMaterial( {
-        color: new THREE.Color( 0x88ff88 ),
-        depthTest: false,
-        depthWrite: false,
-        transparent: true
-    } ),
-    links : new THREE.MeshBasicMaterial( {
-        color: new THREE.Color( 0x8888ff ),
-        depthTest: false,
-        depthWrite: false,
-        transparent: true
-    } ),
-    root : new THREE.MeshBasicMaterial( {
-        color: new THREE.Color( 0xff8888 ),
-        depthTest: false,
-        depthWrite: false,
-        transparent: true
-    } ),
-    unselectedpath : new THREE.LineBasicMaterial( { color: 0x0000ff }),
-    timing : new THREE.PointsMaterial({ color: 0xff0000, size: 2 })
-};
+
+function loadScene(s) {
+    // Initialize scene
+    global.scene = new THREE.Scene();
+    global.scene.background = new THREE.Color( 0xEEEEEE );
+    let axesHelper = new THREE.AxesHelper( 10 );
+    axesHelper.position.set(30, 0, 0);
+    global.scene.add( axesHelper );
+
+    global.animation.isAnimating = false;
+
+    switch(s) {
+        case 1 :
+            objects = [...detailObjects1];
+            for (let i = 0; i < allObjects1.length; i++) {
+                global.scene.add(allObjects1[i]);
+            }
+            effectors = [...effectors1];
+            materials = {...materials1};
+            break;
+        case 2 :
+            objects = [...detailObjects2];
+            for (let i = 0; i < allObjects2.length; i++) {
+                global.scene.add(allObjects2[i]);
+            }
+            effectors = [...effectors2];
+            materials = {...materials2};
+            break;
+        case 3 :
+            objects = [...detailObjects3];
+            for (let i = 0; i < allObjects3.length; i++) {
+                global.scene.add(allObjects3[i]);
+            }
+            effectors = [...effectors3];
+            materials = {...materials3};
+            break;
+    }
+
+    for(let k = 0; k < objects.length; k++) {
+        objects[k].mesh.material = materials.unselected.clone();
+    }
+    selectedObjects = [];
+
+}
+
 
 function updatePath() {
     selectedObjects[0].path.positions = [...global.sketch.positions];
@@ -91,7 +114,9 @@ function addSelectedObject(selection, removable) {
             if(removable) {
                 selectedObjects[i].mesh.material = materials.unselected.clone();
                 selectedObjects.splice(i, 1);
-                selectedObjects[0].mesh.material = materials.selected.clone();
+                if(selectedObjects.length > 0) {
+                    selectedObjects[0].mesh.material = materials.selected.clone();
+                }
             }
         }
     }
@@ -113,4 +138,4 @@ function addSelectedObject(selection, removable) {
     }
 }
 
-export { materials, updatePath, project3D, getRandomInt, addSelectedObject };
+export { loadScene, updatePath, project3D, getRandomInt, addSelectedObject };

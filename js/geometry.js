@@ -7,8 +7,7 @@ import { TransformControls } from '../three.js/examples/jsm/controls/TransformCo
 import { DragControls } from "../three.js/examples/jsm/controls/DragControls.js";
 import { CCDIKSolver, CCDIKHelper } from "../three.js/examples/jsm//animation/CCDIKSolver.js";
 import { Quaternion, Vector3 } from 'three';
-import { materials, project3D, updatePath, addSelectedObject } from './utils.js';
-import { allObjects, detailObjects, effectors } from './scene1.js';
+import { loadScene, project3D, updatePath, addSelectedObject } from './utils.js';
 
 
 // Initalize renderer
@@ -23,24 +22,7 @@ global.camera.position.set(0, 0, 250);
 global.camera.lookAt(0, 0, 0);
 
 
-function loadScene(s) {
-    // Initialize scene
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0xEEEEEE );
-    let axesHelper = new THREE.AxesHelper( 10 );
-    scene.add( axesHelper );
-
-    if(s == 1) {
-        objects = [...detailObjects];
-        for (let i = 0; i < allObjects.length; i++) {
-            scene.add(allObjects[i]);
-        }
-    }
-
-    return scene;
-}
-
-let scene = loadScene(1);
+loadScene(1);
 
 
 // Controls
@@ -75,7 +57,7 @@ function animate() {
 
     requestAnimationFrame(animate);
     orbitControls.update();
-    global.renderer.render(scene, global.camera);
+    global.renderer.render(global.scene, global.camera);
 }
 animate();
 
@@ -122,6 +104,7 @@ function findPosition(object, time) {
     console.log('index', index)
     let alpha = (time - object.path.timings[index]) / (object.path.timings[index + 1] - object.path.timings[index]);
     let position = object.path.positions[index].clone().multiplyScalar(1 - alpha).add(object.path.positions[index + 1].clone().multiplyScalar(alpha));
+    //timeline.value = (1 - alpha) * object.path.timings[index] + alpha * object.path.timings[index + 1];
     
     return position;
 }
@@ -172,7 +155,7 @@ function updateBones(object, worldRotation) {
         // Compute quaternion
         // On peut parametrer les angles mais il faut que sum(theta_i) = theta
         let q = new THREE.Quaternion();
-        q.setFromAxisAngle(localAxis, worldRotation.angle / sizing.segmentCount);
+        q.setFromAxisAngle(localAxis, worldRotation.angle / object.display.links.length);
         object.bones[i].applyQuaternion(q);
 
         
@@ -239,31 +222,37 @@ function selectObject(event) {
 
         addSelectedObject(intersectedObject[0].object, true);
 
-        if (selectedObjects[0].path.timings.length > 0) {
-            timeline.min = selectedObjects[0].path.timings[0];
-            timeline.max = selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1];
-            timeline.value = selectedObjects[0].path.timings[selectedObjects[0].path.index];
+        if(selectedObjects.length > 0) {
+            if (selectedObjects[0].path.timings.length > 0) {
+                timeline.min = selectedObjects[0].path.timings[0];
+                timeline.max = selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1];
+                timeline.value = selectedObjects[0].path.timings[selectedObjects[0].path.index];
+            } else {
+                timeline.min = 0;
+                timeline.max = 0;
+                timeline.value = 0;
+            }
+
+            // Reset
+            refTime = new Date().getTime();
+            global.sketch.positions = [];
+            global.sketch.timings = [];
+            global.sketch.isClean = false;
+
+            // Disable controls
+            orbitControls.enabled = false;
+
+            // Project on the plane in 3D space
+            p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].bones.length - 1].matrixWorld); // Stay in the plane
+            const pI = project3D(event, global.renderer.domElement, p);
+
+            global.sketch.positions.push(pI);
+            global.sketch.timings.push(new Date().getTime() - refTime);
         } else {
             timeline.min = 0;
             timeline.max = 0;
             timeline.value = 0;
         }
-
-        // Reset
-        refTime = new Date().getTime();
-        global.sketch.positions = [];
-        global.sketch.timings = [];
-        global.sketch.isClean = false;
-
-        // Disable controls
-        orbitControls.enabled = false;
-
-        // Project on the plane in 3D space
-        p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].bones.length - 1].matrixWorld); // Stay in the plane
-        const pI = project3D(event, global.renderer.domElement, p);
-
-        global.sketch.positions.push(pI);
-        global.sketch.timings.push(new Date().getTime() - refTime);
     }
 
     // Unselect objects

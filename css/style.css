@@ -2,6 +2,22 @@ body {
     margin: 0;
 }
 
+#toolbar {
+    display: flex;
+	flex-direction: row;
+    max-height: 150px;
+}
+
+#commands {
+    flex: 2;
+}
+
+#scenes {
+    display: flex;
+    flex-direction: column;
+    overflow: scroll;
+}
+
 .stack {
     position:relative;
     }
