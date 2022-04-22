@@ -2,10 +2,10 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { materials as materials1, allObjects as allObjects1, parent as parent1, detailObjects as detailObjects1, effectors as effectors1 } from './scene1.js';
-import { materials as materials2, allObjects as allObjects2, parent as parent2, meshObjects as detailObjects2, effectors as effectors2 } from './scene2.js';
-import { materials as materials3, allObjects as allObjects3, parent as parent3, detailObjects as detailObjects3, effectors as effectors3 } from './scene3.js';
-import { materials as materials4, allObjects as allObjects4, parent as parent4, detailObjects as detailObjects4, effectors as effectors4 } from './scene4.js';
+import { materials as materials1, allObjects as allObjects1, detailObjects as detailObjects1, effectors as effectors1 } from './scene1.js';
+import { materials as materials2, allObjects as allObjects2, meshObjects as detailObjects2, effectors as effectors2 } from './scene2.js';
+import { materials as materials3, allObjects as allObjects3, detailObjects as detailObjects3, effectors as effectors3 } from './scene3.js';
+import { materials as materials4, allObjects as allObjects4, detailObjects as detailObjects4, effectors as effectors4 } from './scene4.js';
 
 
 function loadScene(s) {
@@ -26,7 +26,6 @@ function loadScene(s) {
             }
             effectors = [...effectors1];
             materials = {...materials1};
-            parent = parent1;
             break;
         case 2 :
             objects = [...detailObjects2];
@@ -35,7 +34,6 @@ function loadScene(s) {
             }
             effectors = [...effectors2];
             materials = {...materials2};
-            parent = parent2;
             break;
         case 3 :
             objects = [...detailObjects3];
@@ -44,7 +42,6 @@ function loadScene(s) {
             }
             effectors = [...effectors3];
             materials = {...materials3};
-            parent = parent3;
             break;
         case 4 :
             objects = [...detailObjects4];
@@ -53,12 +50,14 @@ function loadScene(s) {
             }
             effectors = [...effectors4];
             materials = {...materials4};
-            parent = parent4;
             break;
     }
 
     for(let k = 0; k < objects.length; k++) {
         objects[k].mesh.material = materials.unselected.clone();
+        if(objects[k].level == 0) {
+            parent = objects[k];
+        }
     }
     selectedObjects = [];
 

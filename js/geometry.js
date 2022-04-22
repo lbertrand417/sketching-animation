@@ -27,7 +27,7 @@ loadScene(2);
 // Find correspondences
 function findCorrespondences() {
     if(parent != null) {
-        const positionAttribute = parent.geometry.getAttribute( 'position' );
+        const positionAttribute = parent.mesh.geometry.getAttribute( 'position' );
 
         let vertex = new THREE.Vector3();
         let skinWeight = new THREE.Vector4();
@@ -35,17 +35,17 @@ function findCorrespondences() {
 
         for ( let vertexIndex = 0; vertexIndex < positionAttribute.count; vertexIndex ++ ) {
             vertex.fromBufferAttribute( positionAttribute, vertexIndex );
-            vertex = parent.localToWorld(vertex.clone()); // World space
+            vertex = parent.mesh.localToWorld(vertex.clone()); // World space
 
-            skinIndex.fromBufferAttribute( parent.geometry.attributes.skinIndex, vertexIndex);
-		    skinWeight.fromBufferAttribute( parent.geometry.attributes.skinWeight, vertexIndex );
+            skinIndex.fromBufferAttribute( parent.mesh.geometry.attributes.skinIndex, vertexIndex);
+		    skinWeight.fromBufferAttribute( parent.mesh.geometry.attributes.skinWeight, vertexIndex );
 
             
 
             for (let k = 0; k < objects.length; k++) {
                 let currentCor = new THREE.Vector3();
                 currentCor.fromBufferAttribute(positionAttribute, objects[k].parent.index);
-                currentCor = parent.localToWorld(currentCor.clone()); // World space
+                currentCor = parent.mesh.localToWorld(currentCor.clone()); // World space
 
                 
                 let worldRootPos = objects[k].mesh.localToWorld(objects[k].bones[0].position.clone());
@@ -151,7 +151,7 @@ function updateAnimation(currentTime) {
             updateBones(objects[k], worldRotation);
 
             if(objects[k].level == 0) {
-                updateChildren(objects[k].mesh);
+                updateChildren(objects[k]);
             }
         }
     }
@@ -172,11 +172,9 @@ function findPosition(object, time) {
 
     // Interpolate
     let index = object.path.index;
-    //console.log('index', index)
     let alpha = (time - object.path.timings[index]) / (object.path.timings[index + 1] - object.path.timings[index]);
     let position = object.path.positions[index].clone().multiplyScalar(1 - alpha).add(object.path.positions[index + 1].clone().multiplyScalar(alpha)); // Local position
     object.bones[0].localToWorld(position); // Global position
-    //timeline.value = (1 - alpha) * object.path.timings[index] + alpha * object.path.timings[index + 1];
     
     return position;
 }
@@ -228,7 +226,6 @@ function updateDisplay(object) {
 function updateBones(object, worldRotation) {
 
     for(let i = 1; i <= object.bones.length - 1; i++) {
-
         // Put axis in parent space
         let parentBone = object.bones[i-1];
         let parentPos = new THREE.Vector3();
@@ -243,21 +240,14 @@ function updateBones(object, worldRotation) {
         let q = new THREE.Quaternion();
         q.setFromAxisAngle(localAxis, worldRotation.angle / object.display.links.length);
         object.bones[i].applyQuaternion(q);
-
-        
-        /*if (i == object.bones.length - 1) {
-            object.display.effector.position.setFromMatrixPosition(object.bones[i].matrixWorld);
-        } else {
-            object.display.links[i-1].position.setFromMatrixPosition(object.bones[i].matrixWorld);
-        }*/
     }
 
     updateDisplay(object);
 }
 
 
-function updateChildren(mesh) { // TODO: Changer mesh par object pour pouvoir etudier level
-    const positionAttribute = mesh.geometry.getAttribute( 'position' );
+function updateChildren(object) { // TODO: Changer mesh par object pour pouvoir etudier level
+    const positionAttribute = object.mesh.geometry.getAttribute( 'position' );
     let vertex = new THREE.Vector3();
     let skinWeight = new THREE.Vector4();
     let skinIndex = new THREE.Vector4();
@@ -266,8 +256,8 @@ function updateChildren(mesh) { // TODO: Changer mesh par object pour pouvoir et
 
         vertex.fromBufferAttribute(positionAttribute, objects[k].parent.index); // Rest pose local position
 
-        skinIndex.fromBufferAttribute( mesh.geometry.attributes.skinIndex, objects[k].parent.index );
-		skinWeight.fromBufferAttribute( mesh.geometry.attributes.skinWeight, objects[k].parent.index );
+        skinIndex.fromBufferAttribute( object.mesh.geometry.attributes.skinIndex, objects[k].parent.index );
+		skinWeight.fromBufferAttribute( object.mesh.geometry.attributes.skinWeight, objects[k].parent.index );
 
         let newRot = new THREE.Quaternion(0, 0, 0, 0); // World space
         for (let i = 0; i < 4; i++) {
@@ -278,59 +268,31 @@ function updateChildren(mesh) { // TODO: Changer mesh par object pour pouvoir et
                 let boneIndex = skinIndex.getComponent(i);
                 
                 let boneQ = new THREE.Quaternion();
-                mesh.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
+                object.mesh.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
                 boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
                 newRot.set(newRot.x + boneQ.x, newRot.y + boneQ.y, newRot.z + boneQ.z, newRot.w + boneQ.w);
             }
         }
         newRot.normalize();
 
-        mesh.boneTransform(objects[k].parent.index, vertex) // Find actual local position of the vertex (skinning) 
-        vertex = mesh.localToWorld(vertex.clone()); // World space
+        object.mesh.boneTransform(objects[k].parent.index, vertex) // Find actual local position of the vertex (skinning) 
+        vertex = object.mesh.localToWorld(vertex.clone()); // World space
 
+        // Rotate the translation offset
         let rotatedOffset = objects[k].parent.offsetPos.clone();
         rotatedOffset.applyQuaternion(newRot);
 
         let newPos = vertex.clone().sub(rotatedOffset); // Global space
         objects[k].mesh.worldToLocal(newPos); // Local space
 
-
-        let oldRootPos = objects[k].bones[0].position.clone(); // Local space
-        objects[k].mesh.localToWorld(oldRootPos); // World space
-        /*let oldRootQInv = new Quaternion();
-        objects[k].bones[0].getWorldQuaternion(oldRootQInv);
-        console.log('oldRootQInv', oldRootQInv);
-        oldRootQInv.invert();
-        console.log(oldRootQInv);*/
-
         objects[k].bones[0].position.set(newPos.x, newPos.y, newPos.z); 
         newRot.multiply(objects[k].parent.offsetQ);
         objects[k].bones[0].setRotationFromQuaternion(newRot);
-
-        let newRootPos = objects[k].bones[0].position.clone(); // Local space
-        objects[k].mesh.localToWorld(newRootPos); // World space
-        let newRootQ = new Quaternion();
-        objects[k].bones[0].getWorldQuaternion(newRootQ);
-
-        let translate = newRootPos.clone().sub(oldRootPos); // Global translate
             
         updateDisplay(objects[k]);
 
         let globalPos = fromLocalToGlobal(objects[k].path.positions, objects[k].bones[0]);
         objects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
-
-        // Update path
-        /*for (let i = 0; i < objects[k].path.positions.length; i++) {
-            //objects[k].path.positions[i].add(translate);
-            console.log(oldRootQInv);
-            console.log(objects[k].path.positions[i])
-            //objects[k].path.position[i].applyQuaternion(oldRootQInv);
-            //objects[k].path.position[i].applyQuaternion(newRootQ);
-        }*/
-        //objects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(objects[k].path.positions);
-
-        // Update target
-
     }
 }
 

@@ -199,7 +199,7 @@ let rootBone = bones[0];
 let restAxis = bones[0].worldToLocal(bodyDisplay.effector.position.clone());
 restAxis.normalize();
 
-let parent = bodyCylinder.cylinderMesh;
+//let parent = bodyCylinder.cylinderMesh;
 
 meshObjects.push({ mesh : bodyCylinder.cylinderMesh,
     height : bodyHeight,
@@ -209,7 +209,8 @@ meshObjects.push({ mesh : bodyCylinder.cylinderMesh,
     level : 0,
     parent : { 
         index : 0,
-        offset : new THREE.Vector3()
+        offsetPos : new THREE.Vector3(),
+        offsetQ : new THREE.Quaternion()
     },
     path : {
         positions : [],
@@ -307,4 +308,4 @@ for(let i = 0; i < numberLine; i++) {
     }
 }
 
-export { materials, allObjects, parent, meshObjects, effectors };
+export { materials, allObjects, meshObjects, effectors };

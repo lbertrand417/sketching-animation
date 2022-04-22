@@ -40,7 +40,7 @@ function selectObject(event) {
     }
 
     if(parent != null && (intersectedObject == null || intersectedObject.length == 0)) {
-        intersectedParent = raycaster.intersectObject(parent);
+        intersectedParent = raycaster.intersectObject(parent.mesh);
     }
 
     if (intersectedObject != null && intersectedObject.length > 0 && event.button == 0) {
@@ -95,10 +95,10 @@ function selectObject(event) {
         orbitControls.enabled = false;
 
         console.log("intersected");
-        p.setFromMatrixPosition(parent.matrixWorld);
+        p.setFromMatrixPosition(parent.mesh.matrixWorld);
         let pos3D = project3D(event, global.renderer.domElement, p);
 
-        posOffset = pos3D.clone().sub(parent.position);
+        posOffset = pos3D.clone().sub(parent.mesh.position);
     }
 
     // Unselect objects
@@ -130,7 +130,7 @@ function moveObject(event) {
         global.sketch.timings.push(new Date().getTime() - refTime);
 
         if(selectedObjects[0].level == 0) {
-            updateChildren(selectedObjects[0].mesh);
+            updateChildren(selectedObjects[0]);
         }
     }
 
@@ -138,11 +138,11 @@ function moveObject(event) {
         console.log('move');
         const pI = project3D(event, global.renderer.domElement, p);
 
-        let axis = pI.clone().sub(parent.position.clone().add(posOffset)).normalize();
-        let distance = parent.position.clone().add(posOffset).distanceTo(pI);
+        let axis = pI.clone().sub(parent.mesh.position.clone().add(posOffset)).normalize();
+        let distance = parent.mesh.position.clone().add(posOffset).distanceTo(pI);
 
-        parent.translateOnAxis(axis, distance);
-        parent.updateMatrixWorld();
+        parent.mesh.translateOnAxis(axis, distance);
+        parent.mesh.updateMatrixWorld();
 
         updateDisplay(objects[0]);
 
