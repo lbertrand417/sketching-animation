@@ -20,8 +20,9 @@ var global = {
     },
 };
 
-// Store all objects with their info
-var objects = [];
+// Store mesh info
+var objects = []; // Details
+var parent = null; // Parent mesh
 
 var materials;
 

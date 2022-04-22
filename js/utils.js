@@ -2,9 +2,10 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { materials as materials1, allObjects as allObjects1, detailObjects as detailObjects1, effectors as effectors1 } from './scene1.js';
-import { materials as materials2, allObjects as allObjects2, detailObjects as detailObjects2, effectors as effectors2 } from './scene2.js';
-import { materials as materials3, allObjects as allObjects3, detailObjects as detailObjects3, effectors as effectors3 } from './scene3.js';
+import { materials as materials1, allObjects as allObjects1, parent as parent1, detailObjects as detailObjects1, effectors as effectors1 } from './scene1.js';
+import { materials as materials2, allObjects as allObjects2, parent as parent2, meshObjects as detailObjects2, effectors as effectors2 } from './scene2.js';
+import { materials as materials3, allObjects as allObjects3, parent as parent3, detailObjects as detailObjects3, effectors as effectors3 } from './scene3.js';
+import { materials as materials4, allObjects as allObjects4, parent as parent4, detailObjects as detailObjects4, effectors as effectors4 } from './scene4.js';
 
 
 function loadScene(s) {
@@ -25,6 +26,7 @@ function loadScene(s) {
             }
             effectors = [...effectors1];
             materials = {...materials1};
+            parent = parent1;
             break;
         case 2 :
             objects = [...detailObjects2];
@@ -33,6 +35,7 @@ function loadScene(s) {
             }
             effectors = [...effectors2];
             materials = {...materials2};
+            parent = parent2;
             break;
         case 3 :
             objects = [...detailObjects3];
@@ -41,6 +44,16 @@ function loadScene(s) {
             }
             effectors = [...effectors3];
             materials = {...materials3};
+            parent = parent3;
+            break;
+        case 4 :
+            objects = [...detailObjects4];
+            for (let i = 0; i < allObjects4.length; i++) {
+                global.scene.add(allObjects4[i]);
+            }
+            effectors = [...effectors4];
+            materials = {...materials4};
+            parent = parent4;
             break;
     }
 
@@ -53,20 +66,57 @@ function loadScene(s) {
 
 
 function updatePath() {
+    let id = 1;
+
+    /*let v1 = selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id - 1].clone()).sub(selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id].clone()));
+    let v2 = selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id].clone()).sub(selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id + 1].clone()));
+
+    //console.log(v1.dot(v2));
+
+    while (v1.dot(v2) > 0 && id < global.sketch.positions.length - 2) {
+        id++;
+        v1 = selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id - 1].clone()).sub(selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id].clone()));
+        v2 = selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id].clone()).sub(selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id + 1].clone()));
+
+        //console.log('i', id);
+        //console.log(v1.dot(v2));
+    }
+
+    //console.log(id);
+    //console.log(global.sketch.positions.length);
+
+    if (id != global.sketch.positions.length - 2) {
+        for(let j = 0; j < id; j++) {
+            global.sketch.positions.shift();
+            global.sketch.timings.shift();
+        }
+    }*/
+
     selectedObjects[0].path.positions = [...global.sketch.positions];
     selectedObjects[0].path.timings = [...global.sketch.timings];
 
     for (let i = global.sketch.timings.length - 2; i >= 0; i--) {
-        selectedObjects[0].path.positions.push(selectedObjects[0].path.positions[i]);
+        selectedObjects[0].path.positions.push(selectedObjects[0].path.positions[i].clone());
         selectedObjects[0].path.timings.push(selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1] + (global.sketch.timings[i + 1] - global.sketch.timings[i]));
     }
 
     global.animation.isAnimating = true;
     global.animation.startTime = new Date().getTime();
-    selectedObjects[0].display.path.geometry = new THREE.BufferGeometry().setFromPoints(selectedObjects[0].path.positions);
+
+    let globalPos = fromLocalToGlobal(selectedObjects[0].path.positions, selectedObjects[0].bones[0]);
+    selectedObjects[0].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
 
     timeline.min = selectedObjects[0].path.timings[0];
     timeline.max = selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1];
+}
+
+function fromLocalToGlobal(positions, space) {
+    let globalPos = [];
+    for(let i = 0; i < positions.length; i++) {
+        let p = positions[i].clone();
+        globalPos.push(space.localToWorld(p));
+    }
+    return globalPos;
 }
 
 function project3D(e, canvas, p) {
@@ -126,7 +176,6 @@ function addSelectedObject(selection, removable) {
         if (selectedObjects.length == 0) {
             material = materials.selected.clone();
         } else {
-            console.log("coucou");
             material = materials.selectedBis.clone();
         }
         for (let k = 0; k < objects.length; k++) {
@@ -138,4 +187,4 @@ function addSelectedObject(selection, removable) {
     }
 }
 
-export { loadScene, updatePath, project3D, getRandomInt, addSelectedObject };
+export { loadScene, updatePath, fromLocalToGlobal, project3D, getRandomInt, addSelectedObject };

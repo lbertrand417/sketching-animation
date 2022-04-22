@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { Vector3 } from 'three';
+import { Quaternion, Vector3 } from 'three';
 import { getRandomInt } from './utils.js';
 
 let materials = {
-    unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034 }),
-    selected : new THREE.MeshPhongMaterial( { color: 0x28faa4 }),
+    unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034, transparent : true, opacity : 0.8 }),
+    selected : new THREE.MeshPhongMaterial( { color: 0x28faa4, transparent : true, opacity : 0.8 }),
     selectedBis : new THREE.MeshPhongMaterial( { color: 0x1246bf }),
     effector : new THREE.MeshBasicMaterial( {
         color: new THREE.Color( 0x88ff88 ),
@@ -28,16 +28,8 @@ let materials = {
     timing : new THREE.PointsMaterial({ color: 0xff0000, size: 2 })
 };
 
+
 let allObjects = []; // All elements of the scene
-let detailObjects = []; // Elements to animate
-
-const cylinderCount = 30;
-const radiusTop = 0.2;
-const radiusBottom = 3;
-const segmentCount = 7;
-
-let maxHeight = 40;
-
 
 // Lights
 const ambientColor = 0xFFFFFF;
@@ -50,18 +42,193 @@ spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
 allObjects.push(spotLight);
 
-const bodyHeight = 75;
-const bodyRadius = 25;
-const bodyGeometry = new THREE.CylinderGeometry(bodyRadius, bodyRadius, bodyHeight, 32, segmentCount);
-const bodyMesh = new THREE.Mesh(bodyGeometry, materials.unselected.clone());
-bodyMesh.position.set(0, -maxHeight / 2, 0);
-bodyMesh.castShadow = true;
-allObjects.push(bodyMesh);
 
+function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
+    let segmentHeight = height / segmentCount;
+
+    const cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 32, segmentCount);
+    const cylinderMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
+    cylinderMesh.castShadow = true;
+    allObjects.push(cylinderMesh);
+
+    // Initialize weights for skeleton binding
+    const skinIndices = [];
+    const skinWeights = [];
+
+    let cylinderPosition = cylinderGeometry.getAttribute('position');
+    const cylinderVertex = new THREE.Vector3();
+    for (let i = 0; i < cylinderPosition.count; i++) {
+        cylinderVertex.fromBufferAttribute(cylinderPosition, i);
+
+        const y = cylinderVertex.y + height / 2;
+
+        const skinIndex = Math.floor(y / segmentHeight);
+        const skinWeight = (y % segmentHeight) / segmentHeight;
+
+        skinIndices.push(skinIndex, skinIndex + 1, 0, 0);
+        skinWeights.push(1 - skinWeight, skinWeight, 0, 0);
+    }
+
+    cylinderGeometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndices, 4));
+    cylinderGeometry.setAttribute("skinWeight",new THREE.Float32BufferAttribute(skinWeights, 4));
+
+    let bones = [];
+    let axesHelpers = [];
+
+    // Root
+    let rootBone = new THREE.Bone();
+    rootBone.name = "Root bone";
+    rootBone.position.y = - height / 2; // Put it at the bottom of the cylinder (instead of middle) --> local pos wrt cylinder pos
+    bones.push(rootBone);
+    let axesHelper = new THREE.AxesHelper( 10 );
+    rootBone.add( axesHelper );
+    axesHelper.visible = false;
+    axesHelpers.push(axesHelper);
+
+    // Bones (the first bone is at the same position as the root bone)
+    let prevBone = new THREE.Bone();
+    prevBone.name = "Bone 0";
+    prevBone.position.y = 0; // Local pos wrt root
+    rootBone.add(prevBone);
+    bones.push(prevBone);
+    axesHelper = new THREE.AxesHelper( 10 );
+    prevBone.add(axesHelper);
+    axesHelper.visible = false;
+    axesHelpers.push(axesHelper);
+
+    for (let i = 1; i <= segmentCount; i++) {
+        const bone = new THREE.Bone();
+        bone.position.y = segmentHeight; // Local pos wrt prev bone
+        bone.name = "Bone " + i;
+        bones.push(bone);
+        prevBone.add(bone);
+        prevBone = bone;
+        axesHelper = new THREE.AxesHelper( 10 );
+        bone.add(axesHelper);
+        axesHelper.visible = false;
+        axesHelpers.push(axesHelper);
+    }
+
+
+    // Create the skeleton
+    const skeleton = new THREE.Skeleton(bones);
+
+    // Skeleton helper
+    let skeletonHelper = new THREE.SkeletonHelper( bones[0] );
+    let boneContainer = new THREE.Group();
+    boneContainer.add( bones[0] );
+    skeletonHelper.visible = false;
+    allObjects.push(skeletonHelper);
+    allObjects.push(boneContainer);
+
+    cylinderMesh.add(bones[0]);
+    cylinderMesh.bind(skeleton);
+
+    //console.log('skeleton', skeleton.bones[ 3 ].matrixWorld);
+    let test = new THREE.Matrix4();
+    console.log('matrix world', skeleton.bones[ 3 ].matrixWorld);
+    console.log('bone', bones[3].matrixWorld);
+    console.log('inverse', skeleton.boneInverses[ 3 ]);
+    test.multiplyMatrices(skeleton.bones[ 3 ].matrixWorld, skeleton.boneInverses[ 3 ])
+    console.log(test);
+
+    return { cylinderMesh, bones, axesHelpers, skeleton, skeletonHelper }
+}
+
+function createDisplay(object) {
+    let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
+
+    let effector = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
+    effector.position.setFromMatrixPosition(object.bones[object.bones.length - 1].matrixWorld);
+    effector.visible = false;
+    allObjects.push(effector);
+    effectors.push(effector);
+
+    let bonesDisplay = [];
+    for(let i = 1; i < object.bones.length - 1; i++) {
+        let boneDisplay= new THREE.Mesh( sphereGeometry, materials.links.clone() );
+        boneDisplay.position.setFromMatrixPosition(object.bones[i].matrixWorld);
+        boneDisplay.visible = false;
+        allObjects.push(boneDisplay);
+        bonesDisplay.push(boneDisplay);
+    }
+
+    let rootDisplay = new THREE.Mesh( sphereGeometry, materials.root.clone() );
+    rootDisplay.position.setFromMatrixPosition(object.bones[0].matrixWorld); // From cylinder local space to world
+    rootDisplay.visible = false;
+    allObjects.push(rootDisplay);
+
+    let pathGeometry = new THREE.BufferGeometry().setFromPoints([]);
+    let pathDisplay= new THREE.Line(pathGeometry, materials.unselectedpath.clone());
+    allObjects.push(pathDisplay);
+
+    const timingGeometry = new THREE.BufferGeometry().setFromPoints([]);
+    const timingDisplay = new THREE.Points( timingGeometry, materials.timing.clone() );
+    allObjects.push(timingDisplay);
+
+    return { effector, bonesDisplay, rootDisplay, pathDisplay, timingDisplay }
+}
+
+
+
+let meshObjects = []; // Elements to animate
+
+const cylinderCount = 30;
+const radiusTop = 0.2;
+const radiusBottom = 3;
+const segmentCount = 7;
+
+let maxHeight = 40;
 
 // MESH
 
 let effectors = [];
+
+const bodyHeight = 75;
+const bodyRadius = 25;
+
+const bodyCylinder = createCylinder(bodyRadius, bodyRadius, bodyHeight, segmentCount);
+
+bodyCylinder.cylinderMesh.position.set(0, -maxHeight / 2, 0);
+bodyCylinder.cylinderMesh.updateMatrixWorld();
+
+const bodyDisplay = createDisplay(bodyCylinder);
+
+let bones = bodyCylinder.bones;
+let rootBone = bones[0];
+let restAxis = bones[0].worldToLocal(bodyDisplay.effector.position.clone());
+restAxis.normalize();
+
+let parent = bodyCylinder.cylinderMesh;
+
+meshObjects.push({ mesh : bodyCylinder.cylinderMesh,
+    height : bodyHeight,
+    skeleton : bodyCylinder.skeleton,
+    bones : bodyCylinder.bones,
+    restAxis : restAxis,
+    level : 0,
+    parent : { 
+        index : 0,
+        offset : new THREE.Vector3()
+    },
+    path : {
+        positions : [],
+        timings : [],
+        index : null,
+        startTime : new Date().getTime(),
+    },
+    display : { 
+        effector : bodyDisplay.effector,
+        links : bodyDisplay.bonesDisplay,
+        root : bodyDisplay.rootDisplay,
+        skeleton : bodyCylinder.skeletonHelper,
+        axes : bodyCylinder.axesHelpers,
+        path : bodyDisplay.pathDisplay,
+        timing : bodyDisplay.timingDisplay
+    }
+})
+
+//let parent = null;
 
 
 const numberLine = 5;
@@ -77,89 +244,18 @@ for(let i = 0; i < numberLine; i++) {
     let segmentHeight = height / segmentCount;
 
     for(let k = 0; k < numberElement; k++) {
-        const cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 32, segmentCount);
-        const cylinderMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
-        cylinderMesh.position.set(r * Math.cos(theta), height, r * Math.sin(theta));
-        theta += thetaPas;
-        cylinderMesh.castShadow = true;
-        allObjects.push(cylinderMesh);
 
-        // Initialize weights for skeleton binding
-        const skinIndices = [];
-        const skinWeights = [];
-
-        let cylinderPosition = cylinderGeometry.getAttribute('position');
-        const cylinderVertex = new THREE.Vector3();
-        for (let i = 0; i < cylinderPosition.count; i++) {
-            cylinderVertex.fromBufferAttribute(cylinderPosition, i);
-
-            const y = cylinderVertex.y + height / 2;
-
-            const skinIndex = Math.floor(y / segmentHeight);
-            const skinWeight = (y % segmentHeight) / segmentHeight;
-
-            skinIndices.push(skinIndex, skinIndex + 1, 0, 0);
-            skinWeights.push(1 - skinWeight, skinWeight, 0, 0);
-        }
-
-        cylinderGeometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndices, 4));
-        cylinderGeometry.setAttribute("skinWeight",new THREE.Float32BufferAttribute(skinWeights, 4));
-
-        let bones = [];
-        let axesHelpers = [];
-
-        // Root
-        let rootBone = new THREE.Bone();
-        rootBone.name = "Root bone";
-        rootBone.position.y = - height / 2;
-        bones.push(rootBone);
-        let axesHelper = new THREE.AxesHelper( 10 );
-        rootBone.add( axesHelper );
-        axesHelper.visible = false;
-        axesHelpers.push(axesHelper);
-
-        // Bones (the first bone is at the same position as the root bone)
-        let prevBone = new THREE.Bone();
-        prevBone.name = "Bone 0";
-        prevBone.position.y = 0;
-        rootBone.add(prevBone);
-        bones.push(prevBone);
-        axesHelper = new THREE.AxesHelper( 10 );
-        prevBone.add(axesHelper);
-        axesHelper.visible = false;
-        axesHelpers.push(axesHelper);
-
-        for (let i = 1; i <= segmentCount; i++) {
-            const bone = new THREE.Bone();
-            bone.position.y = segmentHeight;
-            bone.name = "Bone " + i;
-            bones.push(bone);
-            prevBone.add(bone);
-            prevBone = bone;
-            axesHelper = new THREE.AxesHelper( 10 );
-            bone.add(axesHelper);
-            axesHelper.visible = false;
-            axesHelpers.push(axesHelper);
-        }
-
-
-        // Create the skeleton
-        const skeleton = new THREE.Skeleton(bones);
-
-        // Skeleton helper
-        let skeletonHelper = new THREE.SkeletonHelper( bones[0] );
-        //let boneContainer = new THREE.Group();
-        //boneContainer.add( bones[0] );
-        skeletonHelper.visible = false;
-        allObjects.push(skeletonHelper);
-        //allObjects.push(boneContainer);
-
-        cylinderMesh.add(bones[0]);
-        cylinderMesh.bind(skeleton);
+        const detailCylinder = createCylinder(radiusTop, radiusBottom, height, segmentCount);
         
-        // Random rotation of cylinders
+        // Position correctly
+        let bones = detailCylinder.bones;
+        let rootBone = bones[0];
+
+        rootBone.position.set(r * Math.cos(theta), height / 2, r * Math.sin(theta));
+        //rootBone.position.set(0, height / 2, 0);
+
         let q = new THREE.Quaternion();
-        let axis = cylinderMesh.position.clone().sub(new Vector3(0, height, 0));
+        let axis = rootBone.position.clone().sub(new Vector3(0, height, 0));
         axis.normalize();
         let rotationAxis = new Vector3(0, 1, 0);
         rotationAxis.cross(axis);
@@ -167,47 +263,31 @@ for(let i = 0; i < numberLine; i++) {
         q.setFromAxisAngle(rotationAxis, Math.PI / 1.7 - i * (Math.PI / 8));
         rootBone.applyQuaternion(q);
 
+        theta += thetaPas;
+
 
         // Update joints
         for(let i = 0; i < bones.length; i++) {
             bones[i].updateMatrixWorld(true);
         }
 
-        let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
+        const detailDisplay = createDisplay(detailCylinder);        
 
-        let effector = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
-        effector.position.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
-        effector.visible = false;
-        allObjects.push(effector);
-        effectors.push(effector);
-
-        let bonesDisplay = [];
-        for(let i = 1; i < bones.length - 1; i++) {
-            let boneDisplay= new THREE.Mesh( sphereGeometry, materials.links.clone() );
-            boneDisplay.position.setFromMatrixPosition(bones[i].matrixWorld);
-            boneDisplay.visible = false;
-            allObjects.push(boneDisplay);
-            bonesDisplay.push(boneDisplay);
-        }
-
-        let rootDisplay = new THREE.Mesh( sphereGeometry, materials.root.clone() );
-        rootDisplay.position.setFromMatrixPosition(bones[0].matrixWorld);
-        rootDisplay.visible = false;
-        allObjects.push(rootDisplay);
-
-        let pathGeometry = new THREE.BufferGeometry().setFromPoints([]);
-        let pathDisplay= new THREE.Line(pathGeometry, materials.unselectedpath.clone());
-        allObjects.push(pathDisplay);
-
-        const timingGeometry = new THREE.BufferGeometry().setFromPoints([]);
-        const timingDisplay = new THREE.Points( timingGeometry, materials.timing.clone() );
-        allObjects.push(timingDisplay);
+        let restAxis = bones[0].worldToLocal(detailDisplay.effector.position.clone());
+        restAxis.normalize();
 
         // Store object
-        detailObjects.push({ mesh : cylinderMesh,
+        meshObjects.push({ mesh : detailCylinder.cylinderMesh,
                     height : height,
-                    skeleton : skeleton,
-                    bones : bones,
+                    skeleton : detailCylinder.skeleton,
+                    bones : detailCylinder.bones,
+                    restAxis : restAxis,
+                    level : 1,
+                    parent : { 
+                        index : 0,
+                        offsetPos : new THREE.Vector3(),
+                        offsetQ : new THREE.Quaternion()
+                    },
                     path : {
                         positions : [],
                         timings : [],
@@ -215,16 +295,16 @@ for(let i = 0; i < numberLine; i++) {
                         startTime : new Date().getTime(),
                     },
                     display : { 
-                        effector : effector,
-                        links : bonesDisplay,
-                        root : rootDisplay,
-                        skeleton : skeletonHelper,
-                        axes : axesHelpers,
-                        path : pathDisplay,
-                        timing : timingDisplay
+                        effector : detailDisplay.effector,
+                        links : detailDisplay.bonesDisplay,
+                        root : detailDisplay.rootDisplay,
+                        skeleton : detailCylinder.skeletonHelper,
+                        axes : detailCylinder.axesHelpers,
+                        path : detailDisplay.pathDisplay,
+                        timing : detailDisplay.timingDisplay
                     }
                 })
     }
 }
 
-export { materials, allObjects, detailObjects, effectors };
+export { materials, allObjects, parent, meshObjects, effectors };

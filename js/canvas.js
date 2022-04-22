@@ -2,13 +2,12 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { ObjectSpaceNormalMap, Scene } from 'three';
-import { loadScene, updatePath, project3D, getRandomInt, addSelectedObject } from './utils.js';
+import { ObjectSpaceNormalMap, Scene, Vector3 } from 'three';
+import { loadScene, updatePath, fromLocalToGlobal, project3D, getRandomInt, addSelectedObject } from './utils.js';
 
 // SKETCH CANVAS
 let refTime = new Date().getTime(); // Time when we start drawing the line
 let pos = { x: 0, y: 0 }; // last known position
-let mouse = {x: 0, y: 0}; // mouse position
 
 let canvas2D = document.getElementById('canvas'); // 2D sketch canvas
 canvas2D.width = window.innerWidth;
@@ -47,8 +46,11 @@ drawButton.addEventListener("click", drawingCanvas);
 const pasteButton = document.getElementById("paste");
 pasteButton.addEventListener("click", pastePath);
 
-const offsetButton = document.getElementById("offset");
-offsetButton.addEventListener("click", offsetTiming);
+const timingButton = document.getElementById("timingoffset");
+timingButton.addEventListener("click", offsetTiming);
+
+const orientationButton = document.getElementById("orientationoffset");
+orientationButton.addEventListener("click", offsetOrientation);
 
 const selectButton = document.getElementById("select");
 selectButton.addEventListener("click", autoSelect);
@@ -77,47 +79,54 @@ function pastePath(e) {
             selectedObjects[k].path.startTime = selectedObjects[0].path.startTime; // Bug
             selectedObjects[k].path.index = selectedObjects[0].path.index;
 
-            console.log(selectedObjects[0].path.positions.length)
             // Put positions in local space
             for(let i = 0; i < selectedObjects[0].path.positions.length; i++) {
-                let rootPos = new THREE.Vector3();
-                let rootQ = new THREE.Quaternion();
-                let invRootQ = new THREE.Quaternion();
-                let rootScale = new THREE.Vector3();
-
                 // Retrieve local position (wrt root of original object)
                 let localPos = selectedObjects[0].path.positions[i].clone();
-                selectedObjects[0].bones[0].worldToLocal(localPos); // Converts to local point info (local info equal for both objects)
 
                 // Scale
                 let scale = selectedObjects[k].height / selectedObjects[0].height;
 
-                localPos = localPos.clone().multiplyScalar(scale).add(selectedObjects[k].bones[0].position.clone().multiplyScalar(1 - scale));
-                selectedObjects[k].path.positions.push(selectedObjects[k].bones[0].localToWorld(localPos)); // Put it back to global world
+                localPos.multiplyScalar(scale);
+                selectedObjects[k].path.positions.push(localPos); 
             }
 
         // Print 3D path
         if(selectedObjects[k].path.positions.length != 0) {
             console.log("print");
-            selectedObjects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(selectedObjects[k].path.positions);
+            let globalPos = fromLocalToGlobal(selectedObjects[k].path.positions, selectedObjects[k].bones[0])
+            selectedObjects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
         }
     }
 }
 
 function offsetTiming(event) {
     for(let k = 0; k < selectedObjects.length; k++) {
-        console.log(selectedObjects[k].path.timings);
-        let randomOffset = getRandomInt(0, 700);
-        console.log(randomOffset);
+        let randomOffset = getRandomInt(0, selectedObjects[k].path.timings[selectedObjects[k].path.timings.length - 1]);
         selectedObjects[k].path.timings = selectedObjects[k].path.timings.map( function(value) { 
             return value + randomOffset; 
         } );
-        console.log(selectedObjects[k].path.timings);
     }
 
     if (selectedObjects.length != 0) {
         timeline.min = selectedObjects[0].path.timings[0];
         timeline.max = selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1];
+    }
+}
+
+function offsetOrientation(event) {
+    for(let k = 0; k < selectedObjects.length; k++) {
+        let randomOffset = Math.random() * Math.PI * 2;
+
+        let length = (selectedObjects[k].path.positions.length - 1) / 2 + 1;
+        for(let i = 0; i < selectedObjects[k].path.positions.length ; i++) {
+            let localPos = selectedObjects[k].path.positions[i].clone();
+            localPos.applyAxisAngle(selectedObjects[k].restAxis, randomOffset );
+            selectedObjects[k].path.positions[i] = localPos;
+        }
+
+        let globalPos = fromLocalToGlobal(selectedObjects[k].path.positions, selectedObjects[k].bones[0]);
+        selectedObjects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
     }
 }
 
@@ -201,6 +210,12 @@ scene3Button.addEventListener("click", () => {
     loadScene(3);
 });
 
+const scene4Button = document.getElementById("scene4");
+scene4Button.addEventListener("click", () => {
+    console.log("Scene 4");
+    loadScene(4);
+});
+
 
 // CANVAS
 window.addEventListener('resize', resize);
@@ -261,7 +276,8 @@ function setPosition(e) {
 
     let p =  new THREE.Vector3(); // une position du plan
     p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].bones.length - 1].matrixWorld);
-    const pI = project3D(e, canvas2D, p);
+    let pI = project3D(e, canvas2D, p);
+    selectedObjects[0].bones[0].worldToLocal(pI);
 
     global.sketch.positions.push(pI);
     global.sketch.timings.push(new Date().getTime() - refTime);

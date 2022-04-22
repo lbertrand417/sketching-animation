@@ -7,7 +7,7 @@ import { TransformControls } from '../three.js/examples/jsm/controls/TransformCo
 import { DragControls } from "../three.js/examples/jsm/controls/DragControls.js";
 import { CCDIKSolver, CCDIKHelper } from "../three.js/examples/jsm//animation/CCDIKSolver.js";
 import { Quaternion, Vector3 } from 'three';
-import { loadScene, project3D, updatePath, addSelectedObject } from './utils.js';
+import { loadScene, project3D, fromLocalToGlobal, updatePath, addSelectedObject } from './utils.js';
 
 
 // Initalize renderer
@@ -22,12 +22,78 @@ global.camera.position.set(0, 0, 250);
 global.camera.lookAt(0, 0, 0);
 
 
-loadScene(1);
+loadScene(2);
 
+// Find correspondences
+function findCorrespondences() {
+    if(parent != null) {
+        const positionAttribute = parent.geometry.getAttribute( 'position' );
+
+        let vertex = new THREE.Vector3();
+        let skinWeight = new THREE.Vector4();
+        let skinIndex = new THREE.Vector4();
+
+        for ( let vertexIndex = 0; vertexIndex < positionAttribute.count; vertexIndex ++ ) {
+            vertex.fromBufferAttribute( positionAttribute, vertexIndex );
+            vertex = parent.localToWorld(vertex.clone()); // World space
+
+            skinIndex.fromBufferAttribute( parent.geometry.attributes.skinIndex, vertexIndex);
+		    skinWeight.fromBufferAttribute( parent.geometry.attributes.skinWeight, vertexIndex );
+
+            
+
+            for (let k = 0; k < objects.length; k++) {
+                let currentCor = new THREE.Vector3();
+                currentCor.fromBufferAttribute(positionAttribute, objects[k].parent.index);
+                currentCor = parent.localToWorld(currentCor.clone()); // World space
+
+                
+                let worldRootPos = objects[k].mesh.localToWorld(objects[k].bones[0].position.clone());
+                // Equivalent to
+                // let test = new THREE.Vector3();
+                // test.setFromMatrixPosition(objects[k].bones[0].matrixWorld);
+
+
+                let currentD = worldRootPos.clone().distanceTo(currentCor);
+                let newD = worldRootPos.clone().distanceTo(vertex);
+                if(newD < currentD) {
+                    objects[k].parent.index = vertexIndex;
+                    objects[k].parent.offsetPos = vertex.clone().sub(worldRootPos); // Global offset
+
+                    let vertexRot = new THREE.Quaternion(0, 0, 0, 0); // World space
+                    for (let i = 0; i < 4; i++) {
+                        let weight = skinWeight.getComponent(i);
+            
+                        if(weight != 0) {
+                            
+                            let boneIndex = skinIndex.getComponent(i);
+                            console.log('bone index', boneIndex)
+                            
+                            let boneQ = new THREE.Quaternion();
+                            //console.log(mesh.skeleton);
+                            //console.log(mesh.skeleton.bones[boneIndex]);
+                            parent.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
+                            boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
+                            //boneQ.multiplyScalar(weight);
+                            console.log('boneQ', boneQ);
+                            vertexRot.set(vertexRot.x + boneQ.x, vertexRot.y + boneQ.y, vertexRot.z + boneQ.z, vertexRot.w + boneQ.w);
+                        }
+                    }
+                    vertexRot.normalize();
+
+                    objects[k].parent.offsetQ = vertexRot.invert().multiply(objects[k].bones[0].quaternion);
+                    console.log('offsetS', objects[k].parent.offsetQ);
+                }
+            }
+        }
+    }
+}
+findCorrespondences();
 
 // Controls
 const orbitControls = new OrbitControls(global.camera, global.renderer.domElement);
 orbitControls.update();
+
 
 function animate() {
     // Animation
@@ -61,7 +127,8 @@ function animate() {
 }
 animate();
 
-function updateAnimation(currentTime) {
+
+function updateAnimation(currentTime) {    
     for(let k = 0; k < objects.length; k++) {
         if(objects[k].path.timings.length != 0) { 
 
@@ -82,6 +149,10 @@ function updateAnimation(currentTime) {
             // Update bones
             let worldRotation = computeAngleAxis(objects[k], new_pos);
             updateBones(objects[k], worldRotation);
+
+            if(objects[k].level == 0) {
+                updateChildren(objects[k].mesh);
+            }
         }
     }
 }
@@ -101,9 +172,10 @@ function findPosition(object, time) {
 
     // Interpolate
     let index = object.path.index;
-    console.log('index', index)
+    //console.log('index', index)
     let alpha = (time - object.path.timings[index]) / (object.path.timings[index + 1] - object.path.timings[index]);
-    let position = object.path.positions[index].clone().multiplyScalar(1 - alpha).add(object.path.positions[index + 1].clone().multiplyScalar(alpha));
+    let position = object.path.positions[index].clone().multiplyScalar(1 - alpha).add(object.path.positions[index + 1].clone().multiplyScalar(alpha)); // Local position
+    object.bones[0].localToWorld(position); // Global position
     //timeline.value = (1 - alpha) * object.path.timings[index] + alpha * object.path.timings[index + 1];
     
     return position;
@@ -139,6 +211,20 @@ function computeAngleAxis(object, target) {
    return { angle, axis };
 }
 
+function updateDisplay(object) {
+    // Update joints
+    for(let i = 0; i < object.bones.length; i++) {
+        object.bones[i].updateMatrixWorld(true);
+    }
+    
+    // Update joints display
+    object.display.effector.position.setFromMatrixPosition(object.bones[object.bones.length - 1].matrixWorld);
+    for(let i = 0; i < object.display.links.length; i++) {
+        object.display.links[i].position.setFromMatrixPosition(object.bones[i+1].matrixWorld);
+    }
+    object.display.root.position.setFromMatrixPosition(object.bones[0].matrixWorld);
+}
+
 function updateBones(object, worldRotation) {
 
     for(let i = 1; i <= object.bones.length - 1; i++) {
@@ -159,144 +245,93 @@ function updateBones(object, worldRotation) {
         object.bones[i].applyQuaternion(q);
 
         
-        if (i == object.bones.length - 1) {
+        /*if (i == object.bones.length - 1) {
             object.display.effector.position.setFromMatrixPosition(object.bones[i].matrixWorld);
         } else {
             object.display.links[i-1].position.setFromMatrixPosition(object.bones[i].matrixWorld);
-        }
+        }*/
     }
 
-    // Update joints
-    for(let i = 0; i < object.bones.length; i++) {
-        object.bones[i].updateMatrixWorld(true);
-    }
-
-    // Update joints display
-    object.display.effector.position.setFromMatrixPosition(object.bones[object.bones.length - 1].matrixWorld);
-    for(let i = 0; i < object.display.links.length; i++) {
-        object.display.links[i].position.setFromMatrixPosition(object.bones[i+1].matrixWorld);
-    }
-    object.display.root.position.setFromMatrixPosition(object.bones[0].matrixWorld);
+    updateDisplay(object);
 }
 
 
+function updateChildren(mesh) { // TODO: Changer mesh par object pour pouvoir etudier level
+    const positionAttribute = mesh.geometry.getAttribute( 'position' );
+    let vertex = new THREE.Vector3();
+    let skinWeight = new THREE.Vector4();
+    let skinIndex = new THREE.Vector4();
 
+    for(let k = 1; k < objects.length; k++) { // TODO: Adapt
 
+        vertex.fromBufferAttribute(positionAttribute, objects[k].parent.index); // Rest pose local position
 
-global.renderer.domElement.addEventListener('mousedown', selectObject);
-global.renderer.domElement.addEventListener('mousemove', moveObject);
-global.renderer.domElement.addEventListener('mouseup', unselectObject);
+        skinIndex.fromBufferAttribute( mesh.geometry.attributes.skinIndex, objects[k].parent.index );
+		skinWeight.fromBufferAttribute( mesh.geometry.attributes.skinWeight, objects[k].parent.index );
 
+        let newRot = new THREE.Quaternion(0, 0, 0, 0); // World space
+        for (let i = 0; i < 4; i++) {
+            let weight = skinWeight.getComponent(i);
 
-let refTime = new Date().getTime();
-let intersectedObject = null;
-let p = new THREE.Vector3(); // Point in the plane
-
-function selectObject(event) {
-    console.log('select');
-    event.preventDefault();
-
-    let rect = global.renderer.domElement.getBoundingClientRect();
-
-    let pos = { x: 0, y: 0 }; // last known position
-    pos.x = event.clientX - rect.left;
-    pos.y = event.clientY - rect.top;
-
-    let mouse = {x: 0, y: 0}; // mouse position
-    mouse.x = (pos.x / global.renderer.domElement.width) * 2 - 1;
-    mouse.y = - (pos.y/ global.renderer.domElement.height) * 2 + 1;
-    let mouse3D = new THREE.Vector3(mouse.x, mouse.y, 0);
-
-    let raycaster =  new THREE.Raycaster();                                        
-    raycaster.setFromCamera( mouse3D, global.camera );
-    intersectedObject = raycaster.intersectObjects(effectors);
-
-    if (intersectedObject.length > 0 && event.button == 0) {
-        if (!event.shiftKey) {
-            for(let k = 0; k < objects.length; k++) {
-                objects[k].mesh.material = materials.unselected.clone();
+            if(weight != 0) {
+                
+                let boneIndex = skinIndex.getComponent(i);
+                
+                let boneQ = new THREE.Quaternion();
+                mesh.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
+                boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
+                newRot.set(newRot.x + boneQ.x, newRot.y + boneQ.y, newRot.z + boneQ.z, newRot.w + boneQ.w);
             }
-            selectedObjects = [];
         }
-        intersectedObject[0].object.material.color.setHex( Math.random() * 0xffffff ); // CHANGE
+        newRot.normalize();
 
-        addSelectedObject(intersectedObject[0].object, true);
+        mesh.boneTransform(objects[k].parent.index, vertex) // Find actual local position of the vertex (skinning) 
+        vertex = mesh.localToWorld(vertex.clone()); // World space
 
-        if(selectedObjects.length > 0) {
-            if (selectedObjects[0].path.timings.length > 0) {
-                timeline.min = selectedObjects[0].path.timings[0];
-                timeline.max = selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1];
-                timeline.value = selectedObjects[0].path.timings[selectedObjects[0].path.index];
-            } else {
-                timeline.min = 0;
-                timeline.max = 0;
-                timeline.value = 0;
-            }
+        let rotatedOffset = objects[k].parent.offsetPos.clone();
+        rotatedOffset.applyQuaternion(newRot);
 
-            // Reset
-            refTime = new Date().getTime();
-            global.sketch.positions = [];
-            global.sketch.timings = [];
-            global.sketch.isClean = false;
+        let newPos = vertex.clone().sub(rotatedOffset); // Global space
+        objects[k].mesh.worldToLocal(newPos); // Local space
 
-            // Disable controls
-            orbitControls.enabled = false;
 
-            // Project on the plane in 3D space
-            p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].bones.length - 1].matrixWorld); // Stay in the plane
-            const pI = project3D(event, global.renderer.domElement, p);
+        let oldRootPos = objects[k].bones[0].position.clone(); // Local space
+        objects[k].mesh.localToWorld(oldRootPos); // World space
+        /*let oldRootQInv = new Quaternion();
+        objects[k].bones[0].getWorldQuaternion(oldRootQInv);
+        console.log('oldRootQInv', oldRootQInv);
+        oldRootQInv.invert();
+        console.log(oldRootQInv);*/
 
-            global.sketch.positions.push(pI);
-            global.sketch.timings.push(new Date().getTime() - refTime);
-        } else {
-            timeline.min = 0;
-            timeline.max = 0;
-            timeline.value = 0;
-        }
+        objects[k].bones[0].position.set(newPos.x, newPos.y, newPos.z); 
+        newRot.multiply(objects[k].parent.offsetQ);
+        objects[k].bones[0].setRotationFromQuaternion(newRot);
+
+        let newRootPos = objects[k].bones[0].position.clone(); // Local space
+        objects[k].mesh.localToWorld(newRootPos); // World space
+        let newRootQ = new Quaternion();
+        objects[k].bones[0].getWorldQuaternion(newRootQ);
+
+        let translate = newRootPos.clone().sub(oldRootPos); // Global translate
+            
+        updateDisplay(objects[k]);
+
+        let globalPos = fromLocalToGlobal(objects[k].path.positions, objects[k].bones[0]);
+        objects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+
+        // Update path
+        /*for (let i = 0; i < objects[k].path.positions.length; i++) {
+            //objects[k].path.positions[i].add(translate);
+            console.log(oldRootQInv);
+            console.log(objects[k].path.positions[i])
+            //objects[k].path.position[i].applyQuaternion(oldRootQInv);
+            //objects[k].path.position[i].applyQuaternion(newRootQ);
+        }*/
+        //objects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(objects[k].path.positions);
+
+        // Update target
+
     }
-
-    // Unselect objects
-    if(event.button == 2) {
-        if (selectedObjects.length != 0) {
-            for (let i = 0; i < selectedObjects.length; i++) {
-                selectedObjects[i].mesh.material = materials.unselected.clone();
-            }            
-        }
-        selectedObjects = [];
-        timeline.min = 0;
-        timeline.max = 0;
-    }
-}
-
-function moveObject(event) {
-    if(intersectedObject != null && intersectedObject.length > 0 && !event.shiftKey){
-        console.log("move");
-        event.preventDefault();
-
-        const pI = project3D(event, global.renderer.domElement, p);
-
-        global.sketch.positions.push(pI);
-        global.sketch.timings.push(new Date().getTime() - refTime);
-
-        let worldRotation = computeAngleAxis(selectedObjects[0], pI);
-        updateBones(selectedObjects[0], worldRotation);
-    }
-}
-
-function unselectObject(event) {
-    console.log("unselect");
-    orbitControls.enabled = true;
-    if(intersectedObject != null && intersectedObject.length > 0 && !event.shiftKey) {
-        intersectedObject = null;
-        
-        if (global.sketch.positions.length > 1) {
-            updatePath();
-        } else {
-            global.sketch.positions = [...selectedObjects[0].path.positions];
-            global.sketch.timings = [...selectedObjects[0].path.timings];
-        }
-    } 
-    intersectedObject = [];
 }
 
 
@@ -305,3 +340,4 @@ timeline.oninput = function() {
     updateAnimation(parseInt(this.value));
 } 
 
+export { orbitControls, computeAngleAxis, updateDisplay, updateBones, updateChildren };
