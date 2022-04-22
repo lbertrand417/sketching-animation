@@ -133,7 +133,9 @@ function offsetOrientation(event) {
 function autoSelect(event) {
     console.log("auto select");
     for(let k = 0; k < objects.length; k++) {
-        addSelectedObject(objects[k].display.effector, false);
+        if(selectedObjects.length != 0 && objects[k].level == selectedObjects[0].level) {
+            addSelectedObject(objects[k].display.effector, false);
+        }
     }
 }
 

@@ -252,47 +252,49 @@ function updateChildren(object) { // TODO: Changer mesh par object pour pouvoir 
     let skinWeight = new THREE.Vector4();
     let skinIndex = new THREE.Vector4();
 
-    for(let k = 1; k < objects.length; k++) { // TODO: Adapt
+    for(let k = 0; k < objects.length; k++) { // TODO: Adapt
+        if(objects[k].level == object.level + 1) {
 
-        vertex.fromBufferAttribute(positionAttribute, objects[k].parent.index); // Rest pose local position
+            vertex.fromBufferAttribute(positionAttribute, objects[k].parent.index); // Rest pose local position
 
-        skinIndex.fromBufferAttribute( object.mesh.geometry.attributes.skinIndex, objects[k].parent.index );
-		skinWeight.fromBufferAttribute( object.mesh.geometry.attributes.skinWeight, objects[k].parent.index );
+            skinIndex.fromBufferAttribute( object.mesh.geometry.attributes.skinIndex, objects[k].parent.index );
+            skinWeight.fromBufferAttribute( object.mesh.geometry.attributes.skinWeight, objects[k].parent.index );
 
-        let newRot = new THREE.Quaternion(0, 0, 0, 0); // World space
-        for (let i = 0; i < 4; i++) {
-            let weight = skinWeight.getComponent(i);
+            let newRot = new THREE.Quaternion(0, 0, 0, 0); // World space
+            for (let i = 0; i < 4; i++) {
+                let weight = skinWeight.getComponent(i);
 
-            if(weight != 0) {
-                
-                let boneIndex = skinIndex.getComponent(i);
-                
-                let boneQ = new THREE.Quaternion();
-                object.mesh.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
-                boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
-                newRot.set(newRot.x + boneQ.x, newRot.y + boneQ.y, newRot.z + boneQ.z, newRot.w + boneQ.w);
+                if(weight != 0) {
+                    
+                    let boneIndex = skinIndex.getComponent(i);
+                    
+                    let boneQ = new THREE.Quaternion();
+                    object.mesh.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
+                    boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
+                    newRot.set(newRot.x + boneQ.x, newRot.y + boneQ.y, newRot.z + boneQ.z, newRot.w + boneQ.w);
+                }
             }
+            newRot.normalize();
+
+            object.mesh.boneTransform(objects[k].parent.index, vertex) // Find actual local position of the vertex (skinning) 
+            vertex = object.mesh.localToWorld(vertex.clone()); // World space
+
+            // Rotate the translation offset
+            let rotatedOffset = objects[k].parent.offsetPos.clone();
+            rotatedOffset.applyQuaternion(newRot);
+
+            let newPos = vertex.clone().sub(rotatedOffset); // Global space
+            objects[k].mesh.worldToLocal(newPos); // Local space
+
+            objects[k].bones[0].position.set(newPos.x, newPos.y, newPos.z); 
+            newRot.multiply(objects[k].parent.offsetQ);
+            objects[k].bones[0].setRotationFromQuaternion(newRot);
+                
+            updateDisplay(objects[k]);
+
+            let globalPos = fromLocalToGlobal(objects[k].path.positions, objects[k].bones[0]);
+            objects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
         }
-        newRot.normalize();
-
-        object.mesh.boneTransform(objects[k].parent.index, vertex) // Find actual local position of the vertex (skinning) 
-        vertex = object.mesh.localToWorld(vertex.clone()); // World space
-
-        // Rotate the translation offset
-        let rotatedOffset = objects[k].parent.offsetPos.clone();
-        rotatedOffset.applyQuaternion(newRot);
-
-        let newPos = vertex.clone().sub(rotatedOffset); // Global space
-        objects[k].mesh.worldToLocal(newPos); // Local space
-
-        objects[k].bones[0].position.set(newPos.x, newPos.y, newPos.z); 
-        newRot.multiply(objects[k].parent.offsetQ);
-        objects[k].bones[0].setRotationFromQuaternion(newRot);
-            
-        updateDisplay(objects[k]);
-
-        let globalPos = fromLocalToGlobal(objects[k].path.positions, objects[k].bones[0]);
-        objects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
     }
 }
 
