@@ -27,7 +27,7 @@ var parent = null; // Parent mesh
 var materials;
 
 // Store selectionable effectors
-var effectors = [];
+//var effectors = [];
 
 // Store selected objects
 var selectedObjects = [];

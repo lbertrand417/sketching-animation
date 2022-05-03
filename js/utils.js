@@ -2,10 +2,10 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { materials as materials1, allObjects as allObjects1, detailObjects as detailObjects1, effectors as effectors1 } from './scene1.js';
-import { materials as materials2, allObjects as allObjects2, meshObjects as detailObjects2, effectors as effectors2 } from './scene2.js';
-import { materials as materials3, allObjects as allObjects3, detailObjects as detailObjects3, effectors as effectors3 } from './scene3.js';
-import { materials as materials4, allObjects as allObjects4, detailObjects as detailObjects4, effectors as effectors4 } from './scene4.js';
+import { materials as materials1, allObjects as allObjects1, meshObjects as meshObjects1 } from './scene1.js';
+import { materials as materials2, allObjects as allObjects2, meshObjects as meshObjects2 } from './scene2.js';
+import { materials as materials3, allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3.js';
+import { materials as materials4, allObjects as allObjects4, meshObjects as meshObjects4 } from './scene4.js';
 
 
 function loadScene(s) {
@@ -20,35 +20,31 @@ function loadScene(s) {
 
     switch(s) {
         case 1 :
-            objects = [...detailObjects1];
+            objects = [...meshObjects1];
             for (let i = 0; i < allObjects1.length; i++) {
                 global.scene.add(allObjects1[i]);
             }
-            effectors = [...effectors1];
             materials = {...materials1};
             break;
         case 2 :
-            objects = [...detailObjects2];
+            objects = [...meshObjects2];
             for (let i = 0; i < allObjects2.length; i++) {
                 global.scene.add(allObjects2[i]);
             }
-            effectors = [...effectors2];
             materials = {...materials2};
             break;
         case 3 :
-            objects = [...detailObjects3];
+            objects = [...meshObjects3];
             for (let i = 0; i < allObjects3.length; i++) {
                 global.scene.add(allObjects3[i]);
             }
-            effectors = [...effectors3];
             materials = {...materials3};
             break;
         case 4 :
-            objects = [...detailObjects4];
+            objects = [...meshObjects4];
             for (let i = 0; i < allObjects4.length; i++) {
                 global.scene.add(allObjects4[i]);
             }
-            effectors = [...effectors4];
             materials = {...materials4};
             break;
     }
@@ -60,36 +56,29 @@ function loadScene(s) {
         }
     }
     selectedObjects = [];
-
 }
 
 
 function updatePath() {
     let id = 1;
 
-    /*let v1 = selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id - 1].clone()).sub(selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id].clone()));
-    let v2 = selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id].clone()).sub(selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id + 1].clone()));
+    //console.log(global.sketch.position)
 
-    //console.log(v1.dot(v2));
+    let v1 = global.sketch.positions[id - 1].clone().sub(global.sketch.positions[id]);
+    let v2 = global.sketch.positions[id].clone().sub(global.sketch.positions[id + 1]);
 
     while (v1.dot(v2) > 0 && id < global.sketch.positions.length - 2) {
         id++;
-        v1 = selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id - 1].clone()).sub(selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id].clone()));
-        v2 = selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id].clone()).sub(selectedObjects[0].bones[0].worldToLocal(global.sketch.positions[id + 1].clone()));
-
-        //console.log('i', id);
-        //console.log(v1.dot(v2));
+        v1 = global.sketch.positions[id - 1].clone().sub(global.sketch.positions[id]);
+        v2 = global.sketch.positions[id].clone().sub(global.sketch.positions[id + 1]);
     }
-
-    //console.log(id);
-    //console.log(global.sketch.positions.length);
 
     if (id != global.sketch.positions.length - 2) {
         for(let j = 0; j < id; j++) {
             global.sketch.positions.shift();
             global.sketch.timings.shift();
         }
-    }*/
+    }
 
     selectedObjects[0].path.positions = [...global.sketch.positions];
     selectedObjects[0].path.timings = [...global.sketch.timings];
@@ -155,13 +144,22 @@ function getRandomInt(min, max) {
 }
 
 function addSelectedObject(selection, removable) {
+    console.log(selection);
     // Check if not in the selection already
     let isSelected = false;
+    console.log('selectedObjects', selectedObjects);
+    console.log('selection', selection);
     for(let i = 0; i < selectedObjects.length; i++) {
-        if (JSON.stringify(selectedObjects[i].display.effector) == JSON.stringify(selection)) {
+        if (selectedObjects[i] === selection) {
+            console.log('coucou');
+        //if (JSON.stringify(selectedObjects[i].display.links[selectedObjects[i].display.links.length - 1]) == JSON.stringify(selection)) {
+        //if (JSON.stringify(selectedObjects[i].display.links[selectedObjects[i].display.links.length - 1]) == JSON.stringify(selection)) {
             isSelected = true;
             if(removable) {
                 selectedObjects[i].mesh.material = materials.unselected.clone();
+                console.log('effector', selectedObjects[i].path.effector);
+                selectedObjects[i].display.links[selectedObjects[i].path.effector].material = materials.links.clone();
+                selectedObjects[i].path.effector = null;
                 selectedObjects.splice(i, 1);
                 if(selectedObjects.length > 0) {
                     selectedObjects[0].mesh.material = materials.selected.clone();
@@ -178,12 +176,15 @@ function addSelectedObject(selection, removable) {
             material = materials.selectedBis.clone();
         }
         for (let k = 0; k < objects.length; k++) {
-            if (JSON.stringify(objects[k].display.effector) == JSON.stringify(selection)) {
+            if (objects[k] === selection) {
+            //if (JSON.stringify(objects[k].display.links[objects[k].display.links.length - 1]) == JSON.stringify(selection)) {
                 selectedObjects.push(objects[k]);
                 objects[k].mesh.material = material;
             }
         }
     }
+
+    console.log('selectedObjects2', selectedObjects);
 }
 
 export { loadScene, updatePath, fromLocalToGlobal, project3D, getRandomInt, addSelectedObject };

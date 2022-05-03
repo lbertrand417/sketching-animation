@@ -17,6 +17,19 @@ let posOffset = new THREE.Vector3();
 
 let p = new THREE.Vector3(); // Point in the plane
 
+function retrieveObject(effector) {
+    for (let k = 0; k < objects.length; k++) {
+        for (let i = 0; i < objects[k].display.links.length; i++) {
+            if (effector === objects[k].display.links[i]) {
+            //if (effector === objects[k].display.effector) {
+                objects[k].path.effector = i;
+                objects[k].display.links[i].material = materials.effector.clone();
+                return k;
+            }
+        }
+    }
+}
+
 function selectObject(event) {
     console.log('select');
     event.preventDefault();
@@ -35,24 +48,42 @@ function selectObject(event) {
     let raycaster =  new THREE.Raycaster();                                        
     raycaster.setFromCamera( mouse3D, global.camera );
 
-    if(effectors != null) {
-        intersectedObject = raycaster.intersectObjects(effectors);
+    //console.log("effectors", effectors);
+
+    let selectableObjects = []
+    for (let k = 0; k < objects.length; k++) {
+        for (let i = 0; i < objects[k].display.links.length; i++) {
+            selectableObjects.push(objects[k].display.links[i]);
+        }
     }
+
+    if(selectableObjects != null) {
+        intersectedObject = raycaster.intersectObjects(selectableObjects);
+        //intersectedObject = raycaster.intersectObjects(effectors);
+
+        console.log('intersect', intersectedObject);
+    }
+
 
     if(parent != null && (intersectedObject == null || intersectedObject.length == 0)) {
         intersectedParent = raycaster.intersectObject(parent.mesh);
     }
 
     if (intersectedObject != null && intersectedObject.length > 0 && event.button == 0) {
+        // Change into an update function?
         if (!event.shiftKey) {
             for(let k = 0; k < objects.length; k++) {
                 objects[k].mesh.material = materials.unselected.clone();
+                if(objects[k].path.effector != null) {
+                    objects[k].display.links[objects[k].path.effector].material = materials.links.clone();
+                }
             }
             selectedObjects = [];
         }
-        intersectedObject[0].object.material.color.setHex( Math.random() * 0xffffff ); // CHANGE
 
-        addSelectedObject(intersectedObject[0].object, true);
+        const objectIndex = retrieveObject(intersectedObject[0].object);
+        addSelectedObject(objects[objectIndex], true);
+        //---------------
 
         if(selectedObjects.length > 0) {
             if (selectedObjects[0].path.timings.length > 0) {
@@ -75,11 +106,9 @@ function selectObject(event) {
             orbitControls.enabled = false;
 
             // Project on the plane in 3D space
-            p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].bones.length - 1].matrixWorld); // Stay in the plane
+            p.setFromMatrixPosition(selectedObjects[0].display.links[selectedObjects[0].path.effector].matrixWorld); // Stay in the plane
             const pI = project3D(event, global.renderer.domElement, p);
-            console.log('pI global', pI);
             selectedObjects[0].bones[0].worldToLocal(pI);
-            console.log('pI local', pI);
 
             global.sketch.positions.push(pI);
             global.sketch.timings.push(new Date().getTime() - refTime);

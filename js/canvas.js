@@ -78,6 +78,7 @@ function pastePath(e) {
             selectedObjects[k].path.timings = [...selectedObjects[0].path.timings];
             selectedObjects[k].path.startTime = selectedObjects[0].path.startTime; // Bug
             selectedObjects[k].path.index = selectedObjects[0].path.index;
+            selectedObjects[k].path.effector = selectedObjects[0].path.effector; // Replace with closest effector
 
             // Put positions in local space
             for(let i = 0; i < selectedObjects[0].path.positions.length; i++) {
@@ -134,7 +135,7 @@ function autoSelect(event) {
     console.log("auto select");
     for(let k = 0; k < objects.length; k++) {
         if(selectedObjects.length != 0 && objects[k].level == selectedObjects[0].level) {
-            addSelectedObject(objects[k].display.effector, false);
+            addSelectedObject(objects[k], false);
         }
     }
 }
@@ -145,14 +146,6 @@ rootButton.addEventListener("click", () => {
     console.log("display");
     for(let k = 0; k < objects.length; k++) {
         objects[k].display.root.visible = !objects[k].display.root.visible ;
-    }
-});
-
-const effectorButton = document.getElementById("effector");
-effectorButton.addEventListener("click", () => {
-    console.log("display");
-    for(let k = 0; k < objects.length; k++) {
-        objects[k].display.effector.visible = !objects[k].display.effector.visible ;
     }
 });
 

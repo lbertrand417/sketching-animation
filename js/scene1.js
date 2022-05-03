@@ -28,7 +28,7 @@ let materials = {
 };
 
 let allObjects = []; // All elements of the scene
-let detailObjects = []; // Elements to animate
+let meshObjects = []; // Elements to animate
 
 
 // Lights
@@ -63,9 +63,6 @@ function getRandomInt(min, max) {
 }
 
 // MESH
-let parent = null;
-
-let effectors = [];
 
 for(let k = 0; k < cylinderCount; k++) {
     const cylinderGeometry = new THREE.CylinderGeometry(5, 5, sizing.height, 32, sizing.segmentCount);
@@ -162,13 +159,8 @@ for(let k = 0; k < cylinderCount; k++) {
 
     let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
 
-    let effector = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
-    effector.position.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
-    allObjects.push(effector);
-    effectors.push(effector);
-
     let bonesDisplay = [];
-    for(let i = 1; i < bones.length - 1; i++) {
+    for(let i = 1; i < bones.length; i++) {
         let boneDisplay= new THREE.Mesh( sphereGeometry, materials.links.clone() );
         boneDisplay.position.setFromMatrixPosition(bones[i].matrixWorld);
         allObjects.push(boneDisplay);
@@ -187,17 +179,13 @@ for(let k = 0; k < cylinderCount; k++) {
     const timingDisplay = new THREE.Points( timingGeometry, materials.timing.clone() );
     allObjects.push(timingDisplay);
 
-    //let restAxis = effector.position.clone().sub(rootDisplay.position);
-    //let restAxis = effector.position.clone().sub(rootDisplay.position); // in world space
-    //restAxis.normalize();
-    //bones[0].worldToLocal(restAxis);
-    //restAxis.normalize();
-    let restAxis = bones[0].worldToLocal(effector.position.clone());
+    let restAxis = bones[0].worldToLocal(bonesDisplay[bonesDisplay.length - 1].position.clone());
+    //let restAxis = bones[0].worldToLocal(effector.position.clone());
     restAxis.normalize();
     
 
     // Store object
-    detailObjects.push({ mesh : cylinderMesh,
+    meshObjects.push({ mesh : cylinderMesh,
                 height : sizing.height,
                 skeleton : skeleton,
                 bones : bones,
@@ -213,9 +201,9 @@ for(let k = 0; k < cylinderCount; k++) {
                     timings : [],
                     index : null,
                     startTime : new Date().getTime(),
+                    effector : null,
                 },
                 display : { 
-                    effector : effector,
                     links : bonesDisplay,
                     root : rootDisplay,
                     skeleton : skeletonHelper,
@@ -235,4 +223,4 @@ plane.rotation.x = Math.PI * -.5;
 plane.receiveShadow = true;
 allObjects.push(plane);
 
-export { materials, allObjects, parent, detailObjects, effectors };
+export { materials, allObjects, meshObjects };

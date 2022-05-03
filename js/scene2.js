@@ -124,28 +124,20 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
     cylinderMesh.add(bones[0]);
     cylinderMesh.bind(skeleton);
 
-    //console.log('skeleton', skeleton.bones[ 3 ].matrixWorld);
-    let test = new THREE.Matrix4();
-    console.log('matrix world', skeleton.bones[ 3 ].matrixWorld);
-    console.log('bone', bones[3].matrixWorld);
-    console.log('inverse', skeleton.boneInverses[ 3 ]);
-    test.multiplyMatrices(skeleton.bones[ 3 ].matrixWorld, skeleton.boneInverses[ 3 ])
-    console.log(test);
-
     return { cylinderMesh, bones, axesHelpers, skeleton, skeletonHelper }
 }
 
 function createDisplay(object) {
     let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
 
-    let effector = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
+    /*let effector = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
     effector.position.setFromMatrixPosition(object.bones[object.bones.length - 1].matrixWorld);
     effector.visible = false;
     allObjects.push(effector);
-    effectors.push(effector);
+    effectors.push(effector);*/
 
     let bonesDisplay = [];
-    for(let i = 1; i < object.bones.length - 1; i++) {
+    for(let i = 1; i < object.bones.length; i++) {
         let boneDisplay= new THREE.Mesh( sphereGeometry, materials.links.clone() );
         boneDisplay.position.setFromMatrixPosition(object.bones[i].matrixWorld);
         boneDisplay.visible = false;
@@ -166,7 +158,8 @@ function createDisplay(object) {
     const timingDisplay = new THREE.Points( timingGeometry, materials.timing.clone() );
     allObjects.push(timingDisplay);
 
-    return { effector, bonesDisplay, rootDisplay, pathDisplay, timingDisplay }
+    //return { effector, bonesDisplay, rootDisplay, pathDisplay, timingDisplay }
+    return { bonesDisplay, rootDisplay, pathDisplay, timingDisplay }
 }
 
 
@@ -182,7 +175,7 @@ let maxHeight = 40;
 
 // MESH
 
-let effectors = [];
+//let effectors = [];
 
 const bodyHeight = 75;
 const bodyRadius = 25;
@@ -196,7 +189,8 @@ const bodyDisplay = createDisplay(bodyCylinder);
 
 let bones = bodyCylinder.bones;
 let rootBone = bones[0];
-let restAxis = bones[0].worldToLocal(bodyDisplay.effector.position.clone());
+//let restAxis = bones[0].worldToLocal(bodyDisplay.effector.position.clone());
+let restAxis = bones[0].worldToLocal(bodyDisplay.bonesDisplay[bodyDisplay.bonesDisplay.length - 1].position.clone());
 restAxis.normalize();
 
 //let parent = bodyCylinder.cylinderMesh;
@@ -207,19 +201,16 @@ meshObjects.push({ mesh : bodyCylinder.cylinderMesh,
     bones : bodyCylinder.bones,
     restAxis : restAxis,
     level : 0,
-    parent : { 
-        index : 0,
-        offsetPos : new THREE.Vector3(),
-        offsetQ : new THREE.Quaternion()
-    },
+    parent : null,
     path : {
         positions : [],
         timings : [],
         index : null,
         startTime : new Date().getTime(),
+        effector : null
     },
     display : { 
-        effector : bodyDisplay.effector,
+        //effector : bodyDisplay.effector,
         links : bodyDisplay.bonesDisplay,
         root : bodyDisplay.rootDisplay,
         skeleton : bodyCylinder.skeletonHelper,
@@ -228,8 +219,6 @@ meshObjects.push({ mesh : bodyCylinder.cylinderMesh,
         timing : bodyDisplay.timingDisplay
     }
 })
-
-//let parent = null;
 
 
 const numberLine = 5;
@@ -274,7 +263,7 @@ for(let i = 0; i < numberLine; i++) {
 
         const detailDisplay = createDisplay(detailCylinder);        
 
-        let restAxis = bones[0].worldToLocal(detailDisplay.effector.position.clone());
+        let restAxis = bones[0].worldToLocal(detailDisplay.bonesDisplay[detailDisplay.bonesDisplay.length - 1].position.clone());
         restAxis.normalize();
 
         // Store object
@@ -294,9 +283,10 @@ for(let i = 0; i < numberLine; i++) {
                         timings : [],
                         index : null,
                         startTime : new Date().getTime(),
+                        effector : null
                     },
                     display : { 
-                        effector : detailDisplay.effector,
+                        //effector : detailDisplay.effector,
                         links : detailDisplay.bonesDisplay,
                         root : detailDisplay.rootDisplay,
                         skeleton : detailCylinder.skeletonHelper,
@@ -308,4 +298,5 @@ for(let i = 0; i < numberLine; i++) {
     }
 }
 
-export { materials, allObjects, meshObjects, effectors };
+//export { materials, allObjects, meshObjects, effectors };
+export { materials, allObjects, meshObjects };

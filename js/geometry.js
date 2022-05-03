@@ -43,46 +43,42 @@ function findCorrespondences() {
             
 
             for (let k = 0; k < objects.length; k++) {
-                let currentCor = new THREE.Vector3();
-                currentCor.fromBufferAttribute(positionAttribute, objects[k].parent.index);
-                currentCor = parent.mesh.localToWorld(currentCor.clone()); // World space
+                if(objects[k].level != 0) {
+                    let currentCor = new THREE.Vector3();
+                    currentCor.fromBufferAttribute(positionAttribute, objects[k].parent.index);
+                    currentCor = parent.mesh.localToWorld(currentCor.clone()); // World space
 
+                    
+                    let worldRootPos = objects[k].mesh.localToWorld(objects[k].bones[0].position.clone());
+                    // Equivalent to
+                    // let test = new THREE.Vector3();
+                    // test.setFromMatrixPosition(objects[k].bones[0].matrixWorld);
+
+
+                    let currentD = worldRootPos.clone().distanceTo(currentCor);
+                    let newD = worldRootPos.clone().distanceTo(vertex);
+                    if(newD < currentD) {
+                        objects[k].parent.index = vertexIndex;
+                        objects[k].parent.offsetPos = vertex.clone().sub(worldRootPos); // Global offset
+
+                        let vertexRot = new THREE.Quaternion(0, 0, 0, 0); // World space
+                        for (let i = 0; i < 4; i++) {
+                            let weight = skinWeight.getComponent(i);
                 
-                let worldRootPos = objects[k].mesh.localToWorld(objects[k].bones[0].position.clone());
-                // Equivalent to
-                // let test = new THREE.Vector3();
-                // test.setFromMatrixPosition(objects[k].bones[0].matrixWorld);
-
-
-                let currentD = worldRootPos.clone().distanceTo(currentCor);
-                let newD = worldRootPos.clone().distanceTo(vertex);
-                if(newD < currentD) {
-                    objects[k].parent.index = vertexIndex;
-                    objects[k].parent.offsetPos = vertex.clone().sub(worldRootPos); // Global offset
-
-                    let vertexRot = new THREE.Quaternion(0, 0, 0, 0); // World space
-                    for (let i = 0; i < 4; i++) {
-                        let weight = skinWeight.getComponent(i);
-            
-                        if(weight != 0) {
-                            
-                            let boneIndex = skinIndex.getComponent(i);
-                            console.log('bone index', boneIndex)
-                            
-                            let boneQ = new THREE.Quaternion();
-                            //console.log(mesh.skeleton);
-                            //console.log(mesh.skeleton.bones[boneIndex]);
-                            parent.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
-                            boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
-                            //boneQ.multiplyScalar(weight);
-                            console.log('boneQ', boneQ);
-                            vertexRot.set(vertexRot.x + boneQ.x, vertexRot.y + boneQ.y, vertexRot.z + boneQ.z, vertexRot.w + boneQ.w);
+                            if(weight != 0) {
+                                
+                                let boneIndex = skinIndex.getComponent(i);
+                                
+                                let boneQ = new THREE.Quaternion();
+                                parent.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
+                                boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
+                                vertexRot.set(vertexRot.x + boneQ.x, vertexRot.y + boneQ.y, vertexRot.z + boneQ.z, vertexRot.w + boneQ.w);
+                            }
                         }
-                    }
-                    vertexRot.normalize();
+                        vertexRot.normalize();
 
-                    objects[k].parent.offsetQ = vertexRot.invert().multiply(objects[k].bones[0].quaternion);
-                    console.log('offsetS', objects[k].parent.offsetQ);
+                        objects[k].parent.offsetQ = vertexRot.invert().multiply(objects[k].bones[0].quaternion);
+                    }
                 }
             }
         }
@@ -96,6 +92,7 @@ orbitControls.update();
 
 
 function animate() {
+    
     // Animation
     if(global.animation.isAnimating) {
         let currentTime = new Date().getTime() - global.animation.startTime;
@@ -216,7 +213,7 @@ function updateDisplay(object) {
     }
     
     // Update joints display
-    object.display.effector.position.setFromMatrixPosition(object.bones[object.bones.length - 1].matrixWorld);
+    //object.display.effector.position.setFromMatrixPosition(object.bones[object.bones.length - 1].matrixWorld);
     for(let i = 0; i < object.display.links.length; i++) {
         object.display.links[i].position.setFromMatrixPosition(object.bones[i+1].matrixWorld);
     }
@@ -225,7 +222,8 @@ function updateDisplay(object) {
 
 function updateBones(object, worldRotation) {
 
-    for(let i = 1; i <= object.bones.length - 1; i++) {
+    //for(let i = 1; i <= object.bones.length - 1; i++) {
+    for(let i = 1; i <= object.path.effector; i++) {
         // Put axis in parent space
         let parentBone = object.bones[i-1];
         let parentPos = new THREE.Vector3();
@@ -238,7 +236,8 @@ function updateBones(object, worldRotation) {
         // Compute quaternion
         // On peut parametrer les angles mais il faut que sum(theta_i) = theta
         let q = new THREE.Quaternion();
-        q.setFromAxisAngle(localAxis, worldRotation.angle / object.display.links.length);
+        //q.setFromAxisAngle(localAxis, worldRotation.angle / object.display.links.length);
+        q.setFromAxisAngle(localAxis, worldRotation.angle / (object.path.effector - 1));
         object.bones[i].applyQuaternion(q);
     }
 
