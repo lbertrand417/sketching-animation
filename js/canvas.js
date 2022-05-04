@@ -211,6 +211,8 @@ function updateScene(e) {
     
     updatePath();
 
+    // find closest effector
+
     ctx.clearRect(0, 0, canvas2D.width, canvas2D.height); // Clear the 2D canvas
 }
 

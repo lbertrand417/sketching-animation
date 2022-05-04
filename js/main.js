@@ -140,8 +140,7 @@ function updateBones(object, worldRotation) {
         // Compute quaternion
         // On peut parametrer les angles mais il faut que sum(theta_i) = theta
         let q = new THREE.Quaternion();
-        console.log(object.path.effector);
-        q.setFromAxisAngle(localAxis, worldRotation.angle / (object.path.effector - 1));
+        q.setFromAxisAngle(localAxis, worldRotation.angle / object.path.effector);
         object.bones[i].applyQuaternion(q);
     }
 

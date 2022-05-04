@@ -3,6 +3,7 @@
 // Import libraries
 import * as THREE from 'three';
 import { fromLocalToGlobal, getRandomInt } from './utils.js'
+import { findEffector } from './mesh.js'
 
 // Find position in the object path wrt a given timing
 function findPosition(object, time) {
@@ -83,20 +84,20 @@ function pastePath(e) {
             selectedObjects[k].path.timings = [...selectedObjects[0].path.timings];
             selectedObjects[k].path.startTime = selectedObjects[0].path.startTime; // Bug
             selectedObjects[k].path.index = selectedObjects[0].path.index;
-            selectedObjects[k].path.effector = selectedObjects[0].path.effector; // Replace with closest effector
+            //selectedObjects[k].path.effector = selectedObjects[0].path.effector; // Replace with closest effector
 
             // Put positions in local space
+            let scale = selectedObjects[k].height / selectedObjects[0].height; // scale
             for(let i = 0; i < selectedObjects[0].path.positions.length; i++) {
                 // Retrieve local position (wrt root of original object)
                 let localPos = selectedObjects[0].path.positions[i].clone();
-
-                // Scale
-                let scale = selectedObjects[k].height / selectedObjects[0].height;
 
                 // Scale the path
                 localPos.multiplyScalar(scale);
                 selectedObjects[k].path.positions.push(localPos); 
             }
+
+            selectedObjects[k].path.effector = findEffector(selectedObjects[k], scale);
 
         // Print 3D path
         if(selectedObjects[k].path.positions.length != 0) {

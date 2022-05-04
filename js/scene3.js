@@ -173,6 +173,10 @@ for(let k = 0; k < cylinderCount; k++) {
                 skeleton : skeleton,
                 bones : bones,
                 restAxis : restAxis,
+                restPose : {
+                    //restBones : bones.clone(),
+                    restAxis : restAxis
+                },
                 level : 1,
                 parent : { 
                     index : 0,
