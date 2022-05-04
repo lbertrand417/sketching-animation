@@ -2,8 +2,11 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { ObjectSpaceNormalMap, Scene, Vector3 } from 'three';
-import { loadScene, updatePath, fromLocalToGlobal, project3D, getRandomInt, addSelectedObject } from './utils.js';
+import { loadScene } from './init.js'
+import { updateAnimation } from './main.js'
+import { updatePath, pastePath, offsetTiming, offsetOrientation } from './path.js';
+import { autoSelect } from './mesh.js'
+import { resize, project3D } from './utils.js';
 
 // SKETCH CANVAS
 let refTime = new Date().getTime(); // Time when we start drawing the line
@@ -37,7 +40,11 @@ stopButton.addEventListener("click", () => {
     global.animation.stop = true;
 });
 
-let timeline = document.getElementById("timeline");
+// Update animation when moving the timeline
+var timeline = document.getElementById("timeline");
+timeline.oninput = function() {
+    updateAnimation(parseInt(this.value));
+} 
 
 // COMMANDS
 const drawButton = document.getElementById("draw");
@@ -65,77 +72,6 @@ function drawingCanvas(e) {
         } else {
             canvas2D.style.display = "none";
             drawButton.innerText = "Draw";
-        }
-    }
-}
-
-
-function pastePath(e) {
-    console.log('paste');
-    for(let k = 1; k < selectedObjects.length; k++) {
-            // Paste information of the selected object
-            selectedObjects[k].path.positions = [];
-            selectedObjects[k].path.timings = [...selectedObjects[0].path.timings];
-            selectedObjects[k].path.startTime = selectedObjects[0].path.startTime; // Bug
-            selectedObjects[k].path.index = selectedObjects[0].path.index;
-            selectedObjects[k].path.effector = selectedObjects[0].path.effector; // Replace with closest effector
-
-            // Put positions in local space
-            for(let i = 0; i < selectedObjects[0].path.positions.length; i++) {
-                // Retrieve local position (wrt root of original object)
-                let localPos = selectedObjects[0].path.positions[i].clone();
-
-                // Scale
-                let scale = selectedObjects[k].height / selectedObjects[0].height;
-
-                localPos.multiplyScalar(scale);
-                selectedObjects[k].path.positions.push(localPos); 
-            }
-
-        // Print 3D path
-        if(selectedObjects[k].path.positions.length != 0) {
-            console.log("print");
-            let globalPos = fromLocalToGlobal(selectedObjects[k].path.positions, selectedObjects[k].bones[0])
-            selectedObjects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
-        }
-    }
-}
-
-function offsetTiming(event) {
-    for(let k = 0; k < selectedObjects.length; k++) {
-        let randomOffset = getRandomInt(0, selectedObjects[k].path.timings[selectedObjects[k].path.timings.length - 1]);
-        selectedObjects[k].path.timings = selectedObjects[k].path.timings.map( function(value) { 
-            return value + randomOffset; 
-        } );
-    }
-
-    if (selectedObjects.length != 0) {
-        timeline.min = selectedObjects[0].path.timings[0];
-        timeline.max = selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1];
-    }
-}
-
-function offsetOrientation(event) {
-    for(let k = 0; k < selectedObjects.length; k++) {
-        let randomOffset = Math.random() * Math.PI * 2;
-
-        let length = (selectedObjects[k].path.positions.length - 1) / 2 + 1;
-        for(let i = 0; i < selectedObjects[k].path.positions.length ; i++) {
-            let localPos = selectedObjects[k].path.positions[i].clone();
-            localPos.applyAxisAngle(selectedObjects[k].restAxis, randomOffset );
-            selectedObjects[k].path.positions[i] = localPos;
-        }
-
-        let globalPos = fromLocalToGlobal(selectedObjects[k].path.positions, selectedObjects[k].bones[0]);
-        selectedObjects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
-    }
-}
-
-function autoSelect(event) {
-    console.log("auto select");
-    for(let k = 0; k < objects.length; k++) {
-        if(selectedObjects.length != 0 && objects[k].level == selectedObjects[0].level) {
-            addSelectedObject(objects[k], false);
         }
     }
 }
@@ -218,14 +154,6 @@ canvas2D.addEventListener('mousemove', draw);
 canvas2D.addEventListener('mousedown', setPosition);
 canvas2D.addEventListener('mouseup', updateScene);
 canvas2D.style.display = "none";
-
-// Resize window
-function resize(e) {
-    console.log("resize");
-    ctx.canvas.width = window.innerWidth;
-    ctx.canvas.height = window.innerHeight;
-    global.renderer.setSize(window.innerWidth, window.innerHeight);
-}
 
 // Draw a line in 2D canvas
 function draw(e) {

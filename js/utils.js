@@ -2,101 +2,51 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { materials as materials1, allObjects as allObjects1, meshObjects as meshObjects1 } from './scene1.js';
-import { materials as materials2, allObjects as allObjects2, meshObjects as meshObjects2 } from './scene2.js';
-import { materials as materials3, allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3.js';
-import { materials as materials4, allObjects as allObjects4, meshObjects as meshObjects4 } from './scene4.js';
 
+// Resize window
+function resize(e) {
+    console.log("resize");
 
-function loadScene(s) {
-    // Initialize scene
-    global.scene = new THREE.Scene();
-    global.scene.background = new THREE.Color( 0xEEEEEE );
-    let axesHelper = new THREE.AxesHelper( 10 );
-    axesHelper.position.set(30, 0, 0);
-    global.scene.add( axesHelper );
+    let canvas2D = document.getElementById('canvas'); // 2D sketch canvas
+    canvas2D.width = window.innerWidth;
+    canvas2D.height = window.innerHeight;
+    let ctx = canvas2D.getContext('2d');
 
-    global.animation.isAnimating = false;
-
-    switch(s) {
-        case 1 :
-            objects = [...meshObjects1];
-            for (let i = 0; i < allObjects1.length; i++) {
-                global.scene.add(allObjects1[i]);
-            }
-            materials = {...materials1};
-            break;
-        case 2 :
-            objects = [...meshObjects2];
-            for (let i = 0; i < allObjects2.length; i++) {
-                global.scene.add(allObjects2[i]);
-            }
-            materials = {...materials2};
-            break;
-        case 3 :
-            objects = [...meshObjects3];
-            for (let i = 0; i < allObjects3.length; i++) {
-                global.scene.add(allObjects3[i]);
-            }
-            materials = {...materials3};
-            break;
-        case 4 :
-            objects = [...meshObjects4];
-            for (let i = 0; i < allObjects4.length; i++) {
-                global.scene.add(allObjects4[i]);
-            }
-            materials = {...materials4};
-            break;
-    }
-
-    for(let k = 0; k < objects.length; k++) {
-        objects[k].mesh.material = materials.unselected.clone();
-        if(objects[k].level == 0) {
-            parent = objects[k];
-        }
-    }
-    selectedObjects = [];
+    ctx.canvas.width = window.innerWidth;
+    ctx.canvas.height = window.innerHeight;
+    global.renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+function computeAngleAxis(object, target) {
+    // Retrieve root bone info
+    let rootBone = object.bones[0];
+    let rootPos = new THREE.Vector3();
+    let invRootQ = new THREE.Quaternion();
+    let rootScale = new THREE.Vector3();
+    rootBone.matrixWorld.decompose(rootPos, invRootQ, rootScale);
+    invRootQ.invert();
+ 
+    // Get world rotation vectors
+    let n = target.clone().sub(rootPos);
+    n.normalize();
+    let t = new THREE.Vector3();
+    t.setFromMatrixPosition(object.bones[object.bones.length - 1].matrixWorld);
+    t.sub(rootPos);
+    t.normalize();
+ 
+    // Compute rotation axis
+    let axis = new THREE.Vector3();
+    axis.crossVectors(t, n);
+    axis.normalize();
+ 
+ 
+    // Compute world rotation angle
+    let angle = t.dot(n);
+    angle = Math.acos(angle);
+ 
+    return { angle, axis };
+ }
 
-function updatePath() {
-    let id = 1;
-
-    //console.log(global.sketch.position)
-
-    let v1 = global.sketch.positions[id - 1].clone().sub(global.sketch.positions[id]);
-    let v2 = global.sketch.positions[id].clone().sub(global.sketch.positions[id + 1]);
-
-    while (v1.dot(v2) > 0 && id < global.sketch.positions.length - 2) {
-        id++;
-        v1 = global.sketch.positions[id - 1].clone().sub(global.sketch.positions[id]);
-        v2 = global.sketch.positions[id].clone().sub(global.sketch.positions[id + 1]);
-    }
-
-    if (id != global.sketch.positions.length - 2) {
-        for(let j = 0; j < id; j++) {
-            global.sketch.positions.shift();
-            global.sketch.timings.shift();
-        }
-    }
-
-    selectedObjects[0].path.positions = [...global.sketch.positions];
-    selectedObjects[0].path.timings = [...global.sketch.timings];
-
-    for (let i = global.sketch.timings.length - 2; i >= 0; i--) {
-        selectedObjects[0].path.positions.push(selectedObjects[0].path.positions[i].clone());
-        selectedObjects[0].path.timings.push(selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1] + (global.sketch.timings[i + 1] - global.sketch.timings[i]));
-    }
-
-    global.animation.isAnimating = true;
-    global.animation.startTime = new Date().getTime();
-
-    let globalPos = fromLocalToGlobal(selectedObjects[0].path.positions, selectedObjects[0].bones[0]);
-    selectedObjects[0].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
-
-    timeline.min = selectedObjects[0].path.timings[0];
-    timeline.max = selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1];
-}
 
 function fromLocalToGlobal(positions, space) {
     let globalPos = [];
@@ -143,48 +93,5 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
 }
 
-function addSelectedObject(selection, removable) {
-    console.log(selection);
-    // Check if not in the selection already
-    let isSelected = false;
-    console.log('selectedObjects', selectedObjects);
-    console.log('selection', selection);
-    for(let i = 0; i < selectedObjects.length; i++) {
-        if (selectedObjects[i] === selection) {
-            console.log('coucou');
-        //if (JSON.stringify(selectedObjects[i].display.links[selectedObjects[i].display.links.length - 1]) == JSON.stringify(selection)) {
-        //if (JSON.stringify(selectedObjects[i].display.links[selectedObjects[i].display.links.length - 1]) == JSON.stringify(selection)) {
-            isSelected = true;
-            if(removable) {
-                selectedObjects[i].mesh.material = materials.unselected.clone();
-                console.log('effector', selectedObjects[i].path.effector);
-                selectedObjects[i].display.links[selectedObjects[i].path.effector].material = materials.links.clone();
-                selectedObjects[i].path.effector = null;
-                selectedObjects.splice(i, 1);
-                if(selectedObjects.length > 0) {
-                    selectedObjects[0].mesh.material = materials.selected.clone();
-                }
-            }
-        }
-    }
 
-    if(!isSelected) {
-        let material;
-        if (selectedObjects.length == 0) {
-            material = materials.selected.clone();
-        } else {
-            material = materials.selectedBis.clone();
-        }
-        for (let k = 0; k < objects.length; k++) {
-            if (objects[k] === selection) {
-            //if (JSON.stringify(objects[k].display.links[objects[k].display.links.length - 1]) == JSON.stringify(selection)) {
-                selectedObjects.push(objects[k]);
-                objects[k].mesh.material = material;
-            }
-        }
-    }
-
-    console.log('selectedObjects2', selectedObjects);
-}
-
-export { loadScene, updatePath, fromLocalToGlobal, project3D, getRandomInt, addSelectedObject };
+export { resize, computeAngleAxis, fromLocalToGlobal, project3D, getRandomInt };

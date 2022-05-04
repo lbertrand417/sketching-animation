@@ -2,8 +2,10 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { project3D, addSelectedObject, updatePath } from './utils.js';
-import { orbitControls, computeAngleAxis, updateBones, updateChildren, updateDisplay } from './geometry.js';
+import { updatePath } from './path.js';
+import { addSelectedObject, retrieveObject } from './mesh.js';
+import { computeAngleAxis, project3D } from './utils.js';
+import { orbitControls, updateBones, updateChildren, updateDisplay } from './main.js';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
 global.renderer.domElement.addEventListener('mousemove', moveObject);
@@ -16,19 +18,6 @@ let intersectedParent = null;
 let posOffset = new THREE.Vector3();
 
 let p = new THREE.Vector3(); // Point in the plane
-
-function retrieveObject(effector) {
-    for (let k = 0; k < objects.length; k++) {
-        for (let i = 0; i < objects[k].display.links.length; i++) {
-            if (effector === objects[k].display.links[i]) {
-            //if (effector === objects[k].display.effector) {
-                objects[k].path.effector = i;
-                objects[k].display.links[i].material = materials.effector.clone();
-                return k;
-            }
-        }
-    }
-}
 
 function selectObject(event) {
     console.log('select');
@@ -48,8 +37,6 @@ function selectObject(event) {
     let raycaster =  new THREE.Raycaster();                                        
     raycaster.setFromCamera( mouse3D, global.camera );
 
-    //console.log("effectors", effectors);
-
     let selectableObjects = []
     for (let k = 0; k < objects.length; k++) {
         for (let i = 0; i < objects[k].display.links.length; i++) {
@@ -59,9 +46,6 @@ function selectObject(event) {
 
     if(selectableObjects != null) {
         intersectedObject = raycaster.intersectObjects(selectableObjects);
-        //intersectedObject = raycaster.intersectObjects(effectors);
-
-        console.log('intersect', intersectedObject);
     }
 
 
