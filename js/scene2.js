@@ -283,7 +283,8 @@ for(let i = 0; i < numberLine; i++) {
                         timings : [],
                         index : null,
                         startTime : new Date().getTime(),
-                        effector : null
+                        effector : null,
+                        target: null
                     },
                     display : { 
                         //effector : detailDisplay.effector,

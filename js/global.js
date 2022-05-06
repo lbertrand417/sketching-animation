@@ -21,11 +21,13 @@ var global = {
 };
 
 // Store mesh info
-var objects = []; // Details
+var objects = []; // All parts of the mesh
 var parent = null; // Parent mesh
 
 var materials;
 
 // Store selected objects
 var selectedObjects = [];
+
+var targets = [];
 

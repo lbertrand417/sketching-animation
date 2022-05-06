@@ -189,6 +189,7 @@ for(let k = 0; k < cylinderCount; k++) {
                     index : null,
                     startTime : new Date().getTime(),
                     effector : null,
+                    target : null
                 },
                 display : { 
                     links : bonesDisplay,

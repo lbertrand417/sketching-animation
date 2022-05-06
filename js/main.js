@@ -2,9 +2,10 @@
 
 // Import libraries
 import * as THREE from 'three';
+import { WebGLMultipleRenderTargets } from 'three';
 import { OrbitControls } from '../three.js/examples/jsm/controls/OrbitControls.js';
 import { loadScene, findCorrespondences } from './init.js'
-import { findPosition } from './path.js'
+import { findPosition, targetPath } from './path.js'
 import { computeAngleAxis, fromLocalToGlobal } from './utils.js';
 
 // --------------- INIT ---------------
@@ -155,6 +156,13 @@ function updateChildren(object) {
     let skinWeight = new THREE.Vector4();
     let skinIndex = new THREE.Vector4();
 
+    // Store local position of targets
+    let localPos = [];
+    for (let i = 0; i < targets.length; i++) {
+        localPos.push(objects[1].bones[0].worldToLocal(targets[i].position.clone()));
+    }
+
+
     for(let k = 0; k < objects.length; k++) { // TODO: Adapt
         if(objects[k].level == object.level + 1) {
 
@@ -195,6 +203,8 @@ function updateChildren(object) {
             // Compute new rotation
             newRot.multiply(objects[k].parent.offsetQ);
             objects[k].bones[0].setRotationFromQuaternion(newRot);
+
+            // Update target
                 
             // Update display
             updateDisplay(objects[k]);
@@ -204,6 +214,12 @@ function updateChildren(object) {
             objects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
         }
     }
+
+    for (let i = 0; i < targets.length; i++) {
+        let newPos = objects[1].bones[0].localToWorld(localPos[i]);
+        targets[i].position.set(newPos.x, newPos.y, newPos.z);
+    }
+
 }
 // -------------------------------------------
 

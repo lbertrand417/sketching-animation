@@ -142,4 +142,33 @@ function offsetOrientation(event) {
     }
 }
 
-export { findPosition, updatePath, pastePath, offsetTiming, offsetOrientation }
+function targetPath(object) {
+    let dt = 2 * Math.PI / 50;
+    let theta = 0;
+    let distances = [];
+    while (theta < 2 * Math.PI) {
+        let localPos = object.path.positions[Math.floor(object.path.positions.length / 2)].clone();
+        localPos.applyAxisAngle(object.restAxis, theta);
+        let distance = object.bones[0].localToWorld(localPos).distanceTo(object.path.target.position);
+        distances.push(distance);
+        theta += dt;
+    }
+
+    console.log(distances);
+
+    const min = Math.min(...distances);
+    const index = distances.indexOf(min);
+    theta = index * dt;
+
+    for(let i = 0; i < object.path.positions.length ; i++) {
+        let localPos = object.path.positions[i].clone();
+        localPos.applyAxisAngle(object.restAxis, theta);
+        object.path.positions[i] = localPos;
+    }
+
+    // Update path display
+    let globalPos = fromLocalToGlobal(object.path.positions, object.bones[0]);
+    object.display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+}
+
+export { findPosition, updatePath, pastePath, offsetTiming, offsetOrientation, targetPath }

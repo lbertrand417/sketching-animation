@@ -41,8 +41,19 @@ spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
 allObjects.push(spotLight);
 
-const cylinderCount = 10;
-const height = 50;
+const cylinderCount = 5;
+const segmentHeight = 50 / 7;
+const segmentCount = 7;
+const height = segmentHeight * segmentCount;
+const halfHeight = height * 0.5;
+
+const sizing = {
+    segmentHeight,
+    segmentCount,
+    height,
+    halfHeight
+};
+
 
 function getRandomInt(min, max) {
     min = Math.ceil(min);
@@ -52,16 +63,10 @@ function getRandomInt(min, max) {
 
 // MESH
 
-const maxSegmentCount = 10;
-let segmentCount;
 for(let k = 0; k < cylinderCount; k++) {
-
-    segmentCount = maxSegmentCount - k;
-    let segmentHeight = height / segmentCount;
-
-    const cylinderGeometry = new THREE.CylinderGeometry(5, 5, height, 32, segmentCount);
+    const cylinderGeometry = new THREE.CylinderGeometry(5, 5, sizing.height, 32, sizing.segmentCount);
     const cylinderMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
-    cylinderMesh.position.set(getRandomInt(-50, 50), height / 2, getRandomInt(-50, 50));
+    cylinderMesh.position.set(getRandomInt(-50, 50), 0, getRandomInt(-50, 50));
     cylinderMesh.castShadow = true;
     allObjects.push(cylinderMesh);
 
@@ -74,10 +79,10 @@ for(let k = 0; k < cylinderCount; k++) {
     for (let i = 0; i < cylinderPosition.count; i++) {
         cylinderVertex.fromBufferAttribute(cylinderPosition, i);
 
-        const y = cylinderVertex.y + height / 2;
+        const y = cylinderVertex.y + sizing.halfHeight;
 
-        const skinIndex = Math.floor(y / segmentHeight);
-        const skinWeight = (y % segmentHeight) / segmentHeight;
+        const skinIndex = Math.floor(y / sizing.segmentHeight);
+        const skinWeight = (y % sizing.segmentHeight) / sizing.segmentHeight;
 
         skinIndices.push(skinIndex, skinIndex + 1, 0, 0);
         skinWeights.push(1 - skinWeight, skinWeight, 0, 0);
@@ -93,7 +98,7 @@ for(let k = 0; k < cylinderCount; k++) {
     // Root
     let rootBone = new THREE.Bone();
     rootBone.name = "Root bone";
-    rootBone.position.y = - height / 2;
+    rootBone.position.y = -sizing.halfHeight;
     bones.push(rootBone);
     let axesHelper = new THREE.AxesHelper( 10 );
     rootBone.add(axesHelper);
@@ -109,9 +114,9 @@ for(let k = 0; k < cylinderCount; k++) {
     prevBone.add(axesHelper);
     axesHelpers.push(axesHelper);
 
-    for (let i = 1; i <= segmentCount; i++) {
+    for (let i = 1; i <= sizing.segmentCount; i++) {
         const bone = new THREE.Bone();
-        bone.position.y = segmentHeight;
+        bone.position.y = sizing.segmentHeight;
         bone.name = "Bone " + i;
         bones.push(bone);
         prevBone.add(bone);
@@ -163,11 +168,13 @@ for(let k = 0; k < cylinderCount; k++) {
     allObjects.push(timingDisplay);
 
     let restAxis = bones[0].worldToLocal(bonesDisplay[bonesDisplay.length - 1].position.clone());
+    //let restAxis = bones[0].worldToLocal(effector.position.clone());
     restAxis.normalize();
+    
 
     // Store object
     meshObjects.push({ mesh : cylinderMesh,
-                height : height,
+                height : sizing.height,
                 skeleton : skeleton,
                 bones : bones,
                 restAxis : restAxis,
@@ -183,7 +190,7 @@ for(let k = 0; k < cylinderCount; k++) {
                     index : null,
                     startTime : new Date().getTime(),
                     effector : null,
-                    target : null
+                    target: null
                 },
                 display : { 
                     links : bonesDisplay,
@@ -200,6 +207,7 @@ for(let k = 0; k < cylinderCount; k++) {
 const planeGeometry = new THREE.PlaneGeometry(100, 100);
 const planeMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff });
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+plane.translateY(-sizing.halfHeight);
 plane.rotation.x = Math.PI * -.5;
 plane.receiveShadow = true;
 allObjects.push(plane);

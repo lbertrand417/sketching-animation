@@ -6,6 +6,7 @@ import { materials as materials1, allObjects as allObjects1, meshObjects as mesh
 import { materials as materials2, allObjects as allObjects2, meshObjects as meshObjects2 } from './scene2.js';
 import { materials as materials3, allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3.js';
 import { materials as materials4, allObjects as allObjects4, meshObjects as meshObjects4 } from './scene4.js';
+import { materials as materials5, allObjects as allObjects5, meshObjects as meshObjects5 } from './scene5.js';
 
 // Load a given scene
 function loadScene(s) {
@@ -48,6 +49,13 @@ function loadScene(s) {
                 global.scene.add(allObjects4[i]);
             }
             materials = {...materials4};
+            break;
+        case 5 :
+            objects = [...meshObjects5];
+            for (let i = 0; i < allObjects5.length; i++) {
+                global.scene.add(allObjects5[i]);
+            }
+            materials = {...materials5};
             break;
     }
 

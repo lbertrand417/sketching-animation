@@ -4,9 +4,10 @@
 import * as THREE from 'three';
 import { loadScene } from './init.js'
 import { updateAnimation } from './main.js'
-import { updatePath, pastePath, offsetTiming, offsetOrientation } from './path.js';
+import { updatePath, pastePath, offsetTiming, offsetOrientation, targetPath } from './path.js';
 import { autoSelect } from './mesh.js'
 import { resize, project3D } from './utils.js';
+import { Vector3 } from 'three';
 
 // SKETCH CANVAS
 let refTime = new Date().getTime(); // Time when we start drawing the line
@@ -49,6 +50,37 @@ timeline.oninput = function() {
 // COMMANDS
 const drawButton = document.getElementById("draw");
 drawButton.addEventListener("click", drawingCanvas);
+
+const targetButton = document.getElementById("target");
+targetButton.addEventListener("click", () => {
+        console.log("Select target");
+        if(selectedObjects.length > 0 && selectedObjects[0].path.positions.length > 0) {
+            let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
+
+            let target = null;
+            if (selectedObjects[0].path.target == null) {
+                target = new THREE.Mesh(sphereGeometry, materials.root.clone());
+                let targetPos = new Vector3();
+                if (parent != null) {
+                    targetPos = parent.display.links[parent.display.links.length - 1].position.clone();
+                } else {
+                    targetPos = selectedObjects[0].bones[0].localToWorld(selectedObjects[0].path.positions[Math.floor(selectedObjects[0].path.positions.length / 2)].clone());
+                }
+                target.position.set(targetPos.x, targetPos.y, targetPos.z);
+                global.scene.add(target);
+                targets.push(target);
+            } else  {
+                target = selectedObjects[0].path.target;
+            }
+
+            // Update le tableau des targets
+
+            for (let i = 0; i < selectedObjects.length; i++) {
+                selectedObjects[i].path.target = target;
+                targetPath(selectedObjects[i]);
+            }
+        }
+});
 
 const pasteButton = document.getElementById("paste");
 pasteButton.addEventListener("click", pastePath);
@@ -145,6 +177,12 @@ const scene4Button = document.getElementById("scene4");
 scene4Button.addEventListener("click", () => {
     console.log("Scene 4");
     loadScene(4);
+});
+
+const scene5Button = document.getElementById("scene5");
+scene5Button.addEventListener("click", () => {
+    console.log("Scene 5");
+    loadScene(5);
 });
 
 

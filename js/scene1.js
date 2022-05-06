@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { Vector3 } from 'three';
 
 let materials = {
     unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034 }),
@@ -202,6 +201,7 @@ for(let k = 0; k < cylinderCount; k++) {
                     index : null,
                     startTime : new Date().getTime(),
                     effector : null,
+                    target: null
                 },
                 display : { 
                     links : bonesDisplay,

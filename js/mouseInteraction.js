@@ -2,7 +2,7 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { updatePath } from './path.js';
+import { updatePath, targetPath } from './path.js';
 import { addSelectedObject, retrieveObject } from './mesh.js';
 import { computeAngleAxis, project3D } from './utils.js';
 import { orbitControls, updateBones, updateChildren, updateDisplay } from './main.js';
@@ -15,6 +15,7 @@ global.renderer.domElement.addEventListener('mouseup', unselectObject);
 let refTime = new Date().getTime();
 let intersectedObject = null;
 let intersectedParent = null;
+let intersectedTarget = null;
 let posOffset = new THREE.Vector3();
 
 let p = new THREE.Vector3(); // Point in the plane
@@ -37,6 +38,10 @@ function selectObject(event) {
     let raycaster =  new THREE.Raycaster();                                        
     raycaster.setFromCamera( mouse3D, global.camera );
 
+    if(targets.length != 0) {
+        intersectedTarget = raycaster.intersectObjects(targets);
+    }
+
     let selectableObjects = []
     for (let k = 0; k < objects.length; k++) {
         for (let i = 0; i < objects[k].display.links.length; i++) {
@@ -44,14 +49,15 @@ function selectObject(event) {
         }
     }
 
-    if(selectableObjects != null) {
+    if(selectableObjects != null && (intersectedTarget == null || intersectedTarget.length == 0)) {
         intersectedObject = raycaster.intersectObjects(selectableObjects);
     }
 
-
-    if(parent != null && (intersectedObject == null || intersectedObject.length == 0)) {
+    if(parent != null && (intersectedObject == null || intersectedObject.length == 0) && (intersectedTarget == null || intersectedTarget.length == 0)) {
         intersectedParent = raycaster.intersectObject(parent.mesh);
     }
+
+
 
     if (intersectedObject != null && intersectedObject.length > 0 && event.button == 0) {
         // Change into an update function?
@@ -114,6 +120,13 @@ function selectObject(event) {
         posOffset = pos3D.clone().sub(parent.mesh.position);
     }
 
+    if(intersectedTarget != null && intersectedTarget.length > 0) {
+        // Disable controls
+        orbitControls.enabled = false;
+
+        p = intersectedTarget[0].object.position.clone();
+    }
+
     // Unselect objects
     if(event.button == 2) {
         if (selectedObjects.length != 0) {
@@ -142,7 +155,16 @@ function moveObject(event) {
         global.sketch.positions.push(pI);
         global.sketch.timings.push(new Date().getTime() - refTime);
 
+
+
         if(selectedObjects[0].level == 0) {
+            /*for(let i = 0; i < targets.length; i++) {
+                let pos = selectedObjects[0].bones[0].worldToLocal(targets[i].position.clone());
+                pos.applyAxisAngle(worldRotation.axis, worldRotation.angle);
+                selectedObjects[0].bones[0].localToWorld(pos);
+                targets[i].position.set(pos.x, pos.y, pos.z);
+            }*/
+
             updateChildren(selectedObjects[0]);
         }
     }
@@ -163,6 +185,20 @@ function moveObject(event) {
 
         // Update children
         updateChildren(parent);
+    }
+
+    if(intersectedTarget != null && intersectedTarget.length > 0) {
+        console.log("coucou");
+        const pI = project3D(event, global.renderer.domElement, p);
+
+        intersectedTarget[0].object.position.set(pI.x, pI.y, pI.z);
+
+
+        for(let k = 0; k < objects.length; k++) {
+            if(objects[k].path.target === intersectedTarget[0].object) {
+                targetPath(objects[k]);
+            }
+        }
     }
 }
 
@@ -185,5 +221,7 @@ function unselectObject(event) {
     if(intersectedParent != null && intersectedParent.length > 0) {
         intersectedParent = null;
     }
+
+    intersectedTarget = null;
 
 }
