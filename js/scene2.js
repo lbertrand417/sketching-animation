@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Quaternion, Vector3 } from 'three';
 import { getRandomInt } from './utils.js';
+import { MyObject } from './object.js'
 
 let materials = {
     unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034, transparent : true, opacity : 0.8 }),
@@ -130,12 +131,6 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
 function createDisplay(object) {
     let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
 
-    /*let effector = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
-    effector.position.setFromMatrixPosition(object.bones[object.bones.length - 1].matrixWorld);
-    effector.visible = false;
-    allObjects.push(effector);
-    effectors.push(effector);*/
-
     let bonesDisplay = [];
     for(let i = 1; i < object.bones.length; i++) {
         let boneDisplay= new THREE.Mesh( sphereGeometry, materials.links.clone() );
@@ -158,7 +153,6 @@ function createDisplay(object) {
     const timingDisplay = new THREE.Points( timingGeometry, materials.timing.clone() );
     allObjects.push(timingDisplay);
 
-    //return { effector, bonesDisplay, rootDisplay, pathDisplay, timingDisplay }
     return { bonesDisplay, rootDisplay, pathDisplay, timingDisplay }
 }
 
@@ -219,6 +213,10 @@ meshObjects.push({ mesh : bodyCylinder.cylinderMesh,
         timing : bodyDisplay.timingDisplay
     }
 })
+
+let tests = []
+tests.push(new MyObject(bodyCylinder.cylinderMesh, bodyHeight, bodyCylinder.skeleton,
+    bodyCylinder.bones, restAxis, 0, bodyDisplay, bodyCylinder));
 
 
 const numberLine = 5;
@@ -287,7 +285,6 @@ for(let i = 0; i < numberLine; i++) {
                         target: null
                     },
                     display : { 
-                        //effector : detailDisplay.effector,
                         links : detailDisplay.bonesDisplay,
                         root : detailDisplay.rootDisplay,
                         skeleton : detailCylinder.skeletonHelper,
@@ -296,8 +293,11 @@ for(let i = 0; i < numberLine; i++) {
                         timing : detailDisplay.timingDisplay
                     }
                 })
+
+        tests.push(new MyObject(detailCylinder.cylinderMesh, height, detailCylinder.skeleton,
+            detailCylinder.bones, restAxis, 1, detailDisplay, detailCylinder));
     }
 }
 
 //export { materials, allObjects, meshObjects, effectors };
-export { materials, allObjects, meshObjects };
+export { materials, allObjects, meshObjects, tests };

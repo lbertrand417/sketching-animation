@@ -16,23 +16,43 @@
                     <input type="range" min="0" max="0" value="0" class="slider" id="timeline">
                 </div>
 
-                <div id="flex-buttons">
-                    <button type="button" id="draw">Draw</button>
-                    <button type="target" id="target">target</button>
-                    <button type="button" id="paste">Paste</button>
-                    <button type="button" id="timingoffset">Random Timing Offset</button>
-                    <button type="button" id="orientationoffset">Random Orientation Offset</button>
-                    <button type="button" id="select">Auto Select</button>
-                </div>
-
-                <div id="flex-display">
-                    Display :
+                <div class="flex-buttons">
+                    Display:
                     <button type="button" id="root">Root</button>
                     <button type="button" id="links">Links</button>
+                    <button type="button" id="effectors">Effectors</button>
                     <button type="button" id="bones">Bones</button>
                     <button type="button" id="axes">Axes Helper</button>
                     <button type="button" id="path">Path</button>
+                    <button type="button" id="targets">Targets</button>
                 </div>
+
+                <div class="flex-buttons">
+                    Tools:
+                    <button type="button" id="draw">Draw</button>
+                    <button type="button" id="paste">Paste</button>
+                    <button type="button" id="scale">Scale</button>
+                    <button type="button" id="unscale">Unscale</button>
+                    <button type="button" id="select">Auto Select</button>
+                    <button type="button" id="group">Group</button>
+                </div>
+
+                <div class="flex-buttons">
+                    Orientation:
+                    <button type="button" id="shape">Shape</button>
+                    <button type="button" id="orientationoffset">Random offset</button>
+                    <button type="button" id="target">Target</button>
+                    <button type="button" id="mirror">Mirror</button>
+                </div>
+
+                <div class="flex-buttons">
+                    Timing:
+                    <button type="button" id="sync">Synchronize</button>
+                    <button type="button" id="timingoffset">Random Offset</button>
+                    <button type="button" id="mask">Mask</button>
+                    <button type="button" id="curve">Curve Offset</button>
+                </div>
+
             </div>
             <div id="scenes">
                 <button type="button" id="scene5">Basic</button>
@@ -56,6 +76,7 @@
 			}
 		</script>
         <script src="js/global.js"></script>
+        <script type="module" src="js/object.js"></script>
         <script type="module" src="js/main.js"></script>
         <script type="module" src="js/mouseInteraction.js"></script>
         <script type="module" src="js/canvas.js"></script>

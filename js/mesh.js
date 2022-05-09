@@ -13,13 +13,13 @@ function addSelectedObject(selection, removable) {
         if (selectedObjects[i] === selection) {
             isSelected = true;
             if(removable) {
-                selectedObjects[i].mesh.material = materials.unselected.clone();
-                console.log('effector', selectedObjects[i].path.effector);
-                selectedObjects[i].display.links[selectedObjects[i].path.effector].material = materials.links.clone();
-                selectedObjects[i].path.effector = null;
+                selectedObjects[i].meshMaterial = materials.unselected.clone();
+                console.log('effector', selectedObjects[i].effector);
+                selectedObjects[i].setLinkMaterial(selectedObjects[i].effector, materials.links.clone());
+                selectedObjects[i].effector = null;
                 selectedObjects.splice(i, 1);
                 if(selectedObjects.length > 0) {
-                    selectedObjects[0].mesh.material = materials.selected.clone();
+                    selectedObjects[0].meshMaterial = materials.selected.clone();
                 }
             }
         }
@@ -35,7 +35,7 @@ function addSelectedObject(selection, removable) {
         for (let k = 0; k < objects.length; k++) {
             if (objects[k] === selection) {
                 selectedObjects.push(objects[k]);
-                objects[k].mesh.material = material;
+                objects[k].meshMaterial = material;
             }
         }
     }
@@ -56,10 +56,10 @@ function autoSelect(event) {
 // Given an effector, retrieve the object it's controlling
 function retrieveObject(effector) {
     for (let k = 0; k < objects.length; k++) {
-        for (let i = 0; i < objects[k].display.links.length; i++) {
-            if (effector === objects[k].display.links[i]) {
-                objects[k].path.effector = i;
-                objects[k].display.links[i].material = materials.effector.clone();
+        for (let i = 0; i < objects[k].lengthLinks; i++) {
+            if (effector === objects[k].links[i]) {
+                objects[k].effector = i;
+                objects[k].setLinkMaterial(i, materials.effector.clone());
                 return k;
             }
         }

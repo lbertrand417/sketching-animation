@@ -10,6 +10,9 @@ body {
 
 #commands {
     flex: 2;
+    display: flex;
+	flex-direction: column;
+    overflow: scroll;
 }
 
 #scenes {

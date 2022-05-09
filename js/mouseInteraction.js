@@ -44,8 +44,8 @@ function selectObject(event) {
 
     let selectableObjects = []
     for (let k = 0; k < objects.length; k++) {
-        for (let i = 0; i < objects[k].display.links.length; i++) {
-            selectableObjects.push(objects[k].display.links[i]);
+        for (let i = 0; i < objects[k].lengthLinks; i++) {
+            selectableObjects.push(objects[k].links[i]);
         }
     }
 
@@ -63,9 +63,9 @@ function selectObject(event) {
         // Change into an update function?
         if (!event.shiftKey) {
             for(let k = 0; k < objects.length; k++) {
-                objects[k].mesh.material = materials.unselected.clone();
-                if(objects[k].path.effector != null) {
-                    objects[k].display.links[objects[k].path.effector].material = materials.links.clone();
+                objects[k].meshMaterial = materials.unselected.clone();
+                if(objects[k].effector != null) {
+                    objects[k].setLinkMaterial(objects[k].effector, materials.links.clone());
                 }
             }
             selectedObjects = [];
@@ -76,10 +76,10 @@ function selectObject(event) {
         //---------------
 
         if(selectedObjects.length > 0) {
-            if (selectedObjects[0].path.timings.length > 0) {
-                timeline.min = selectedObjects[0].path.timings[0];
-                timeline.max = selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1];
-                timeline.value = selectedObjects[0].path.timings[selectedObjects[0].path.index];
+            if (selectedObjects[0].lengthPath > 0) {
+                timeline.min = selectedObjects[0].pathTimings[0];
+                timeline.max = selectedObjects[0].pathTimings[selectedObjects[0].lengthPath - 1];
+                timeline.value = selectedObjects[0].pathTimings[selectedObjects[0].pathIndex];
             } else {
                 timeline.min = 0;
                 timeline.max = 0;
@@ -95,8 +95,10 @@ function selectObject(event) {
             // Disable controls
             orbitControls.enabled = false;
 
+            console.log(selectedObjects[0].effector);
+
             // Project on the plane in 3D space
-            p.setFromMatrixPosition(selectedObjects[0].display.links[selectedObjects[0].path.effector].matrixWorld); // Stay in the plane
+            p.setFromMatrixPosition(selectedObjects[0].links[selectedObjects[0].effector].matrixWorld); // Stay in the plane
             const pI = project3D(event, global.renderer.domElement, p);
             selectedObjects[0].bones[0].worldToLocal(pI);
 
@@ -131,7 +133,7 @@ function selectObject(event) {
     if(event.button == 2) {
         if (selectedObjects.length != 0) {
             for (let i = 0; i < selectedObjects.length; i++) {
-                selectedObjects[i].mesh.material = materials.unselected.clone();
+                selectedObjects[i].meshMaterial = materials.unselected.clone();
             }            
         }
         selectedObjects = [];
@@ -212,8 +214,8 @@ function unselectObject(event) {
         if (global.sketch.positions.length > 1) {
             updatePath();
         } else {
-            global.sketch.positions = [...selectedObjects[0].path.positions];
-            global.sketch.timings = [...selectedObjects[0].path.timings];
+            global.sketch.positions = [...selectedObjects[0].pathPos];
+            global.sketch.timings = [...selectedObjects[0].pathTimings];
         }
     } 
     intersectedObject = [];

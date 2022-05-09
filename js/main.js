@@ -2,7 +2,6 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { WebGLMultipleRenderTargets } from 'three';
 import { OrbitControls } from '../three.js/examples/jsm/controls/OrbitControls.js';
 import { loadScene, findCorrespondences } from './init.js'
 import { findPosition, targetPath } from './path.js'
@@ -82,22 +81,22 @@ animate();
 function updateAnimation(currentTime) {    
     for(let k = 0; k < objects.length; k++) {
         // If object animated, update its animation
-        if(objects[k].path.timings.length != 0) { 
+        if(objects[k].lengthPath != 0) { 
             // Find the time in the object cycle
             let objectTime = currentTime;
-            while (objectTime < objects[k].path.timings[0]) {
-                objectTime += objects[k].path.timings[objects[k].path.timings.length - 1] - objects[k].path.timings[0] + 1;
+            while (objectTime < objects[k].pathTimings[0]) {
+                objectTime += objects[k].pathTimings[objects[k].lengthPath - 1] - objects[k].pathTimings[0] + 1;
             }
 
-            while (objectTime > objects[k].path.timings[objects[k].path.timings.length - 1]) {
-                objectTime -= objects[k].path.timings[objects[k].path.timings.length - 1] - objects[k].path.timings[0] + 1;
+            while (objectTime > objects[k].pathTimings[objects[k].lengthPath - 1]) {
+                objectTime -= objects[k].pathTimings[objects[k].lengthPath- 1] - objects[k].pathTimings[0] + 1;
             }
 
             // Find position on the path wrt timing
             let new_pos = findPosition(objects[k], objectTime);
 
             // Display target
-            objects[k].display.timing.geometry = new THREE.BufferGeometry().setFromPoints([new_pos]);
+            objects[k].timingDisplay.geometry = new THREE.BufferGeometry().setFromPoints([new_pos]);
 
             // Update bones
             let worldRotation = computeAngleAxis(objects[k], new_pos);
@@ -114,21 +113,21 @@ function updateAnimation(currentTime) {
 // Update bones and joints display
 function updateDisplay(object) {
     // Update bones
-    for(let i = 0; i < object.bones.length; i++) {
+    for(let i = 0; i < object.lengthBones; i++) {
         object.bones[i].updateMatrixWorld(true);
     }
     
     // Update joints display
-    for(let i = 0; i < object.display.links.length; i++) {
-        object.display.links[i].position.setFromMatrixPosition(object.bones[i+1].matrixWorld);
+    for(let i = 0; i < object.lengthLinks; i++) {
+        object.links[i].position.setFromMatrixPosition(object.bones[i+1].matrixWorld);
     }
-    object.display.root.position.setFromMatrixPosition(object.bones[0].matrixWorld);
+    object.root.position.setFromMatrixPosition(object.bones[0].matrixWorld);
 }
 
 // Update bones of the object (deformation), knowing the global rotation
 function updateBones(object, worldRotation) {
 
-    for(let i = 1; i <= object.path.effector; i++) {
+    for(let i = 1; i <= object.effector; i++) {
         // Put axis in parent space
         let parentBone = object.bones[i-1];
         let parentPos = new THREE.Vector3();
@@ -141,7 +140,7 @@ function updateBones(object, worldRotation) {
         // Compute quaternion
         // On peut parametrer les angles mais il faut que sum(theta_i) = theta
         let q = new THREE.Quaternion();
-        q.setFromAxisAngle(localAxis, worldRotation.angle / object.path.effector);
+        q.setFromAxisAngle(localAxis, worldRotation.angle / object.effector);
         object.bones[i].applyQuaternion(q);
     }
 
@@ -151,7 +150,7 @@ function updateBones(object, worldRotation) {
 
 // Update children position/rotation wrt parent deformation
 function updateChildren(object) { 
-    const positionAttribute = object.mesh.geometry.getAttribute( 'position' );
+    const positionAttribute = object.meshPosition;
     let vertex = new THREE.Vector3();
     let skinWeight = new THREE.Vector4();
     let skinIndex = new THREE.Vector4();
@@ -168,8 +167,8 @@ function updateChildren(object) {
 
             vertex.fromBufferAttribute(positionAttribute, objects[k].parent.index); // Rest pose local position
 
-            skinIndex.fromBufferAttribute( object.mesh.geometry.attributes.skinIndex, objects[k].parent.index );
-            skinWeight.fromBufferAttribute( object.mesh.geometry.attributes.skinWeight, objects[k].parent.index );
+            skinIndex.fromBufferAttribute( object.skinIndex, objects[k].parent.index );
+            skinWeight.fromBufferAttribute( object.skinWeight, objects[k].parent.index );
 
             // Compute the rotation of the vertex in world space
             let newRot = new THREE.Quaternion(0, 0, 0, 0); // World space
@@ -181,7 +180,8 @@ function updateChildren(object) {
                     let boneIndex = skinIndex.getComponent(i);
                     
                     let boneQ = new THREE.Quaternion();
-                    object.mesh.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
+                    //object.mesh.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
+                    object.bones[boneIndex].getWorldQuaternion(boneQ);
                     boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
                     newRot.set(newRot.x + boneQ.x, newRot.y + boneQ.y, newRot.z + boneQ.z, newRot.w + boneQ.w);
                 }
@@ -192,7 +192,7 @@ function updateChildren(object) {
             vertex = object.mesh.localToWorld(vertex.clone()); // World space
 
             // Rotate the translation offset
-            let rotatedOffset = objects[k].parent.offsetPos.clone();
+            let rotatedOffset = objects[k].offsetPos.clone();
             rotatedOffset.applyQuaternion(newRot);
 
             // Compute new position

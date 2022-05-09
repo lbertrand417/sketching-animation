@@ -54,29 +54,29 @@ drawButton.addEventListener("click", drawingCanvas);
 const targetButton = document.getElementById("target");
 targetButton.addEventListener("click", () => {
         console.log("Select target");
-        if(selectedObjects.length > 0 && selectedObjects[0].path.positions.length > 0) {
+        if(selectedObjects.length > 0 && selectedObjects[0].lengthPath > 0) {
             let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
 
             let target = null;
-            if (selectedObjects[0].path.target == null) {
+            if (!selectedObjects[0].hasTarget) {
                 target = new THREE.Mesh(sphereGeometry, materials.root.clone());
                 let targetPos = new Vector3();
                 if (parent != null) {
-                    targetPos = parent.display.links[parent.display.links.length - 1].position.clone();
+                    targetPos = parent.links[parent.lengthLinks - 1].position.clone();
                 } else {
-                    targetPos = selectedObjects[0].bones[0].localToWorld(selectedObjects[0].path.positions[Math.floor(selectedObjects[0].path.positions.length / 2)].clone());
+                    targetPos = selectedObjects[0].bones[0].localToWorld(selectedObjects[0].pathPos[Math.floor(selectedObjects[0].lengthPath / 2)].clone());
                 }
                 target.position.set(targetPos.x, targetPos.y, targetPos.z);
                 global.scene.add(target);
                 targets.push(target);
             } else  {
-                target = selectedObjects[0].path.target;
+                target = selectedObjects[0].target;
             }
 
             // Update le tableau des targets
 
             for (let i = 0; i < selectedObjects.length; i++) {
-                selectedObjects[i].path.target = target;
+                selectedObjects[i].target = target;
                 targetPath(selectedObjects[i]);
             }
         }
@@ -113,7 +113,7 @@ const rootButton = document.getElementById("root");
 rootButton.addEventListener("click", () => {
     console.log("display");
     for(let k = 0; k < objects.length; k++) {
-        objects[k].display.root.visible = !objects[k].display.root.visible ;
+        objects[k].root.visible = !objects[k].root.visible ;
     }
 });
 
@@ -121,8 +121,10 @@ const linksButton = document.getElementById("links");
 linksButton.addEventListener("click", () => {
     console.log("display");
     for(let k = 0; k < objects.length; k++) {
-        for(let i = 0; i < objects[k].display.links.length; i++) {
-            objects[k].display.links[i].visible = !objects[k].display.links[i].visible;
+        for(let i = 0; i < objects[k].lengthLinks; i++) {
+            console.log(objects[k].links);
+            //console.log(objects[k].links(i));
+            objects[k].links[i].visible = !objects[k].links[i].visible;
         }
     }
 });
@@ -131,7 +133,7 @@ const bonesButton = document.getElementById("bones");
 bonesButton.addEventListener("click", () => {
     console.log("display");
     for(let k = 0; k < objects.length; k++) {
-        objects[k].display.skeleton.visible = !objects[k].display.skeleton.visible;
+        objects[k].skeletonHelper.visible = !objects[k].skeletonHelper.visible;
     }
 });
 
@@ -139,8 +141,8 @@ const axesHelperButton = document.getElementById("axes");
 axesHelperButton.addEventListener("click", () => {
     console.log("display");
     for(let k = 0; k < objects.length; k++) {
-        for(let i = 0; i < objects[k].display.axes.length; i++) {
-            objects[k].display.axes[i].visible = !objects[k].display.axes[i].visible;
+        for(let i = 0; i < objects[k].lengthAxes(); i++) {
+            objects[k].axesHelpers[i].visible = !objects[k].axesHelpers[i].visible;
         }
     }
 });
@@ -149,8 +151,8 @@ const pathButton = document.getElementById("path");
 pathButton.addEventListener("click", () => {
     console.log("display");
     for(let k = 0; k < objects.length; k++) {
-        objects[k].display.path.visible = !objects[k].display.path.visible;
-        objects[k].display.timing.visible = !objects[k].display.timing.visible;
+        objects[k].pathDisplay.visible = !objects[k].pathDisplay.visible;
+        objects[k].timingDisplay.visible = !objects[k].timingDisplay.visible;
     }
 });
 
@@ -220,7 +222,7 @@ function setPosition(e) {
         refTime = new Date().getTime();
         global.animation.isAnimating = false;
         for (let k = 0; k < objects.length; k++) {
-            objects[k].path.index = null;
+            objects[k].pathIndex = null;
         }
 
         let rect = canvas2D.getBoundingClientRect();
@@ -230,13 +232,12 @@ function setPosition(e) {
     if (!global.sketch.isClean) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         global.sketch.positions = [];
-        //global.sketch.tangents = [];
         global.sketch.timings = [];
         global.sketch.isClean = true;
     }
 
     let p =  new THREE.Vector3(); // une position du plan
-    p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].bones.length - 1].matrixWorld);
+    p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].lengthBones - 1].matrixWorld);
     let pI = project3D(e, canvas2D, p);
     selectedObjects[0].bones[0].worldToLocal(pI);
 

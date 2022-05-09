@@ -9,20 +9,20 @@ import { findEffector } from './mesh.js'
 function findPosition(object, time) {
     // Find closest point in the timing array
     let i = 0;
-    object.path.index = 0;
-    while (i < object.path.timings.length - 1) {
-        if(time >= object.path.timings[i] && time <= object.path.timings[i + 1]) {
-            object.path.index = i;
-            i = object.path.timings.length;
+    object.pathIndex = 0;
+    while (i < object.lengthPath - 1) {
+        if(time >= object.pathTimings[i] && time <= object.pathTimings[i + 1]) {
+            object.pathIndex = i;
+            i = object.lengthPath;
         } else {
             i++;
         }
     }
 
     // Interpolate
-    let index = object.path.index;
-    let alpha = (time - object.path.timings[index]) / (object.path.timings[index + 1] - object.path.timings[index]);
-    let position = object.path.positions[index].clone().multiplyScalar(1 - alpha).add(object.path.positions[index + 1].clone().multiplyScalar(alpha)); // Local position
+    let index = object.pathIndex;
+    let alpha = (time - object.pathTimings[index]) / (object.pathTimings[index + 1] - object.pathTimings[index]);
+    let position = object.pathPos[index].clone().multiplyScalar(1 - alpha).add(object.pathPos[index + 1].clone().multiplyScalar(alpha)); // Local position
     object.bones[0].localToWorld(position); // Global position
     
     return position;
@@ -52,22 +52,22 @@ function updatePath() {
         }
 
         // Copy the path to the first selected object
-        selectedObjects[0].path.positions = [...global.sketch.positions];
-        selectedObjects[0].path.timings = [...global.sketch.timings];
+        selectedObjects[0].pathPos = [...global.sketch.positions];
+        selectedObjects[0].pathTimings = [...global.sketch.timings];
 
         // Create a cycle with the path
         for (let i = global.sketch.timings.length - 2; i >= 0; i--) {
-            selectedObjects[0].path.positions.push(selectedObjects[0].path.positions[i].clone());
-            selectedObjects[0].path.timings.push(selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1] + (global.sketch.timings[i + 1] - global.sketch.timings[i]));
+            selectedObjects[0].pathPos.push(selectedObjects[0].pathPos[i].clone());
+            selectedObjects[0].pathTimings.push(selectedObjects[0].pathTimings[selectedObjects[0].lengthPath - 1] + (global.sketch.timings[i + 1] - global.sketch.timings[i]));
         }
 
         // Display path
-        let globalPos = fromLocalToGlobal(selectedObjects[0].path.positions, selectedObjects[0].bones[0]);
-        selectedObjects[0].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+        let globalPos = fromLocalToGlobal(selectedObjects[0].pathPos, selectedObjects[0].bones[0]);
+        selectedObjects[0].pathDisplay.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
 
         // Update timeline 
-        timeline.min = selectedObjects[0].path.timings[0];
-        timeline.max = selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1];
+        timeline.min = selectedObjects[0].pathTimings[0];
+        timeline.max = selectedObjects[0].pathTimings[selectedObjects[0].lengthPath - 1];
     }
 
     // Start animation
@@ -80,9 +80,9 @@ function pastePath(e) {
     console.log('paste');
     for(let k = 1; k < selectedObjects.length; k++) {
             // Paste information of the selected object
-            selectedObjects[k].path.positions = [];
-            selectedObjects[k].path.timings = [...selectedObjects[0].path.timings];
-            selectedObjects[k].path.startTime = selectedObjects[0].path.startTime; // Bug
+            selectedObjects[k].pathPos = [];
+            selectedObjects[k].pathTimings = [...selectedObjects[0].pathTimings];
+            selectedObjects[k].pathStart = selectedObjects[0].pathStart; // Bug
             selectedObjects[k].path.index = selectedObjects[0].path.index;
             //selectedObjects[k].path.effector = selectedObjects[0].path.effector; // Replace with closest effector
 
