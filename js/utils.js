@@ -30,7 +30,7 @@ function computeAngleAxis(object, target) {
     let n = target.clone().sub(rootPos);
     n.normalize();
     let t = new THREE.Vector3();
-    t.setFromMatrixPosition(object.bones[object.bones.length - 1].matrixWorld);
+    t.setFromMatrixPosition(object.bones[object.lengthBones - 1].matrixWorld);
     t.sub(rootPos);
     t.normalize();
  

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MyObject } from './myObject.js'
 
 let materials = {
     unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034 }),
@@ -184,34 +185,16 @@ for(let k = 0; k < cylinderCount; k++) {
     
 
     // Store object
-    meshObjects.push({ mesh : cylinderMesh,
-                height : sizing.height,
-                skeleton : skeleton,
-                bones : bones,
-                restAxis : restAxis,
-                level : 1,
-                parent : { 
-                    index : 0,
-                    offsetPos : new THREE.Vector3(),
-                    offsetQ : new THREE.Quaternion()
-                },
-                path : {
-                    positions : [],
-                    timings : [],
-                    index : null,
-                    startTime : new Date().getTime(),
-                    effector : null,
-                    target: null
-                },
-                display : { 
-                    links : bonesDisplay,
-                    root : rootDisplay,
-                    skeleton : skeletonHelper,
-                    axes : axesHelpers,
-                    path : pathDisplay,
-                    timing : timingDisplay
-                }
-            })
+    const display = { bonesDisplay : bonesDisplay,
+                        rootDisplay : rootDisplay,
+                        pathDisplay : pathDisplay,
+                        timingDisplay : timingDisplay
+                    }
+    const helpers = { axesHelpers : axesHelpers,
+                skeletonHelper : skeletonHelper
+            }
+    meshObjects.push(new MyObject(cylinderMesh, sizing.height, skeleton,
+        bones, restAxis, 1, materials));
 }
 
 // Plane
@@ -223,4 +206,4 @@ plane.rotation.x = Math.PI * -.5;
 plane.receiveShadow = true;
 allObjects.push(plane);
 
-export { materials, allObjects, meshObjects };
+export { allObjects, meshObjects };

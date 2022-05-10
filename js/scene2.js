@@ -1,7 +1,5 @@
 import * as THREE from 'three';
-import { Quaternion, Vector3 } from 'three';
-import { getRandomInt } from './utils.js';
-import { MyObject } from './object.js'
+import { MyObject } from './myObject.js'
 
 let materials = {
     unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034, transparent : true, opacity : 0.8 }),
@@ -183,40 +181,13 @@ const bodyDisplay = createDisplay(bodyCylinder);
 
 let bones = bodyCylinder.bones;
 let rootBone = bones[0];
-//let restAxis = bones[0].worldToLocal(bodyDisplay.effector.position.clone());
 let restAxis = bones[0].worldToLocal(bodyDisplay.bonesDisplay[bodyDisplay.bonesDisplay.length - 1].position.clone());
 restAxis.normalize();
 
-//let parent = bodyCylinder.cylinderMesh;
-
-meshObjects.push({ mesh : bodyCylinder.cylinderMesh,
-    height : bodyHeight,
-    skeleton : bodyCylinder.skeleton,
-    bones : bodyCylinder.bones,
-    restAxis : restAxis,
-    level : 0,
-    parent : null,
-    path : {
-        positions : [],
-        timings : [],
-        index : null,
-        startTime : new Date().getTime(),
-        effector : null
-    },
-    display : { 
-        //effector : bodyDisplay.effector,
-        links : bodyDisplay.bonesDisplay,
-        root : bodyDisplay.rootDisplay,
-        skeleton : bodyCylinder.skeletonHelper,
-        axes : bodyCylinder.axesHelpers,
-        path : bodyDisplay.pathDisplay,
-        timing : bodyDisplay.timingDisplay
-    }
-})
-
-let tests = []
-tests.push(new MyObject(bodyCylinder.cylinderMesh, bodyHeight, bodyCylinder.skeleton,
-    bodyCylinder.bones, restAxis, 0, bodyDisplay, bodyCylinder));
+/*meshObjects.push(new MyObject(bodyCylinder.cylinderMesh, bodyHeight, bodyCylinder.skeleton,
+    bodyCylinder.bones, restAxis, 0, bodyDisplay, bodyCylinder));*/
+meshObjects.push(new MyObject(bodyCylinder.cylinderMesh, bodyHeight, bodyCylinder.skeleton,
+    bodyCylinder.bones, restAxis, 0, materials));
 
 
 const numberLine = 5;
@@ -243,9 +214,9 @@ for(let i = 0; i < numberLine; i++) {
         //rootBone.position.set(0, height / 2, 0);
 
         let q = new THREE.Quaternion();
-        let axis = rootBone.position.clone().sub(new Vector3(0, height, 0));
+        let axis = rootBone.position.clone().sub(new THREE.Vector3(0, height, 0));
         axis.normalize();
-        let rotationAxis = new Vector3(0, 1, 0);
+        let rotationAxis = new THREE.Vector3(0, 1, 0);
         rotationAxis.cross(axis);
         rotationAxis.normalize();
         q.setFromAxisAngle(rotationAxis, Math.PI / 1.7 - i * (Math.PI / 8));
@@ -265,39 +236,11 @@ for(let i = 0; i < numberLine; i++) {
         restAxis.normalize();
 
         // Store object
-        meshObjects.push({ mesh : detailCylinder.cylinderMesh,
-                    height : height,
-                    skeleton : detailCylinder.skeleton,
-                    bones : detailCylinder.bones,
-                    restAxis : restAxis,
-                    level : 1,
-                    parent : { 
-                        index : 0,
-                        offsetPos : new THREE.Vector3(),
-                        offsetQ : new THREE.Quaternion()
-                    },
-                    path : {
-                        positions : [],
-                        timings : [],
-                        index : null,
-                        startTime : new Date().getTime(),
-                        effector : null,
-                        target: null
-                    },
-                    display : { 
-                        links : detailDisplay.bonesDisplay,
-                        root : detailDisplay.rootDisplay,
-                        skeleton : detailCylinder.skeletonHelper,
-                        axes : detailCylinder.axesHelpers,
-                        path : detailDisplay.pathDisplay,
-                        timing : detailDisplay.timingDisplay
-                    }
-                })
-
-        tests.push(new MyObject(detailCylinder.cylinderMesh, height, detailCylinder.skeleton,
-            detailCylinder.bones, restAxis, 1, detailDisplay, detailCylinder));
+        /*meshObjects.push(new MyObject(detailCylinder.cylinderMesh, height, detailCylinder.skeleton,
+            detailCylinder.bones, restAxis, 1, detailDisplay, detailCylinder));*/
+        meshObjects.push(new MyObject(detailCylinder.cylinderMesh, height, detailCylinder.skeleton,
+            detailCylinder.bones, restAxis, 1, materials));
     }
 }
 
-//export { materials, allObjects, meshObjects, effectors };
-export { materials, allObjects, meshObjects, tests };
+export { allObjects, meshObjects };

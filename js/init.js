@@ -2,11 +2,11 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { materials as materials1, allObjects as allObjects1, meshObjects as meshObjects1 } from './scene1.js';
-import { materials as materials2, allObjects as allObjects2, meshObjects as meshObjects2, tests as tests2} from './scene2.js';
-import { materials as materials3, allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3.js';
-import { materials as materials4, allObjects as allObjects4, meshObjects as meshObjects4 } from './scene4.js';
-import { materials as materials5, allObjects as allObjects5, meshObjects as meshObjects5 } from './scene5.js';
+import { allObjects as allObjects1, meshObjects as meshObjects1 } from './scene1.js';
+import { allObjects as allObjects2, meshObjects as meshObjects2 } from './scene2.js';
+import { allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3.js';
+import { allObjects as allObjects4, meshObjects as meshObjects4 } from './scene4.js';
+import { allObjects as allObjects5, meshObjects as meshObjects5 } from './scene5.js';
 
 // Load a given scene
 function loadScene(s) {
@@ -27,60 +27,56 @@ function loadScene(s) {
             for (let i = 0; i < allObjects1.length; i++) {
                 global.scene.add(allObjects1[i]);
             }
-            materials = {...materials1};
             break;
         case 2 :
-            objects = [...tests2];
+            objects = [...meshObjects2];
             for (let i = 0; i < allObjects2.length; i++) {
                 global.scene.add(allObjects2[i]);
             }
-            materials = {...materials2};
             break;
         case 3 :
             objects = [...meshObjects3];
             for (let i = 0; i < allObjects3.length; i++) {
                 global.scene.add(allObjects3[i]);
             }
-            materials = {...materials3};
             break;
         case 4 :
             objects = [...meshObjects4];
             for (let i = 0; i < allObjects4.length; i++) {
                 global.scene.add(allObjects4[i]);
             }
-            materials = {...materials4};
             break;
         case 5 :
             objects = [...meshObjects5];
             for (let i = 0; i < allObjects5.length; i++) {
                 global.scene.add(allObjects5[i]);
             }
-            materials = {...materials5};
             break;
     }
 
     // Retrieve the parent if it exists + reset materials
     parent = null;
     for(let k = 0; k < objects.length; k++) {
-        objects[k].meshMaterial = materials.unselected.clone();
+        objects[k].material = materials.unselected.clone();
         for (let i = 0; i < objects[k].lengthLinks; i++) {
-            objects[k].setLinkMaterial(i, materials.links.clone());
+            objects[k].linkMaterial(i, materials.links.clone());
         }
         if(objects[k].isParent) {
             parent = objects[k];
         }
     }
 
+    // Retrieve targets
+
     // Reset selected objects
     selectedObjects = [];
+    
 }
 
 // Find correspondences between detail objects and the parent mesh
 function findCorrespondences() {
     if(parent != null) {
-        const positionAttribute = parent.meshPosition;
-
-        console.log(positionAttribute)
+        const positionAttribute = parent.positions;
 
         let vertex = new THREE.Vector3();
         let skinWeight = new THREE.Vector4();
@@ -98,7 +94,7 @@ function findCorrespondences() {
                 if(objects[k].level != 0) {
                     // Retrieve current closest point in parent mesh
                     let currentCor = new THREE.Vector3();
-                    currentCor.fromBufferAttribute(positionAttribute, objects[k].parentIndex);
+                    currentCor.fromBufferAttribute(positionAttribute, objects[k].parent.index);
                     currentCor = parent.mesh.localToWorld(currentCor.clone()); // World space
 
                     // Retrieve root position
@@ -115,8 +111,8 @@ function findCorrespondences() {
                     // If new vertex is closer
                     if(newD < currentD) {
                         // Update correspondence info
-                        objects[k].parentIndex = vertexIndex;
-                        objects[k].offsetPos = vertex.clone().sub(worldRootPos); // Global translation offset
+                        objects[k].parent.index = vertexIndex;
+                        objects[k].parent.offsetPos = vertex.clone().sub(worldRootPos); // Global translation offset
 
                         // Retrieve rotation of new vertex in world space (using skeleton of the mesh)
                         let vertexRot = new THREE.Quaternion(0, 0, 0, 0); // World space
@@ -135,7 +131,7 @@ function findCorrespondences() {
                         }
                         vertexRot.normalize();
 
-                        objects[k].offsetQ = vertexRot.invert().multiply(objects[k].bones[0].quaternion); // Global rotation offset
+                        objects[k].parent.offsetQ = vertexRot.invert().multiply(objects[k].bones[0].quaternion); // Global rotation offset
                     }
                 }
             }

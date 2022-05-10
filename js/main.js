@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../three.js/examples/jsm/controls/OrbitControls.js';
 import { loadScene, findCorrespondences } from './init.js'
-import { findPosition, targetPath } from './path.js'
+import { findPosition } from './path.js'
 import { computeAngleAxis, fromLocalToGlobal } from './utils.js';
 
 // --------------- INIT ---------------
@@ -19,6 +19,33 @@ document.body.appendChild(global.renderer.domElement); // renderer.domElement cr
 global.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500);
 global.camera.position.set(0, 0, 250);
 global.camera.lookAt(0, 0, 0);
+
+// Initialize material
+materials = {
+    unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034 }),
+    selected : new THREE.MeshPhongMaterial( { color: 0x28faa4 }),
+    selectedBis : new THREE.MeshPhongMaterial( { color: 0x1246bf }),
+    effector : new THREE.MeshBasicMaterial( {
+        color: new THREE.Color( 0x88ff88 ),
+        depthTest: false,
+        depthWrite: false,
+        transparent: true
+    } ),
+    links : new THREE.MeshBasicMaterial( {
+        color: new THREE.Color( 0x8888ff ),
+        depthTest: false,
+        depthWrite: false,
+        transparent: true
+    } ),
+    root : new THREE.MeshBasicMaterial( {
+        color: new THREE.Color( 0xff8888 ),
+        depthTest: false,
+        depthWrite: false,
+        transparent: true
+    } ),
+    unselectedpath : new THREE.LineBasicMaterial( { color: 0x0000ff }),
+    timing : new THREE.PointsMaterial({ color: 0xff0000, size: 2 })
+};
 
 // Initialize scene
 loadScene(2);
@@ -84,12 +111,12 @@ function updateAnimation(currentTime) {
         if(objects[k].lengthPath != 0) { 
             // Find the time in the object cycle
             let objectTime = currentTime;
-            while (objectTime < objects[k].pathTimings[0]) {
-                objectTime += objects[k].pathTimings[objects[k].lengthPath - 1] - objects[k].pathTimings[0] + 1;
+            while (objectTime < objects[k].path.timings[0]) {
+                objectTime += objects[k].path.timings[objects[k].lengthPath - 1] - objects[k].path.timings[0] + 1;
             }
 
-            while (objectTime > objects[k].pathTimings[objects[k].lengthPath - 1]) {
-                objectTime -= objects[k].pathTimings[objects[k].lengthPath- 1] - objects[k].pathTimings[0] + 1;
+            while (objectTime > objects[k].path.timings[objects[k].lengthPath - 1]) {
+                objectTime -= objects[k].path.timings[objects[k].lengthPath- 1] - objects[k].path.timings[0] + 1;
             }
 
             // Find position on the path wrt timing
@@ -150,7 +177,7 @@ function updateBones(object, worldRotation) {
 
 // Update children position/rotation wrt parent deformation
 function updateChildren(object) { 
-    const positionAttribute = object.meshPosition;
+    const positionAttribute = object.positions;
     let vertex = new THREE.Vector3();
     let skinWeight = new THREE.Vector4();
     let skinIndex = new THREE.Vector4();
@@ -192,7 +219,7 @@ function updateChildren(object) {
             vertex = object.mesh.localToWorld(vertex.clone()); // World space
 
             // Rotate the translation offset
-            let rotatedOffset = objects[k].offsetPos.clone();
+            let rotatedOffset = objects[k].parent.offsetPos.clone();
             rotatedOffset.applyQuaternion(newRot);
 
             // Compute new position
@@ -211,7 +238,7 @@ function updateChildren(object) {
 
             // Update path display
             let globalPos = fromLocalToGlobal(objects[k].path.positions, objects[k].bones[0]);
-            objects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+            objects[k].pathDisplay.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
         }
     }
 

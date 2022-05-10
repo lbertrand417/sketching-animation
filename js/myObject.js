@@ -1,7 +1,10 @@
 import * as THREE from 'three';
+import { MyPath } from './myPath.js'
+import { MyDisplay } from './myDisplay.js'
 
 class MyObject {
-    constructor(mesh, height, skeleton, bones, restAxis, level, display, helpers) {
+    //constructor(mesh, height, skeleton, bones, restAxis, level, display, helpers) {
+    constructor(mesh, height, skeleton, bones, restAxis, level, materials) {
         this._mesh = mesh;
         this._skeleton = skeleton;
         this._bones = bones;
@@ -20,34 +23,30 @@ class MyObject {
             offsetQ : new THREE.Quaternion()
         };
 
-        this._path = {
-            positions : [],
-            timings : [],
-            index : null,
-            startTime : new Date().getTime(),
-            effector : null,
-            target: null
-        };
+        this._path = new MyPath();
 
-        this._display = { 
+        /*this._display = { 
             links : display.bonesDisplay,
             root : display.rootDisplay,
             skeleton : helpers.skeletonHelper,
             axes : helpers.axesHelpers,
             path : display.pathDisplay,
             timing : display.timingDisplay
-        };
+        };*/
+
+        console.log(materials);
+        this._display = new MyDisplay(this, materials);
     }
 
     get mesh() {
         return this._mesh;
     }
 
-    set meshMaterial(material) {
+    set material(material) {
         this._mesh.material = material;
     }
 
-    get meshPosition() {
+    get positions() {
         return this._mesh.geometry.attributes.position;
     }
 
@@ -68,7 +67,7 @@ class MyObject {
     }
 
     get height() {
-        return this._height;
+        return this._restPose.height;
     }
 
     get restBones() {
@@ -76,7 +75,7 @@ class MyObject {
     }
 
     get restAxis() {
-        return this._restPose.restAxis;
+        return this._restPose.axis;
     }
 
     get level() {
@@ -87,60 +86,16 @@ class MyObject {
         return this._level == 0;
     }
 
-    get parentIndex() {
-        return this._parent.index;
+    get parent() {
+        return this._parent;
     }
 
-    set parentIndex(index) {
-        this._parent.index = index;
-    }
-
-    get offsetPos() {
-        return this._parent.offsetPos;
-    }
-
-    set offsetPos(p) {
-        this._parent.offsetPos = p;
-    }
-
-    get offsetQ() {
-        return this._parent.offsetQ;
-    }
-
-    set offsetQ(q) {
-        return this._parent.offsetQ;
-    }
-
-    get pathPos() {
-        return this._path.positions;
-    }
-
-    set pathPos(p) {
-        this._path.positions = p;
+    get path() {
+        return this._path;
     }
 
     get lengthPath() {
         return this._path.positions.length;
-    }
-
-    get pathTimings() {
-        return this._path.timings;
-    }
-
-    set pathTimings(t) {
-        this._path.timings = t;
-    }
-
-    get pathIndex() {
-        return this._path.index;
-    }
-
-    set pathIndex(i) {
-        this._path.index = i;
-    }
-
-    get pathStart() {
-        return this._path.startTime;
     }
 
     get effector() {
@@ -159,7 +114,7 @@ class MyObject {
         this._path.target = t;
     }
 
-    hasTarget() {
+    get hasTarget() {
         return !(this._path.target == null);
     }
 
@@ -171,7 +126,7 @@ class MyObject {
         return this._display.links.length;
     }
 
-    setLinkMaterial(i, material) {
+    linkMaterial(i, material) {
         this._display.links[i].material = material;
     }
 
@@ -187,7 +142,7 @@ class MyObject {
         return this._display.axes;
     }
 
-    lengthAxes() {
+    get lengthAxes() {
         return this._display.axes.length;
     }
 

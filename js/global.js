@@ -23,8 +23,6 @@ var global = {
 // Store mesh info
 var objects = []; // All parts of the mesh
 
-var tests = [];
-
 var parent = null; // Parent mesh
 
 var materials;

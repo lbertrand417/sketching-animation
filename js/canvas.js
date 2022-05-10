@@ -7,7 +7,6 @@ import { updateAnimation } from './main.js'
 import { updatePath, pastePath, offsetTiming, offsetOrientation, targetPath } from './path.js';
 import { autoSelect } from './mesh.js'
 import { resize, project3D } from './utils.js';
-import { Vector3 } from 'three';
 
 // SKETCH CANVAS
 let refTime = new Date().getTime(); // Time when we start drawing the line
@@ -58,14 +57,15 @@ targetButton.addEventListener("click", () => {
             let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
 
             let target = null;
-            if (!selectedObjects[0].hasTarget) {
+            if (selectedObjects[0].hasTarget === false) {
                 target = new THREE.Mesh(sphereGeometry, materials.root.clone());
-                let targetPos = new Vector3();
+                let targetPos = new THREE.Vector3();
                 if (parent != null) {
                     targetPos = parent.links[parent.lengthLinks - 1].position.clone();
                 } else {
-                    targetPos = selectedObjects[0].bones[0].localToWorld(selectedObjects[0].pathPos[Math.floor(selectedObjects[0].lengthPath / 2)].clone());
+                    targetPos = selectedObjects[0].bones[0].localToWorld(selectedObjects[0].path.positions[Math.floor(selectedObjects[0].lengthPath / 2)].clone());
                 }
+
                 target.position.set(targetPos.x, targetPos.y, targetPos.z);
                 global.scene.add(target);
                 targets.push(target);
@@ -122,8 +122,6 @@ linksButton.addEventListener("click", () => {
     console.log("display");
     for(let k = 0; k < objects.length; k++) {
         for(let i = 0; i < objects[k].lengthLinks; i++) {
-            console.log(objects[k].links);
-            //console.log(objects[k].links(i));
             objects[k].links[i].visible = !objects[k].links[i].visible;
         }
     }
@@ -141,7 +139,7 @@ const axesHelperButton = document.getElementById("axes");
 axesHelperButton.addEventListener("click", () => {
     console.log("display");
     for(let k = 0; k < objects.length; k++) {
-        for(let i = 0; i < objects[k].lengthAxes(); i++) {
+        for(let i = 0; i < objects[k].lengthAxes; i++) {
             objects[k].axesHelpers[i].visible = !objects[k].axesHelpers[i].visible;
         }
     }

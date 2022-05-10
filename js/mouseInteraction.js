@@ -43,11 +43,15 @@ function selectObject(event) {
     }
 
     let selectableObjects = []
+    console.log(objects.length);
+    console.log(objects[0].lengthLinks)
     for (let k = 0; k < objects.length; k++) {
         for (let i = 0; i < objects[k].lengthLinks; i++) {
             selectableObjects.push(objects[k].links[i]);
         }
     }
+
+    console.log(selectableObjects);
 
     if(selectableObjects != null && (intersectedTarget == null || intersectedTarget.length == 0)) {
         intersectedObject = raycaster.intersectObjects(selectableObjects);
@@ -63,9 +67,9 @@ function selectObject(event) {
         // Change into an update function?
         if (!event.shiftKey) {
             for(let k = 0; k < objects.length; k++) {
-                objects[k].meshMaterial = materials.unselected.clone();
+                objects[k].material = materials.unselected.clone();
                 if(objects[k].effector != null) {
-                    objects[k].setLinkMaterial(objects[k].effector, materials.links.clone());
+                    objects[k].linkMaterial(objects[k].effector, materials.links.clone());
                 }
             }
             selectedObjects = [];
@@ -77,9 +81,9 @@ function selectObject(event) {
 
         if(selectedObjects.length > 0) {
             if (selectedObjects[0].lengthPath > 0) {
-                timeline.min = selectedObjects[0].pathTimings[0];
-                timeline.max = selectedObjects[0].pathTimings[selectedObjects[0].lengthPath - 1];
-                timeline.value = selectedObjects[0].pathTimings[selectedObjects[0].pathIndex];
+                timeline.min = selectedObjects[0].path.timings[0];
+                timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
+                timeline.value = selectedObjects[0].path.timings[selectedObjects[0].path.index];
             } else {
                 timeline.min = 0;
                 timeline.max = 0;
@@ -94,8 +98,6 @@ function selectObject(event) {
 
             // Disable controls
             orbitControls.enabled = false;
-
-            console.log(selectedObjects[0].effector);
 
             // Project on the plane in 3D space
             p.setFromMatrixPosition(selectedObjects[0].links[selectedObjects[0].effector].matrixWorld); // Stay in the plane
@@ -133,7 +135,7 @@ function selectObject(event) {
     if(event.button == 2) {
         if (selectedObjects.length != 0) {
             for (let i = 0; i < selectedObjects.length; i++) {
-                selectedObjects[i].meshMaterial = materials.unselected.clone();
+                selectedObjects[i].material = materials.unselected.clone();
             }            
         }
         selectedObjects = [];
@@ -190,14 +192,13 @@ function moveObject(event) {
     }
 
     if(intersectedTarget != null && intersectedTarget.length > 0) {
-        console.log("coucou");
         const pI = project3D(event, global.renderer.domElement, p);
 
         intersectedTarget[0].object.position.set(pI.x, pI.y, pI.z);
 
 
         for(let k = 0; k < objects.length; k++) {
-            if(objects[k].path.target === intersectedTarget[0].object) {
+            if(objects[k].target === intersectedTarget[0].object) {
                 targetPath(objects[k]);
             }
         }
@@ -214,8 +215,8 @@ function unselectObject(event) {
         if (global.sketch.positions.length > 1) {
             updatePath();
         } else {
-            global.sketch.positions = [...selectedObjects[0].pathPos];
-            global.sketch.timings = [...selectedObjects[0].pathTimings];
+            global.sketch.positions = [...selectedObjects[0].path.positions];
+            global.sketch.timings = [...selectedObjects[0].path.timings];
         }
     } 
     intersectedObject = [];

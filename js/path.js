@@ -11,8 +11,8 @@ function findPosition(object, time) {
     let i = 0;
     object.pathIndex = 0;
     while (i < object.lengthPath - 1) {
-        if(time >= object.pathTimings[i] && time <= object.pathTimings[i + 1]) {
-            object.pathIndex = i;
+        if(time >= object.path.timings[i] && time <= object.path.timings[i + 1]) {
+            object.path.index = i;
             i = object.lengthPath;
         } else {
             i++;
@@ -20,9 +20,9 @@ function findPosition(object, time) {
     }
 
     // Interpolate
-    let index = object.pathIndex;
-    let alpha = (time - object.pathTimings[index]) / (object.pathTimings[index + 1] - object.pathTimings[index]);
-    let position = object.pathPos[index].clone().multiplyScalar(1 - alpha).add(object.pathPos[index + 1].clone().multiplyScalar(alpha)); // Local position
+    let index = object.path.index;
+    let alpha = (time - object.path.timings[index]) / (object.path.timings[index + 1] - object.path.timings[index]);
+    let position = object.path.positions[index].clone().multiplyScalar(1 - alpha).add(object.path.positions[index + 1].clone().multiplyScalar(alpha)); // Local position
     object.bones[0].localToWorld(position); // Global position
     
     return position;
@@ -52,22 +52,22 @@ function updatePath() {
         }
 
         // Copy the path to the first selected object
-        selectedObjects[0].pathPos = [...global.sketch.positions];
-        selectedObjects[0].pathTimings = [...global.sketch.timings];
+        selectedObjects[0].path.positions = [...global.sketch.positions];
+        selectedObjects[0].path.timings = [...global.sketch.timings];
 
         // Create a cycle with the path
         for (let i = global.sketch.timings.length - 2; i >= 0; i--) {
-            selectedObjects[0].pathPos.push(selectedObjects[0].pathPos[i].clone());
-            selectedObjects[0].pathTimings.push(selectedObjects[0].pathTimings[selectedObjects[0].lengthPath - 1] + (global.sketch.timings[i + 1] - global.sketch.timings[i]));
+            selectedObjects[0].path.timings.push(selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1] + (global.sketch.timings[i + 1] - global.sketch.timings[i]));
+            selectedObjects[0].path.positions.push(selectedObjects[0].path.positions[i].clone());
         }
 
         // Display path
-        let globalPos = fromLocalToGlobal(selectedObjects[0].pathPos, selectedObjects[0].bones[0]);
+        let globalPos = fromLocalToGlobal(selectedObjects[0].path.positions, selectedObjects[0].bones[0]);
         selectedObjects[0].pathDisplay.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
 
         // Update timeline 
-        timeline.min = selectedObjects[0].pathTimings[0];
-        timeline.max = selectedObjects[0].pathTimings[selectedObjects[0].lengthPath - 1];
+        timeline.min = selectedObjects[0].path.timings[0];
+        timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
     }
 
     // Start animation
@@ -80,15 +80,15 @@ function pastePath(e) {
     console.log('paste');
     for(let k = 1; k < selectedObjects.length; k++) {
             // Paste information of the selected object
-            selectedObjects[k].pathPos = [];
-            selectedObjects[k].pathTimings = [...selectedObjects[0].pathTimings];
-            selectedObjects[k].pathStart = selectedObjects[0].pathStart; // Bug
+            selectedObjects[k].path.positions = [];
+            selectedObjects[k].path.timings = [...selectedObjects[0].path.timings];
+            selectedObjects[k].path.startTime = selectedObjects[0].path.startTime; // Bug
             selectedObjects[k].path.index = selectedObjects[0].path.index;
             //selectedObjects[k].path.effector = selectedObjects[0].path.effector; // Replace with closest effector
 
             // Put positions in local space
             let scale = selectedObjects[k].height / selectedObjects[0].height; // scale
-            for(let i = 0; i < selectedObjects[0].path.positions.length; i++) {
+            for(let i = 0; i < selectedObjects[0].lengthPath; i++) {
                 // Retrieve local position (wrt root of original object)
                 let localPos = selectedObjects[0].path.positions[i].clone();
 
@@ -97,21 +97,22 @@ function pastePath(e) {
                 selectedObjects[k].path.positions.push(localPos); 
             }
 
-            selectedObjects[k].path.effector = findEffector(selectedObjects[k], scale);
+            selectedObjects[k].effector = findEffector(selectedObjects[k], scale);
 
         // Print 3D path
-        if(selectedObjects[k].path.positions.length != 0) {
+        if(selectedObjects[k].lengthPath != 0) {
             console.log("print");
             let globalPos = fromLocalToGlobal(selectedObjects[k].path.positions, selectedObjects[k].bones[0])
-            selectedObjects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+            selectedObjects[k].pathDisplay.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
         }
+
     }
 }
 
 // Add a random timing offset to all selected objects
 function offsetTiming(event) {
     for(let k = 0; k < selectedObjects.length; k++) {
-        let randomOffset = getRandomInt(0, selectedObjects[k].path.timings[selectedObjects[k].path.timings.length - 1]);
+        let randomOffset = getRandomInt(0, selectedObjects[k].path.timings[selectedObjects[k].lengthPath - 1]);
         selectedObjects[k].path.timings = selectedObjects[k].path.timings.map( function(value) { 
             return value + randomOffset; 
         } );
@@ -120,7 +121,7 @@ function offsetTiming(event) {
     // Update the timeline wrt the first selected object
     if (selectedObjects.length != 0) {
         timeline.min = selectedObjects[0].path.timings[0];
-        timeline.max = selectedObjects[0].path.timings[selectedObjects[0].path.timings.length - 1];
+        timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
     }
 }
 
@@ -129,8 +130,8 @@ function offsetOrientation(event) {
     for(let k = 0; k < selectedObjects.length; k++) {
         let randomOffset = Math.random() * Math.PI * 2;
 
-        let length = (selectedObjects[k].path.positions.length - 1) / 2 + 1;
-        for(let i = 0; i < selectedObjects[k].path.positions.length ; i++) {
+        //let length = (selectedObjects[k].lengthPath - 1) / 2 + 1;
+        for(let i = 0; i < selectedObjects[k].lengthPath ; i++) {
             let localPos = selectedObjects[k].path.positions[i].clone();
             localPos.applyAxisAngle(selectedObjects[k].restAxis, randomOffset );
             selectedObjects[k].path.positions[i] = localPos;
@@ -138,7 +139,7 @@ function offsetOrientation(event) {
 
         // Update path display
         let globalPos = fromLocalToGlobal(selectedObjects[k].path.positions, selectedObjects[k].bones[0]);
-        selectedObjects[k].display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+        selectedObjects[k].pathDisplay.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
     }
 }
 
@@ -147,20 +148,20 @@ function targetPath(object) {
     let theta = 0;
     let distances = [];
     while (theta < 2 * Math.PI) {
-        let localPos = object.path.positions[Math.floor(object.path.positions.length / 2)].clone();
+        let localPos = object.path.positions[Math.floor(object.lengthPath / 2)].clone();
         localPos.applyAxisAngle(object.restAxis, theta);
-        let distance = object.bones[0].localToWorld(localPos).distanceTo(object.path.target.position);
+
+        let distance = object.bones[0].localToWorld(localPos).distanceTo(object.target.position);
         distances.push(distance);
         theta += dt;
     }
 
-    console.log(distances);
 
     const min = Math.min(...distances);
     const index = distances.indexOf(min);
     theta = index * dt;
 
-    for(let i = 0; i < object.path.positions.length ; i++) {
+    for(let i = 0; i < object.lengthPath ; i++) {
         let localPos = object.path.positions[i].clone();
         localPos.applyAxisAngle(object.restAxis, theta);
         object.path.positions[i] = localPos;
@@ -168,7 +169,7 @@ function targetPath(object) {
 
     // Update path display
     let globalPos = fromLocalToGlobal(object.path.positions, object.bones[0]);
-    object.display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+    object.pathDisplay.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
 }
 
 export { findPosition, updatePath, pastePath, offsetTiming, offsetOrientation, targetPath }
