@@ -57,12 +57,25 @@ function loadScene(s) {
     // Retrieve the parent if it exists + reset materials
     parent = null;
     for(let k = 0; k < objects.length; k++) {
+        global.scene.add(objects[k].root);
+        global.scene.add(objects[k].skeletonHelper);
+        global.scene.add(objects[k].pathDisplay);
+        global.scene.add(objects[k].timingDisplay);
         objects[k].material = materials.unselected.clone();
         for (let i = 0; i < objects[k].lengthLinks; i++) {
+            global.scene.add(objects[k].links[i]);
+            //global.scene.add(objects[k].axesHelpers[i]);
             objects[k].linkMaterial(i, materials.links.clone());
         }
         if(objects[k].isParent) {
             parent = objects[k];
+        }
+    }
+
+
+    for (let k = 0; k < objects.length; k++) {
+        for (let i = 0; i < objects[k].lengthLinks; i++) {
+            selectableObjects.push(objects[k].links[i]);
         }
     }
 
@@ -136,6 +149,18 @@ function findCorrespondences() {
                 }
             }
         }
+
+        /*for (let i = 1; i < objects.length; i++) {
+            let index = objects[i].parent.index;
+
+            vertex.fromBufferAttribute( positionAttribute, index );
+            vertex = parent.mesh.localToWorld(vertex.clone()); // World space
+
+            let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
+            let point = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
+            point.position.set(vertex.x, vertex.y, vertex.z); // From cylinder local space to world
+            global.scene.add(point);
+        }*/
     }
 }
 

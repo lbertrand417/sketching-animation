@@ -8,20 +8,20 @@ class MyDisplay {
         for(let i = 1; i < object.bones.length; i++) {
             let link = new THREE.Mesh( sphereGeometry, materials.links.clone() );
             link.position.setFromMatrixPosition(object.bones[i].matrixWorld);
-            link.visible = false;
+            link.visible = true;
             //allObjects.push(boneDisplay);
             this._links.push(link);
         }
     
         this._root = new THREE.Mesh( sphereGeometry, materials.root.clone() );
         this._root.position.setFromMatrixPosition(object.bones[0].matrixWorld); // From cylinder local space to world
-        this._root.visible = false;
+        this._root.visible = true;
         //allObjects.push(rootDisplay);
 
         this._skeleton = new THREE.SkeletonHelper( object.bones[0] );
-        let boneContainer = new THREE.Group();
-        boneContainer.add( object.bones[0] );
-        this._skeleton.visible = false;
+        //let boneContainer = new THREE.Group();
+        //boneContainer.add( object.bones[0] );
+        this._skeleton.visible = true;
         //allObjects.push(skeletonHelper);
         //allObjects.push(boneContainer);
 
@@ -29,7 +29,7 @@ class MyDisplay {
         for (let i = 0; i < object.lengthBones; i++) {
             let axesHelper = new THREE.AxesHelper( 10 );
             object.bones[i].add(axesHelper);
-            axesHelper.visible = false;
+            axesHelper.visible = true;
             this._axes.push(axesHelper);
         }
 

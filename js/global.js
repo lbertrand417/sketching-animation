@@ -28,6 +28,7 @@ var parent = null; // Parent mesh
 var materials;
 
 // Store selected objects
+var selectableObjects = []
 var selectedObjects = [];
 
 var targets = [];

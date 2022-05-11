@@ -4,8 +4,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../three.js/examples/jsm/controls/OrbitControls.js';
 import { loadScene, findCorrespondences } from './init.js'
-import { findPosition } from './path.js'
-import { computeAngleAxis, fromLocalToGlobal } from './utils.js';
+import { computeAngleAxis } from './utils.js';
 
 // --------------- INIT ---------------
 
@@ -22,7 +21,7 @@ global.camera.lookAt(0, 0, 0);
 
 // Initialize material
 materials = {
-    unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034 }),
+    unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034, transparent: true, opacity: 0.8 }),
     selected : new THREE.MeshPhongMaterial( { color: 0x28faa4 }),
     selectedBis : new THREE.MeshPhongMaterial( { color: 0x1246bf }),
     effector : new THREE.MeshBasicMaterial( {
@@ -120,7 +119,9 @@ function updateAnimation(currentTime) {
             }
 
             // Find position on the path wrt timing
-            let new_pos = findPosition(objects[k], objectTime);
+            //let new_pos = findPosition(objects[k], objectTime);
+            let new_pos = objects[k].path.findPosition(objectTime);
+            objects[k].bones[0].localToWorld(new_pos);
 
             // Display target
             objects[k].timingDisplay.geometry = new THREE.BufferGeometry().setFromPoints([new_pos]);
@@ -237,8 +238,7 @@ function updateChildren(object) {
             updateDisplay(objects[k]);
 
             // Update path display
-            let globalPos = fromLocalToGlobal(objects[k].path.positions, objects[k].bones[0]);
-            objects[k].pathDisplay.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+            objects[k].updatePathDisplay();
         }
     }
 

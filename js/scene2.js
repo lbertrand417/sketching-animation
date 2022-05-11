@@ -72,17 +72,12 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
     cylinderGeometry.setAttribute("skinWeight",new THREE.Float32BufferAttribute(skinWeights, 4));
 
     let bones = [];
-    let axesHelpers = [];
 
     // Root
     let rootBone = new THREE.Bone();
     rootBone.name = "Root bone";
     rootBone.position.y = - height / 2; // Put it at the bottom of the cylinder (instead of middle) --> local pos wrt cylinder pos
     bones.push(rootBone);
-    let axesHelper = new THREE.AxesHelper( 10 );
-    rootBone.add( axesHelper );
-    axesHelper.visible = false;
-    axesHelpers.push(axesHelper);
 
     // Bones (the first bone is at the same position as the root bone)
     let prevBone = new THREE.Bone();
@@ -90,10 +85,7 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
     prevBone.position.y = 0; // Local pos wrt root
     rootBone.add(prevBone);
     bones.push(prevBone);
-    axesHelper = new THREE.AxesHelper( 10 );
-    prevBone.add(axesHelper);
-    axesHelper.visible = false;
-    axesHelpers.push(axesHelper);
+
 
     for (let i = 1; i <= segmentCount; i++) {
         const bone = new THREE.Bone();
@@ -102,56 +94,16 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
         bones.push(bone);
         prevBone.add(bone);
         prevBone = bone;
-        axesHelper = new THREE.AxesHelper( 10 );
-        bone.add(axesHelper);
-        axesHelper.visible = false;
-        axesHelpers.push(axesHelper);
     }
 
 
     // Create the skeleton
     const skeleton = new THREE.Skeleton(bones);
 
-    // Skeleton helper
-    let skeletonHelper = new THREE.SkeletonHelper( bones[0] );
-    let boneContainer = new THREE.Group();
-    boneContainer.add( bones[0] );
-    skeletonHelper.visible = false;
-    allObjects.push(skeletonHelper);
-    allObjects.push(boneContainer);
-
     cylinderMesh.add(bones[0]);
     cylinderMesh.bind(skeleton);
 
-    return { cylinderMesh, bones, axesHelpers, skeleton, skeletonHelper }
-}
-
-function createDisplay(object) {
-    let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
-
-    let bonesDisplay = [];
-    for(let i = 1; i < object.bones.length; i++) {
-        let boneDisplay= new THREE.Mesh( sphereGeometry, materials.links.clone() );
-        boneDisplay.position.setFromMatrixPosition(object.bones[i].matrixWorld);
-        boneDisplay.visible = false;
-        allObjects.push(boneDisplay);
-        bonesDisplay.push(boneDisplay);
-    }
-
-    let rootDisplay = new THREE.Mesh( sphereGeometry, materials.root.clone() );
-    rootDisplay.position.setFromMatrixPosition(object.bones[0].matrixWorld); // From cylinder local space to world
-    rootDisplay.visible = false;
-    allObjects.push(rootDisplay);
-
-    let pathGeometry = new THREE.BufferGeometry().setFromPoints([]);
-    let pathDisplay= new THREE.Line(pathGeometry, materials.unselectedpath.clone());
-    allObjects.push(pathDisplay);
-
-    const timingGeometry = new THREE.BufferGeometry().setFromPoints([]);
-    const timingDisplay = new THREE.Points( timingGeometry, materials.timing.clone() );
-    allObjects.push(timingDisplay);
-
-    return { bonesDisplay, rootDisplay, pathDisplay, timingDisplay }
+    return { cylinderMesh, bones }
 }
 
 
@@ -167,26 +119,27 @@ let maxHeight = 40;
 
 // MESH
 
-//let effectors = [];
 
 const bodyHeight = 75;
 const bodyRadius = 25;
 
 const bodyCylinder = createCylinder(bodyRadius, bodyRadius, bodyHeight, segmentCount);
 
-bodyCylinder.cylinderMesh.position.set(0, -maxHeight / 2, 0);
+// Update joints
+for(let i = 0; i < bodyCylinder.bones.length; i++) {
+    bodyCylinder.bones[i].updateMatrixWorld(true);
+}
+
 bodyCylinder.cylinderMesh.updateMatrixWorld();
 
-const bodyDisplay = createDisplay(bodyCylinder);
 
 let bones = bodyCylinder.bones;
-let rootBone = bones[0];
-let restAxis = bones[0].worldToLocal(bodyDisplay.bonesDisplay[bodyDisplay.bonesDisplay.length - 1].position.clone());
+let endPoint = new THREE.Vector3();
+endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
+let restAxis = bones[0].worldToLocal(endPoint);
 restAxis.normalize();
 
-/*meshObjects.push(new MyObject(bodyCylinder.cylinderMesh, bodyHeight, bodyCylinder.skeleton,
-    bodyCylinder.bones, restAxis, 0, bodyDisplay, bodyCylinder));*/
-meshObjects.push(new MyObject(bodyCylinder.cylinderMesh, bodyHeight, bodyCylinder.skeleton,
+meshObjects.push(new MyObject(bodyCylinder.cylinderMesh, bodyHeight,
     bodyCylinder.bones, restAxis, 0, materials));
 
 
@@ -210,8 +163,7 @@ for(let i = 0; i < numberLine; i++) {
         let bones = detailCylinder.bones;
         let rootBone = bones[0];
 
-        rootBone.position.set(r * Math.cos(theta), height / 2, r * Math.sin(theta));
-        //rootBone.position.set(0, height / 2, 0);
+        rootBone.position.set(r * Math.cos(theta), bodyHeight / 2, r * Math.sin(theta));
 
         let q = new THREE.Quaternion();
         let axis = rootBone.position.clone().sub(new THREE.Vector3(0, height, 0));
@@ -226,19 +178,17 @@ for(let i = 0; i < numberLine; i++) {
 
 
         // Update joints
-        for(let i = 0; i < bones.length; i++) {
-            bones[i].updateMatrixWorld(true);
+        for(let j = 0; j < bones.length; j++) {
+            bones[j].updateMatrixWorld(true);
         }
 
-        const detailDisplay = createDisplay(detailCylinder);        
-
-        let restAxis = bones[0].worldToLocal(detailDisplay.bonesDisplay[detailDisplay.bonesDisplay.length - 1].position.clone());
+        let endPoint = new THREE.Vector3();
+        endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
+        let restAxis = bones[0].worldToLocal(endPoint);
         restAxis.normalize();
 
         // Store object
-        /*meshObjects.push(new MyObject(detailCylinder.cylinderMesh, height, detailCylinder.skeleton,
-            detailCylinder.bones, restAxis, 1, detailDisplay, detailCylinder));*/
-        meshObjects.push(new MyObject(detailCylinder.cylinderMesh, height, detailCylinder.skeleton,
+        meshObjects.push(new MyObject(detailCylinder.cylinderMesh, height,
             detailCylinder.bones, restAxis, 1, materials));
     }
 }

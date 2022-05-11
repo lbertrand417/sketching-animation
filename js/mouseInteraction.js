@@ -2,8 +2,7 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { updatePath, targetPath } from './path.js';
-import { addSelectedObject, retrieveObject } from './mesh.js';
+import { addSelectedObject, addTarget, retrieveObject } from './selection.js';
 import { computeAngleAxis, project3D } from './utils.js';
 import { orbitControls, updateBones, updateChildren, updateDisplay } from './main.js';
 
@@ -41,17 +40,6 @@ function selectObject(event) {
     if(targets.length != 0) {
         intersectedTarget = raycaster.intersectObjects(targets);
     }
-
-    let selectableObjects = []
-    console.log(objects.length);
-    console.log(objects[0].lengthLinks)
-    for (let k = 0; k < objects.length; k++) {
-        for (let i = 0; i < objects[k].lengthLinks; i++) {
-            selectableObjects.push(objects[k].links[i]);
-        }
-    }
-
-    console.log(selectableObjects);
 
     if(selectableObjects != null && (intersectedTarget == null || intersectedTarget.length == 0)) {
         intersectedObject = raycaster.intersectObjects(selectableObjects);
@@ -199,7 +187,7 @@ function moveObject(event) {
 
         for(let k = 0; k < objects.length; k++) {
             if(objects[k].target === intersectedTarget[0].object) {
-                targetPath(objects[k]);
+                addTarget(objects[k]);
             }
         }
     }
@@ -213,7 +201,18 @@ function unselectObject(event) {
         intersectedObject = null;
         
         if (global.sketch.positions.length > 1) {
-            updatePath();
+            selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
+
+            // Display path
+            selectedObjects[0].updatePathDisplay();
+
+            // Update timeline 
+            timeline.min = selectedObjects[0].path.timings[0];
+            timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
+
+            // Start animation
+            global.animation.isAnimating = true;
+            global.animation.startTime = new Date().getTime();
         } else {
             global.sketch.positions = [...selectedObjects[0].path.positions];
             global.sketch.timings = [...selectedObjects[0].path.timings];

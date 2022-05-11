@@ -4,9 +4,8 @@
 import * as THREE from 'three';
 import { loadScene } from './init.js'
 import { updateAnimation } from './main.js'
-import { updatePath, pastePath, offsetTiming, offsetOrientation, targetPath } from './path.js';
-import { autoSelect } from './mesh.js'
-import { resize, project3D } from './utils.js';
+import { addTarget, autoSelect } from './selection.js'
+import { getRandomInt, resize, project3D } from './utils.js';
 
 // SKETCH CANVAS
 let refTime = new Date().getTime(); // Time when we start drawing the line
@@ -77,19 +76,51 @@ targetButton.addEventListener("click", () => {
 
             for (let i = 0; i < selectedObjects.length; i++) {
                 selectedObjects[i].target = target;
-                targetPath(selectedObjects[i]);
+                addTarget(selectedObjects[i]);
             }
         }
 });
 
 const pasteButton = document.getElementById("paste");
-pasteButton.addEventListener("click", pastePath);
+pasteButton.addEventListener("click", () => {
+    for (let k = 1; k < selectedObjects.length; k++) {
+        let scale = selectedObjects[k].height / selectedObjects[0].height; // scale
+        let distance = selectedObjects[0].distanceToRoot(selectedObjects[0].links[selectedObjects[0].effector]);
+        distance = scale * distance;
+        selectedObjects[k].updateEffector(distance);
+        selectedObjects[k].path.paste(selectedObjects[0].path, scale);
+
+        if(selectedObjects[k].lengthPath != 0) {
+            console.log("print");
+            selectedObjects[k].updatePathDisplay();
+        }
+    }
+});
 
 const timingButton = document.getElementById("timingoffset");
-timingButton.addEventListener("click", offsetTiming);
+timingButton.addEventListener("click", () => {
+    for (let k = 0; k < selectedObjects.length; k++) {
+        let randomOffset = getRandomInt(0, selectedObjects[k].path.timings[selectedObjects[k].lengthPath - 1]);
+        selectedObjects[k].path.offsetTiming(randomOffset);
+    }
+
+    // Update the timeline wrt the first selected object
+    if (selectedObjects.length != 0) {
+        timeline.min = selectedObjects[0].path.timings[0];
+        timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
+    }
+});
 
 const orientationButton = document.getElementById("orientationoffset");
-orientationButton.addEventListener("click", offsetOrientation);
+orientationButton.addEventListener("click", () => {
+    for(let k = 0; k < selectedObjects.length; k++) {
+        let randomOffset = Math.random() * Math.PI * 2;
+        selectedObjects[k].path.offsetOrientation(selectedObjects[k].restAxis, randomOffset);
+
+        // Update path display
+        selectedObjects[k].updatePathDisplay();
+    }
+});
 
 const selectButton = document.getElementById("select");
 selectButton.addEventListener("click", autoSelect);
@@ -246,7 +277,18 @@ function setPosition(e) {
 function updateScene(e) {
     global.sketch.isClean = false;
     
-    updatePath();
+    selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
+
+    // Display path
+    selectedObjects[0].updatePathDisplay();
+
+    // Update timeline 
+    timeline.min = selectedObjects[0].path.timings[0];
+    timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
+
+    // Start animation
+    global.animation.isAnimating = true;
+    global.animation.startTime = new Date().getTime();
 
     // find closest effector
 

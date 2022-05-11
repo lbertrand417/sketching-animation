@@ -1,12 +1,11 @@
 import * as THREE from 'three';
 import { MyPath } from './myPath.js'
 import { MyDisplay } from './myDisplay.js'
+import { fromLocalToGlobal } from './utils.js'
 
 class MyObject {
-    //constructor(mesh, height, skeleton, bones, restAxis, level, display, helpers) {
-    constructor(mesh, height, skeleton, bones, restAxis, level, materials) {
+    constructor(mesh, height, bones, restAxis, level, materials) {
         this._mesh = mesh;
-        this._skeleton = skeleton;
         this._bones = bones;
 
         this._restPose = {
@@ -25,16 +24,6 @@ class MyObject {
 
         this._path = new MyPath();
 
-        /*this._display = { 
-            links : display.bonesDisplay,
-            root : display.rootDisplay,
-            skeleton : helpers.skeletonHelper,
-            axes : helpers.axesHelpers,
-            path : display.pathDisplay,
-            timing : display.timingDisplay
-        };*/
-
-        console.log(materials);
         this._display = new MyDisplay(this, materials);
     }
 
@@ -151,7 +140,8 @@ class MyObject {
     }
 
     updatePathDisplay() {
-
+        let globalPos = fromLocalToGlobal(this.path.positions, this.bones[0]);
+        this._display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
     }
 
     get timingDisplay() {
@@ -160,6 +150,40 @@ class MyObject {
 
     updateTimingDisplay() {
         
+    }
+
+    distanceToRoot(point) {
+        let pos = new THREE.Vector3();
+    
+        pos.setFromMatrixPosition(point.matrixWorld);
+        this._bones[0].worldToLocal(pos);
+        let distance = pos.distanceTo(new THREE.Vector3(0,0,0));
+        
+        return distance;
+    }
+
+    updateEffector(distance) {
+        // compute length btw effector and root of the active object
+        // find the link that has the closest length
+        // Take into account the scale factor btw the 2 shapes
+    
+        let res = 0;
+        let linkPos = new THREE.Vector3();
+        linkPos.setFromMatrixPosition(this.links[0].matrixWorld);
+        this.bones[0].worldToLocal(linkPos);
+        let current_d = linkPos.distanceTo(new THREE.Vector3(0,0,0));
+        for (let i = 1; i < this.lengthLinks; i++) {
+            linkPos.setFromMatrixPosition(this.links[i].matrixWorld);
+            this.bones[0].worldToLocal(linkPos);
+            let new_d = linkPos.distanceTo(new THREE.Vector3(0,0,0));
+    
+            if (Math.abs(new_d - distance) < Math.abs(current_d - distance)) {
+                res = i;
+                current_d = new_d;
+            }
+        }
+
+        this.effector = res;
     }
 }
 
