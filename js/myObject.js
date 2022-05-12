@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { MyPath } from './myPath.js'
 import { MyDisplay } from './myDisplay.js'
 import { fromLocalToGlobal } from './utils.js'
+import { isSelected } from './selection.js'
 
 class MyObject {
     constructor(mesh, height, bones, restAxis, level, materials) {
@@ -31,8 +32,8 @@ class MyObject {
         return this._mesh;
     }
 
-    set material(material) {
-        this._mesh.material = material;
+    set material(m) {
+        this._mesh.material = m;
     }
 
     get positions() {
@@ -139,18 +140,12 @@ class MyObject {
         return this._display.path;
     }
 
-    updatePathDisplay() {
-        let globalPos = fromLocalToGlobal(this.path.positions, this.bones[0]);
-        this._display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
-    }
 
     get timingDisplay() {
         return this._display.timing;
     }
 
-    updateTimingDisplay() {
-        
-    }
+
 
     distanceToRoot(point) {
         let pos = new THREE.Vector3();
@@ -166,7 +161,6 @@ class MyObject {
         // compute length btw effector and root of the active object
         // find the link that has the closest length
         // Take into account the scale factor btw the 2 shapes
-    
         let res = 0;
         let linkPos = new THREE.Vector3();
         linkPos.setFromMatrixPosition(this.links[0].matrixWorld);
@@ -182,9 +176,30 @@ class MyObject {
                 current_d = new_d;
             }
         }
-
         this.effector = res;
+
+        this.updateLinksDisplay();
     }
+
+    // Display functions
+    updateLinksDisplay() {
+        for(let i = 0; i < this.lengthLinks; i++) {
+            this.linkMaterial(i, this._display.materials.links.clone());
+        }
+        if (this.effector != null && isSelected(this)) {
+            this.linkMaterial(this.path.effector, this._display.materials.effector.clone());
+        }
+    }
+
+    updatePathDisplay() {
+        let globalPos = fromLocalToGlobal(this.path.positions, this.bones[0]);
+        this._display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+    }
+
+    updateTimingDisplay() {
+        
+    }
+
 }
 
 export { MyObject }

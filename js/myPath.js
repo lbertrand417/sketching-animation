@@ -5,6 +5,7 @@ class MyPath {
         this._positions = [];
         this._timings = [];
         this._currentIndex = null;
+        this._alpha = 0;
         this._startTime = new Date().getTime();
         this._effectorIndex = null;
         this._target = null;
@@ -32,6 +33,21 @@ class MyPath {
 
     set index(i) {
         this._currentIndex = i;
+    }
+
+    get alpha () {
+        return this._alpha;
+    }
+
+    get currentPosition() {
+        let index = this._currentIndex;
+        let p = this._positions[index].clone().multiplyScalar(1 - this._alpha).add(this._positions[index + 1].clone().multiplyScalar(this._alpha))
+        return p; // Local position
+    }
+
+    get currentTime() {
+        let index = this._currentIndex;
+        return (1 - this.alpha) * this.timings[index] + this.alpha * this.timings[index + 1];
     }
 
     get startTime() {
@@ -62,8 +78,9 @@ class MyPath {
         return this._target != null;
     }
 
+
     // Find position in the object path wrt a given timing
-    findPosition(time) {
+    updateCurrentState(time) {
         // Find closest point in the timing array
         let i = 0;
         this._currentIndex = 0;
@@ -78,10 +95,7 @@ class MyPath {
 
         // Interpolate
         let index = this._currentIndex;
-        let alpha = (time - this._timings[index]) / (this._timings[index + 1] - this._timings[index]);
-        let position = this._positions[index].clone().multiplyScalar(1 - alpha).add(this._positions[index + 1].clone().multiplyScalar(alpha)); // Local position
-        
-        return position; // Local position
+        this._alpha = (time - this._timings[index]) / (this._timings[index + 1] - this._timings[index]);        
     }
 
     // Paste the drawn path to the first selected object
@@ -116,6 +130,7 @@ class MyPath {
                 this._timings.push(this._timings[this._timings.length - 1] + (timings[i + 1] - timings[i]));
                 this._positions.push(this._positions[i].clone());
             }
+
         }
     }
 

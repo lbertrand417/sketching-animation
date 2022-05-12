@@ -2,9 +2,9 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { addSelectedObject, addTarget, retrieveObject } from './selection.js';
+import { addSelectedObject, unselectAll, updateSelection, addTarget, retrieveObject } from './selection.js';
 import { computeAngleAxis, project3D } from './utils.js';
-import { orbitControls, updateBones, updateChildren, updateDisplay } from './main.js';
+import { orbitControls, updateBones, updateChildren, updateDisplay, updateTimeline } from './main.js';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
 global.renderer.domElement.addEventListener('mousemove', moveObject);
@@ -50,34 +50,13 @@ function selectObject(event) {
     }
 
 
-
     if (intersectedObject != null && intersectedObject.length > 0 && event.button == 0) {
-        // Change into an update function?
-        if (!event.shiftKey) {
-            for(let k = 0; k < objects.length; k++) {
-                objects[k].material = materials.unselected.clone();
-                if(objects[k].effector != null) {
-                    objects[k].linkMaterial(objects[k].effector, materials.links.clone());
-                }
-            }
-            selectedObjects = [];
-        }
-
-        const objectIndex = retrieveObject(intersectedObject[0].object);
-        addSelectedObject(objects[objectIndex], true);
-        //---------------
+        updateSelection(intersectedObject[0].object, event);
+        updateTimeline();
+        
 
         if(selectedObjects.length > 0) {
-            if (selectedObjects[0].lengthPath > 0) {
-                timeline.min = selectedObjects[0].path.timings[0];
-                timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
-                timeline.value = selectedObjects[0].path.timings[selectedObjects[0].path.index];
-            } else {
-                timeline.min = 0;
-                timeline.max = 0;
-                timeline.value = 0;
-            }
-
+            
             // Reset
             refTime = new Date().getTime();
             global.sketch.positions = [];
@@ -94,11 +73,12 @@ function selectObject(event) {
 
             global.sketch.positions.push(pI);
             global.sketch.timings.push(new Date().getTime() - refTime);
-        } else {
+        }
+        /*} else {
             timeline.min = 0;
             timeline.max = 0;
             timeline.value = 0;
-        }
+        }*/
     }
 
     if(intersectedParent != null && intersectedParent.length > 0) {
@@ -121,14 +101,8 @@ function selectObject(event) {
 
     // Unselect objects
     if(event.button == 2) {
-        if (selectedObjects.length != 0) {
-            for (let i = 0; i < selectedObjects.length; i++) {
-                selectedObjects[i].material = materials.unselected.clone();
-            }            
-        }
-        selectedObjects = [];
-        timeline.min = 0;
-        timeline.max = 0;
+        unselectAll();
+        updateTimeline();
     }
 }
 
@@ -150,13 +124,6 @@ function moveObject(event) {
 
 
         if(selectedObjects[0].level == 0) {
-            /*for(let i = 0; i < targets.length; i++) {
-                let pos = selectedObjects[0].bones[0].worldToLocal(targets[i].position.clone());
-                pos.applyAxisAngle(worldRotation.axis, worldRotation.angle);
-                selectedObjects[0].bones[0].localToWorld(pos);
-                targets[i].position.set(pos.x, pos.y, pos.z);
-            }*/
-
             updateChildren(selectedObjects[0]);
         }
     }

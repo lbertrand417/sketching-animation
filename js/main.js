@@ -71,7 +71,7 @@ function animate() {
         //console.log('currentTime', currentTime);
 
         // Reset timeline if no object selected
-        if(selectedObjects.length == 0) {
+        /*if(selectedObjects.length == 0) {
             timeline.min = 0;
             timeline.max = 0;
             timeline.value = 0;
@@ -86,10 +86,11 @@ function animate() {
             }
 
             timeline.value = timelineValue;
-        }
+        }*/
 
         // Update animation
         updateAnimation(currentTime);
+        updateTimeline();
     }
 
     requestAnimationFrame(animate);
@@ -120,8 +121,10 @@ function updateAnimation(currentTime) {
 
             // Find position on the path wrt timing
             //let new_pos = findPosition(objects[k], objectTime);
-            let new_pos = objects[k].path.findPosition(objectTime);
+            objects[k].path.updateCurrentState(objectTime);
+            let new_pos = objects[k].path.currentPosition;
             objects[k].bones[0].localToWorld(new_pos);
+
 
             // Display target
             objects[k].timingDisplay.geometry = new THREE.BufferGeometry().setFromPoints([new_pos]);
@@ -248,7 +251,24 @@ function updateChildren(object) {
     }
 
 }
+
+function updateTimeline() {
+    if(selectedObjects.length > 0 && selectedObjects[0].lengthPath > 0) {
+        //let currentState = selectedObjects[0].findCurrentState(time);
+        timeline.min = selectedObjects[0].path.timings[0];
+        timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
+        //timeline.value = currentState
+        timeline.value = selectedObjects[0].path.currentTime;
+        /*console.log("max", timeline.max);
+        console.log("value", timeline.value)*/
+    } else {
+        timeline.min = 0;
+        timeline.max = 0;
+        timeline.value = 0;
+    }
+    //timeline.value = value;
+}
 // -------------------------------------------
 
 
-export { orbitControls, updateAnimation, updateDisplay, updateBones, updateChildren };
+export { orbitControls, updateAnimation, updateDisplay, updateBones, updateChildren, updateTimeline };

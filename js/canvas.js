@@ -105,6 +105,7 @@ timingButton.addEventListener("click", () => {
     }
 
     // Update the timeline wrt the first selected object
+    
     if (selectedObjects.length != 0) {
         timeline.min = selectedObjects[0].path.timings[0];
         timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];

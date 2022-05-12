@@ -38,20 +38,25 @@ function addSelectedObject(selection, removable) {
 function unselectAll() {
     for (let k = 0; k < selectedObjects.length; k++) {
         selectedObjects[k].material = materials.unselected.clone();
-        selectedObjects[k].linkMaterial(selectedObjects[k].effector, materials.links.clone());
+        if(selectedObjects[k].effector != null) {
+            selectedObjects[k].linkMaterial(selectedObjects[k].effector, materials.links.clone());
+        }
     }
     selectedObjects = []
-    timeline.min = 0;
-    timeline.max = 0; 
+    //timeline.min = 0;
+    //timeline.max = 0; 
 }
 
-function unselect(i) {
-    selectedObjects[i].material = materials.unselected.clone();
-    selectedObjects[i].linkMaterial(selectedObjects[i].effector, materials.links.clone());
-    //selectedObjects[i].effector = null;
-    selectedObjects.splice(i, 1);
-    if(selectedObjects.length > 0) {
-        selectedObjects[0].material = materials.selected.clone();
+function unselect(k) {
+    for (let i = 0; i < selectedObjects.length; i++) {
+        if (objects[k] === selectedObjects[i]) {
+            selectedObjects[i].material = materials.unselected.clone();
+            selectedObjects[i].linkMaterial(selectedObjects[i].effector, materials.links.clone());
+            selectedObjects.splice(i, 1);
+            if(selectedObjects.length > 0) {
+                selectedObjects[0].material = materials.selected.clone();
+            }
+        }
     }
 }
 
@@ -64,40 +69,41 @@ function isSelected(object) {
     return false;
 }
 
-function select(k) {
-    if (isSelected(objects[i])) {
-        for (let i = 0; i < objects[k].lengthLinks; i++) {
-            objects[k].linkMaterial(i, material.links.clone());
-        }
+function select(k, effectorIndex) {
+    if (isSelected(objects[k])) {
+        objects[k].linkMaterial(objects[k].effector, materials.links.clone());
     } else {
         if (selectedObjects.length == 0) {
-            objects[i].material = materials.selected.clone();
+            objects[k].material = materials.selected.clone();
         } else {
-            objects[i].material = materials.selectedBis.clone();
+            objects[k].material = materials.selectedBis.clone();
         }
-        selectedObjects.push(objects[i]);
+        selectedObjects.push(objects[k]);
     }
-    objects[k].linkMaterial(objects[k].effector, material.effector.clone());
+    objects[k].effector = effectorIndex;
+    if (effectorIndex != null) {
+        objects[k].linkMaterial(effectorIndex, materials.effector.clone());
+    }
 
 }
 
 function updateSelection(effector, event) {
-    if (event.button == 2) {
-        unselectAll();
-    } else {
-        if(objects.length > 0) {
-            if (!event.shiftKey) {
-                unselectAll();
-            }
-
-            const objectIndex = retrieveObject(effector);
-
-            if(objects[objectIndex].effector == effector) {
-                //unselect();
-            } else {
-                select(objects[objectIndex]);
-            }
+    if(event.button == 0) {
+        if (!event.shiftKey) {
+            unselectAll();
         }
+
+        const indexes = retrieveObject(effector);
+        const objectIndex = indexes.k;
+        const effectorIndex = indexes.i;
+
+        if(isSelected(objects[objectIndex]) && objects[objectIndex].links[objects[objectIndex].effector] === effector) {
+            unselect(objectIndex);
+        } else {
+            select(objectIndex, effectorIndex);
+        }
+
+        
     }
 }
 
@@ -106,7 +112,7 @@ function autoSelect(event) {
     console.log("auto select");
     for(let k = 0; k < objects.length; k++) {
         if(selectedObjects.length != 0 && objects[k].level == selectedObjects[0].level) {
-            addSelectedObject(objects[k], false);
+            select(k, objects[k].effector);
         }
     }
 }
@@ -116,9 +122,9 @@ function retrieveObject(effector) {
     for (let k = 0; k < objects.length; k++) {
         for (let i = 0; i < objects[k].lengthLinks; i++) {
             if (effector === objects[k].links[i]) {
-                objects[k].effector = i;
-                objects[k].linkMaterial(i, materials.effector.clone());
-                return k;
+                console.log('k', k);
+                console.log('i', i)
+                return { k, i };
             }
         }
     }
@@ -152,4 +158,4 @@ function addTarget(object) {
     object.updatePathDisplay();
 }
 
-export { addSelectedObject, autoSelect, retrieveObject, addTarget }
+export { addSelectedObject, autoSelect, isSelected, unselectAll, updateSelection, retrieveObject, addTarget }

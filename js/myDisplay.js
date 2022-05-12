@@ -2,6 +2,8 @@ import * as THREE from 'three';
 
 class MyDisplay {
     constructor(object, materials) {
+        this._materials = materials;
+
         let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
 
         this._links = [];
@@ -9,22 +11,15 @@ class MyDisplay {
             let link = new THREE.Mesh( sphereGeometry, materials.links.clone() );
             link.position.setFromMatrixPosition(object.bones[i].matrixWorld);
             link.visible = true;
-            //allObjects.push(boneDisplay);
             this._links.push(link);
         }
     
         this._root = new THREE.Mesh( sphereGeometry, materials.root.clone() );
         this._root.position.setFromMatrixPosition(object.bones[0].matrixWorld); // From cylinder local space to world
         this._root.visible = true;
-        //allObjects.push(rootDisplay);
 
         this._skeleton = new THREE.SkeletonHelper( object.bones[0] );
-        //let boneContainer = new THREE.Group();
-        //boneContainer.add( object.bones[0] );
         this._skeleton.visible = true;
-        //allObjects.push(skeletonHelper);
-        //allObjects.push(boneContainer);
-
         this._axes = [];
         for (let i = 0; i < object.lengthBones; i++) {
             let axesHelper = new THREE.AxesHelper( 10 );
@@ -35,11 +30,13 @@ class MyDisplay {
 
         const pathGeometry = new THREE.BufferGeometry().setFromPoints([]);
         this._path = new THREE.Line(pathGeometry, materials.unselectedpath.clone());
-        //allObjects.push(pathDisplay);
     
         const timingGeometry = new THREE.BufferGeometry().setFromPoints([]);
         this._timing = new THREE.Points( timingGeometry, materials.timing.clone() );
-        //allObjects.push(timingDisplay);
+    }
+
+    get materials() {
+        return this._materials;
     }
 
     get links() {
