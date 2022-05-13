@@ -157,6 +157,25 @@ class MyObject {
         return distance;
     }
 
+    updateBones(worldRotation) {
+        for(let i = 1; i <= this.effector; i++) {
+            // Put axis in parent space
+            let parentBone = this.bones[i-1];
+            let parentPos = new THREE.Vector3();
+            let invParentQ = new THREE.Quaternion();
+            let parentScale = new THREE.Vector3();
+            parentBone.matrixWorld.decompose(parentPos, invParentQ, parentScale);
+            invParentQ.invert();
+            let localAxis = worldRotation.axis.clone().applyQuaternion(invParentQ);
+    
+            // Compute quaternion
+            // On peut parametrer les angles mais il faut que sum(theta_i) = theta
+            let q = new THREE.Quaternion();
+            q.setFromAxisAngle(localAxis, worldRotation.angle / this.effector);
+            this.bones[i].applyQuaternion(q);
+        }
+    }
+
     updateEffector(distance) {
         // compute length btw effector and root of the active object
         // find the link that has the closest length
@@ -183,12 +202,20 @@ class MyObject {
 
     // Display functions
     updateLinksDisplay() {
+        // Update bones
+        for(let i = 0; i < this.lengthBones; i++) {
+            this.bones[i].updateMatrixWorld(true);
+        }
+
         for(let i = 0; i < this.lengthLinks; i++) {
+            this.links[i].position.setFromMatrixPosition(this.bones[i+1].matrixWorld);
             this.linkMaterial(i, this._display.materials.links.clone());
         }
         if (this.effector != null && isSelected(this)) {
             this.linkMaterial(this.path.effector, this._display.materials.effector.clone());
         }
+
+        this.root.position.setFromMatrixPosition(this.bones[0].matrixWorld);
     }
 
     updatePathDisplay() {
@@ -197,7 +224,12 @@ class MyObject {
     }
 
     updateTimingDisplay() {
-        
+        if (this.lengthPath != 0) {
+            let globalPos = this.bones[0].localToWorld(this.path.currentPosition);
+            this._display.timing.geometry = new THREE.BufferGeometry().setFromPoints([globalPos]);
+        } else {
+            this._display.timing.geometry = new THREE.BufferGeometry().setFromPoints([]);
+        }
     }
 
 }

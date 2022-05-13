@@ -3,7 +3,7 @@
 // Import libraries
 import * as THREE from 'three';
 import { loadScene } from './init.js'
-import { updateAnimation } from './main.js'
+import { updateAnimation, updateTimeline } from './main.js'
 import { addTarget, autoSelect } from './selection.js'
 import { getRandomInt, resize, project3D } from './utils.js';
 
@@ -105,11 +105,7 @@ timingButton.addEventListener("click", () => {
     }
 
     // Update the timeline wrt the first selected object
-    
-    if (selectedObjects.length != 0) {
-        timeline.min = selectedObjects[0].path.timings[0];
-        timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
-    }
+    updateTimeline();
 });
 
 const orientationButton = document.getElementById("orientationoffset");
@@ -284,8 +280,7 @@ function updateScene(e) {
     selectedObjects[0].updatePathDisplay();
 
     // Update timeline 
-    timeline.min = selectedObjects[0].path.timings[0];
-    timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
+    updateTimeline();
 
     // Start animation
     global.animation.isAnimating = true;

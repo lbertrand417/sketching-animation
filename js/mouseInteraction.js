@@ -2,9 +2,9 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { addSelectedObject, unselectAll, updateSelection, addTarget, retrieveObject } from './selection.js';
+import { unselectAll, updateSelection, addTarget } from './selection.js';
 import { computeAngleAxis, project3D } from './utils.js';
-import { orbitControls, updateBones, updateChildren, updateDisplay, updateTimeline } from './main.js';
+import { orbitControls, updateChildren, updateTimeline } from './main.js';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
 global.renderer.domElement.addEventListener('mousemove', moveObject);
@@ -54,9 +54,7 @@ function selectObject(event) {
         updateSelection(intersectedObject[0].object, event);
         updateTimeline();
         
-
         if(selectedObjects.length > 0) {
-            
             // Reset
             refTime = new Date().getTime();
             global.sketch.positions = [];
@@ -74,11 +72,6 @@ function selectObject(event) {
             global.sketch.positions.push(pI);
             global.sketch.timings.push(new Date().getTime() - refTime);
         }
-        /*} else {
-            timeline.min = 0;
-            timeline.max = 0;
-            timeline.value = 0;
-        }*/
     }
 
     if(intersectedParent != null && intersectedParent.length > 0) {
@@ -114,14 +107,12 @@ function moveObject(event) {
         const pI = project3D(event, global.renderer.domElement, p);
 
         let worldRotation = computeAngleAxis(selectedObjects[0], pI);
-        updateBones(selectedObjects[0], worldRotation);
+        selectedObjects[0].updateBones(worldRotation);
 
         selectedObjects[0].bones[0].worldToLocal(pI);
 
         global.sketch.positions.push(pI);
         global.sketch.timings.push(new Date().getTime() - refTime);
-
-
 
         if(selectedObjects[0].level == 0) {
             updateChildren(selectedObjects[0]);
@@ -137,8 +128,6 @@ function moveObject(event) {
 
         parent.mesh.translateOnAxis(axis, distance);
         parent.mesh.updateMatrixWorld();
-
-        updateDisplay(objects[0]);
 
         // TODO: Update trajectory
 
@@ -158,6 +147,11 @@ function moveObject(event) {
             }
         }
     }
+
+    for(let k = 0; k < objects.length; k++) {
+        objects[k].updateLinksDisplay();
+        objects[k].updatePathDisplay();
+    }
 }
 
 
@@ -173,10 +167,6 @@ function unselectObject(event) {
             // Display path
             selectedObjects[0].updatePathDisplay();
 
-            // Update timeline 
-            timeline.min = selectedObjects[0].path.timings[0];
-            timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
-
             // Start animation
             global.animation.isAnimating = true;
             global.animation.startTime = new Date().getTime();
@@ -185,12 +175,8 @@ function unselectObject(event) {
             global.sketch.timings = [...selectedObjects[0].path.timings];
         }
     } 
-    intersectedObject = [];
 
-    if(intersectedParent != null && intersectedParent.length > 0) {
-        intersectedParent = null;
-    }
-
+    intersectedObject = null;
+    intersectedParent = null;
     intersectedTarget = null;
-
 }

@@ -1,5 +1,3 @@
-import * as THREE from 'three';
-
 class MyPath {
     constructor() {
         this._positions = [];

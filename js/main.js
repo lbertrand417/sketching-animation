@@ -68,29 +68,17 @@ function animate() {
     if(global.animation.isAnimating) {
         let currentTime = new Date().getTime() - global.animation.startTime; // Time since animation is started
         // TODO: restart startTime when attaining max timing
-        //console.log('currentTime', currentTime);
-
-        // Reset timeline if no object selected
-        /*if(selectedObjects.length == 0) {
-            timeline.min = 0;
-            timeline.max = 0;
-            timeline.value = 0;
-        // else find the time in the timeline wrt to currentTime
-        } else {
-            let timelineValue = currentTime;
-            while (timelineValue < parseInt(timeline.min)) {
-                timelineValue += parseInt(timeline.max) - parseInt(timeline.min) + 1;
-            }
-            while (timelineValue > parseInt(timeline.max)) {
-                timelineValue -= parseInt(timeline.max) - parseInt(timeline.min) + 1;
-            }
-
-            timeline.value = timelineValue;
-        }*/
 
         // Update animation
         updateAnimation(currentTime);
+
+        // Update displays
         updateTimeline();
+        for (let k = 0; k < objects.length; k++) {
+            objects[k].updateLinksDisplay();
+            objects[k].updatePathDisplay();
+            objects[k].updateTimingDisplay();
+        }
     }
 
     requestAnimationFrame(animate);
@@ -120,18 +108,13 @@ function updateAnimation(currentTime) {
             }
 
             // Find position on the path wrt timing
-            //let new_pos = findPosition(objects[k], objectTime);
             objects[k].path.updateCurrentState(objectTime);
             let new_pos = objects[k].path.currentPosition;
             objects[k].bones[0].localToWorld(new_pos);
 
-
-            // Display target
-            objects[k].timingDisplay.geometry = new THREE.BufferGeometry().setFromPoints([new_pos]);
-
             // Update bones
             let worldRotation = computeAngleAxis(objects[k], new_pos);
-            updateBones(objects[k], worldRotation);
+            objects[k].updateBones(worldRotation);
 
             // Update children if parent mesh
             if(objects[k].level == 0) {
@@ -139,44 +122,6 @@ function updateAnimation(currentTime) {
             }
         }
     }
-}
-
-// Update bones and joints display
-function updateDisplay(object) {
-    // Update bones
-    for(let i = 0; i < object.lengthBones; i++) {
-        object.bones[i].updateMatrixWorld(true);
-    }
-    
-    // Update joints display
-    for(let i = 0; i < object.lengthLinks; i++) {
-        object.links[i].position.setFromMatrixPosition(object.bones[i+1].matrixWorld);
-    }
-    object.root.position.setFromMatrixPosition(object.bones[0].matrixWorld);
-}
-
-// Update bones of the object (deformation), knowing the global rotation
-function updateBones(object, worldRotation) {
-
-    for(let i = 1; i <= object.effector; i++) {
-        // Put axis in parent space
-        let parentBone = object.bones[i-1];
-        let parentPos = new THREE.Vector3();
-        let invParentQ = new THREE.Quaternion();
-        let parentScale = new THREE.Vector3();
-        parentBone.matrixWorld.decompose(parentPos, invParentQ, parentScale);
-        invParentQ.invert();
-        let localAxis = worldRotation.axis.clone().applyQuaternion(invParentQ);
-
-        // Compute quaternion
-        // On peut parametrer les angles mais il faut que sum(theta_i) = theta
-        let q = new THREE.Quaternion();
-        q.setFromAxisAngle(localAxis, worldRotation.angle / object.effector);
-        object.bones[i].applyQuaternion(q);
-    }
-
-    // Update display
-    updateDisplay(object);
 }
 
 // Update children position/rotation wrt parent deformation
@@ -211,7 +156,6 @@ function updateChildren(object) {
                     let boneIndex = skinIndex.getComponent(i);
                     
                     let boneQ = new THREE.Quaternion();
-                    //object.mesh.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
                     object.bones[boneIndex].getWorldQuaternion(boneQ);
                     boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
                     newRot.set(newRot.x + boneQ.x, newRot.y + boneQ.y, newRot.z + boneQ.z, newRot.w + boneQ.w);
@@ -236,15 +180,10 @@ function updateChildren(object) {
             objects[k].bones[0].setRotationFromQuaternion(newRot);
 
             // Update target
-                
-            // Update display
-            updateDisplay(objects[k]);
-
-            // Update path display
-            objects[k].updatePathDisplay();
         }
     }
 
+    // Update targets (Adapt?)
     for (let i = 0; i < targets.length; i++) {
         let newPos = objects[1].bones[0].localToWorld(localPos[i]);
         targets[i].position.set(newPos.x, newPos.y, newPos.z);
@@ -254,21 +193,16 @@ function updateChildren(object) {
 
 function updateTimeline() {
     if(selectedObjects.length > 0 && selectedObjects[0].lengthPath > 0) {
-        //let currentState = selectedObjects[0].findCurrentState(time);
         timeline.min = selectedObjects[0].path.timings[0];
         timeline.max = selectedObjects[0].path.timings[selectedObjects[0].lengthPath - 1];
-        //timeline.value = currentState
         timeline.value = selectedObjects[0].path.currentTime;
-        /*console.log("max", timeline.max);
-        console.log("value", timeline.value)*/
     } else {
         timeline.min = 0;
         timeline.max = 0;
         timeline.value = 0;
     }
-    //timeline.value = value;
 }
 // -------------------------------------------
 
 
-export { orbitControls, updateAnimation, updateDisplay, updateBones, updateChildren, updateTimeline };
+export { orbitControls, updateAnimation, updateChildren, updateTimeline };

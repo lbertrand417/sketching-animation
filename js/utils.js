@@ -39,7 +39,6 @@ function computeAngleAxis(object, target) {
     axis.crossVectors(t, n);
     axis.normalize();
  
- 
     // Compute world rotation angle
     let angle = t.dot(n);
     angle = Math.acos(angle);

@@ -2,6 +2,7 @@
 
 // Import libraries
 import * as THREE from 'three';
+import { updateTimeline } from './main.js';
 import { allObjects as allObjects1, meshObjects as meshObjects1 } from './scene1.js';
 import { allObjects as allObjects2, meshObjects as meshObjects2 } from './scene2.js';
 import { allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3.js';
@@ -64,7 +65,6 @@ function loadScene(s) {
         objects[k].material = materials.unselected.clone();
         for (let i = 0; i < objects[k].lengthLinks; i++) {
             global.scene.add(objects[k].links[i]);
-            //global.scene.add(objects[k].axesHelpers[i]);
             objects[k].linkMaterial(i, materials.links.clone());
         }
         if(objects[k].isParent) {
@@ -83,6 +83,7 @@ function loadScene(s) {
 
     // Reset selected objects
     selectedObjects = [];
+    updateTimeline();
     
 }
 
@@ -136,7 +137,6 @@ function findCorrespondences() {
                                 let boneIndex = skinIndex.getComponent(i);
                                 
                                 let boneQ = new THREE.Quaternion();
-                                //parent.skeleton.bones[boneIndex].getWorldQuaternion(boneQ);
                                 parent.bones[boneIndex].getWorldQuaternion(boneQ);
                                 boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
                                 vertexRot.set(vertexRot.x + boneQ.x, vertexRot.y + boneQ.y, vertexRot.z + boneQ.z, vertexRot.w + boneQ.w);

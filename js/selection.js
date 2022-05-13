@@ -1,40 +1,5 @@
 "use strict;"
 
-// Add/Remove an object from the selection (to adapt)
-function addSelectedObject(selection, removable) {
-    // Check if not in the selection already
-    let isSelected = false;
-    for(let i = 0; i < selectedObjects.length; i++) {
-        if (selectedObjects[i] === selection) {
-            isSelected = true;
-            if(removable) {
-                selectedObjects[i].material = materials.unselected.clone();
-                selectedObjects[i].linkMaterial(selectedObjects[i].effector, materials.links.clone());
-                //selectedObjects[i].effector = null;
-                selectedObjects.splice(i, 1);
-                if(selectedObjects.length > 0) {
-                    selectedObjects[0].material = materials.selected.clone();
-                }
-            }
-        }
-    }
-
-    if(!isSelected) {
-        let material;
-        if (selectedObjects.length == 0) {
-            material = materials.selected.clone();
-        } else {
-            material = materials.selectedBis.clone();
-        }
-        for (let k = 0; k < objects.length; k++) {
-            if (objects[k] === selection) {
-                selectedObjects.push(objects[k]);
-                objects[k].material = material;
-            }
-        }
-    }
-}
-
 function unselectAll() {
     for (let k = 0; k < selectedObjects.length; k++) {
         selectedObjects[k].material = materials.unselected.clone();
@@ -43,8 +8,6 @@ function unselectAll() {
         }
     }
     selectedObjects = []
-    //timeline.min = 0;
-    //timeline.max = 0; 
 }
 
 function unselect(k) {
@@ -102,8 +65,6 @@ function updateSelection(effector, event) {
         } else {
             select(objectIndex, effectorIndex);
         }
-
-        
     }
 }
 
@@ -156,6 +117,7 @@ function addTarget(object) {
 
     // Update path display
     object.updatePathDisplay();
+    object.updateTimingDisplay();
 }
 
-export { addSelectedObject, autoSelect, isSelected, unselectAll, updateSelection, retrieveObject, addTarget }
+export { autoSelect, isSelected, unselectAll, updateSelection, retrieveObject, addTarget }
