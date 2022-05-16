@@ -43,6 +43,12 @@ stopButton.addEventListener("click", () => {
 var timeline = document.getElementById("timeline");
 timeline.oninput = function() {
     updateAnimation(parseInt(this.value));
+
+    for (let k = 0; k < objects.length; k++) {
+        //objects[k].updateLinksDisplay();
+        objects[k].updatePathDisplay();
+        objects[k].updateTimingDisplay();
+    }
 } 
 
 // COMMANDS
@@ -263,7 +269,8 @@ function setPosition(e) {
     }
 
     let p =  new THREE.Vector3(); // une position du plan
-    p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].lengthBones - 1].matrixWorld);
+    //p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].lengthBones - 1].matrixWorld);
+    p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].path.effector].matrixWorld);
     let pI = project3D(e, canvas2D, p);
     selectedObjects[0].bones[0].worldToLocal(pI);
 

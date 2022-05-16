@@ -3,11 +3,33 @@ import { MyPath } from './myPath.js'
 import { MyDisplay } from './myDisplay.js'
 import { fromLocalToGlobal } from './utils.js'
 import { isSelected } from './selection.js'
+import { Vector3 } from 'three';
 
 class MyObject {
     constructor(mesh, height, bones, restAxis, level, materials) {
         this._mesh = mesh;
         this._bones = bones;
+
+        this._simulation = {
+            paramaters : {
+                dt : 0.016,
+                K : 1.0,
+                m : 1,
+                mu : 40.0,
+                L0 : height / (bones.length - 2)
+            },
+            positions : [],
+            velocity : [],
+            forces : []           
+        }
+
+        for (let i = 0; i < this.bones.length; i++) {
+            let vector = new Vector3(0, 0, 0);
+            vector.setFromMatrixPosition(bones[i].matrixWorld);
+            this._simulation.positions.push(vector);
+            this._simulation.velocity.push(new Vector3(0, 0, 0))
+            this._simulation.forces.push(new Vector3(0, 0, 0))
+        }
 
         this._restPose = {
             height : height,
@@ -174,6 +196,93 @@ class MyObject {
             q.setFromAxisAngle(localAxis, worldRotation.angle / this.effector);
             this.bones[i].applyQuaternion(q);
         }
+    }
+
+    // Mass spring
+    updateForces(force) {
+        console.log("update forces");
+        const mu = this._simulation.paramaters.mu;
+        const K = this._simulation.paramaters.K;
+        const m = this._simulation.paramaters.m / this.bones.length;
+        const L0 = this._simulation.paramaters.L0;
+
+        console.log('L0', L0)
+
+        //this._simulation.forces = Array(this.bones.length).fill(new Vector3(0, 0, 0));
+
+        //console.log(this._simulation.positions);
+        for (let i = 1; i < this.bones.length; i++) {
+            this._simulation.forces[i].set(0,0,0);
+
+            // Drawing force
+            /*if (i == this.effector) {
+                this._simulation.forces[i].add(force.clone().multiplyScalar(m));
+                console.log('drawing force', force.clone().multiplyScalar(m))
+            }*/
+            console.log(this._simulation.forces[i])
+
+            // Drag
+            /*this._simulation.forces[i].add(this._simulation.velocity[i].clone().multiplyScalar(-mu * m));
+            console.log ('drag force', this._simulation.velocity[i].clone().multiplyScalar(-mu * m));*/
+
+            // Spring forces
+            // i, i + 1
+            if(i + 1 < this.bones.length) {
+                //console.log(this._simulation.positions[i + 1])
+                const u = this._simulation.positions[i + 1].clone().sub(this._simulation.positions[i]);
+                u.normalize();
+                this._simulation.forces[i].add(u.clone().multiplyScalar(K * (this._simulation.positions[i + 1].distanceTo(this._simulation.positions[i]) - L0)));
+                console.log(this._simulation.positions[i + 1].distanceTo(this._simulation.positions[i]))
+                console.log(L0)
+            }
+
+            // i, i - 1
+            if(i - 1 > 0) {
+                const u = this._simulation.positions[i - 1].clone().sub(this._simulation.positions[i]);
+                u.normalize();
+                this._simulation.forces[i].add(u.clone().multiplyScalar(K * (this._simulation.positions[i - 1].distanceTo(this._simulation.positions[i]) - L0)));
+            }
+
+            // i, i + 2
+            if(i + 2 < this.bones.length) {
+                const u = this._simulation.positions[i + 2].clone().sub(this._simulation.positions[i]);
+                u.normalize();
+                this._simulation.forces[i].add(u.clone().multiplyScalar(K * (this._simulation.positions[i + 2].distanceTo(this._simulation.positions[i]) - 2 * L0)));
+            }
+
+            // i, i - 2
+            if(i - 2 > 0) {
+                const u = this._simulation.positions[i - 2].clone().sub(this._simulation.positions[i]);
+                u.normalize();
+                this._simulation.forces[i].add(u.clone().multiplyScalar(K * (this._simulation.positions[i - 2].distanceTo(this._simulation.positions[i]) - 2 * L0)));
+            }
+
+            console.log('position', this._simulation.positions[i].clone())
+            console.log('velocity', this._simulation.velocity[i].clone())
+            console.log('force', this._simulation.forces[i].clone());
+        }
+    }
+
+    updatePV(constraint) {
+        console.log("update PV");
+        const m = this._simulation.paramaters.m / (this.bones.length - 2);
+        for (let i = 1; i < this.bones.length; i++) {
+            this._simulation.velocity[i].add(this._simulation.forces[i].clone().multiplyScalar(this._simulation.paramaters.dt / m));
+            this._simulation.positions[i].add(this._simulation.velocity[i].clone().multiplyScalar(this._simulation.paramaters.dt));
+
+            //this.links[i-1].position.set(this._simulation.positions[i].x, this._simulation.positions[i].y, this._simulation.positions[i].z);
+        }
+
+        this._simulation.positions[this._simulation.positions.length - 1].set(constraint.x, constraint.y, constraint.z);
+        this._simulation.positions[1].set(this._simulation.positions[0].x, this._simulation.positions[0].y, this._simulation.positions[0].z)
+        this._simulation.velocity[1].set(0, 0, 0);
+
+        for (let i = 1; i < this.bones.length; i++) {
+            this.links[i-1].position.set(this._simulation.positions[i].x, this._simulation.positions[i].y, this._simulation.positions[i].z);
+        }
+
+        //console.log('position', [...this._simulation.positions])
+        //console.log('velocity', [...this._simulation.velocity])
     }
 
     updateEffector(distance) {

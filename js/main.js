@@ -2,6 +2,7 @@
 
 // Import libraries
 import * as THREE from 'three';
+import { Vector2, Vector3 } from 'three';
 import { OrbitControls } from '../three.js/examples/jsm/controls/OrbitControls.js';
 import { loadScene, findCorrespondences } from './init.js'
 import { computeAngleAxis } from './utils.js';
@@ -61,11 +62,14 @@ orbitControls.update();
 
 // --------------- ANIMATION ---------------
 
+//let dt = new Date().getTime();
 // Main animation loop
 function animate() {
     
     // Animation
     if(global.animation.isAnimating) {
+        //console.log(new Date().getTime() - dt);
+        //dt = new Date().getTime();
         let currentTime = new Date().getTime() - global.animation.startTime; // Time since animation is started
         // TODO: restart startTime when attaining max timing
 
@@ -75,7 +79,7 @@ function animate() {
         // Update displays
         updateTimeline();
         for (let k = 0; k < objects.length; k++) {
-            objects[k].updateLinksDisplay();
+            //objects[k].updateLinksDisplay();
             objects[k].updatePathDisplay();
             objects[k].updateTimingDisplay();
         }
@@ -110,16 +114,22 @@ function updateAnimation(currentTime) {
             // Find position on the path wrt timing
             objects[k].path.updateCurrentState(objectTime);
             let new_pos = objects[k].path.currentPosition;
+            //console.log(objects[k].path.currentAcceleration)
+            console.log(objects[k].path.currentAcceleration.length())
             objects[k].bones[0].localToWorld(new_pos);
 
             // Update bones
             let worldRotation = computeAngleAxis(objects[k], new_pos);
-            objects[k].updateBones(worldRotation);
+            //objects[k].updateBones(worldRotation);
+            objects[k].updateForces(objects[k].path.currentAcceleration);
+            //objects[k].updateForces(new Vector3(0,0,0));
+            objects[k].updatePV(new_pos);
+
 
             // Update children if parent mesh
-            if(objects[k].level == 0) {
+            /*if(objects[k].level == 0) {
                 updateChildren(objects[k]);
-            }
+            }*/
         }
     }
 }
