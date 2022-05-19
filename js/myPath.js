@@ -57,11 +57,11 @@ class MyPath {
         if (index != 0 && index != (this.timings.length - 1)) {
             let dt = this.timings[index] - this.timings[index - 1];
             let v_start_sq = this.positions[index].clone().sub(this.positions[index - 1]).multiplyScalar(1 / dt);
-            v_start_sq.multiply(v_start_sq);
+            //v_start_sq.multiply(v_start_sq);
 
             dt = this.timings[index + 1] - this.timings[index];
             let v_end_sq = this.positions[index + 1].clone().sub(this.positions[index]).multiplyScalar(1 / dt);
-            v_end_sq.multiply(v_end_sq);
+            //v_end_sq.multiply(v_end_sq);
 
             let d = this.positions[index].distanceTo(this.positions[index - 1]);
 
@@ -69,7 +69,9 @@ class MyPath {
                 return new Vector3(0, 0, 0);
             }
 
-            let a = v_end_sq.sub(v_start_sq).multiplyScalar(1 / (2 * d));
+            //let a = v_end_sq.sub(v_start_sq).multiplyScalar(1 / (2 * d));
+            dt = this.timings[index] - this.timings[index - 1];
+            let a = v_end_sq.sub(v_start_sq).multiplyScalar(dt);
             return a;
         } else {
             return new Vector3(0, 0, 0);

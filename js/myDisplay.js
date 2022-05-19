@@ -19,12 +19,12 @@ class MyDisplay {
         this._root.visible = true;
 
         this._skeleton = new THREE.SkeletonHelper( object.bones[0] );
-        this._skeleton.visible = true;
+        this._skeleton.visible = false;
         this._axes = [];
         for (let i = 0; i < object.lengthBones; i++) {
             let axesHelper = new THREE.AxesHelper( 10 );
             object.bones[i].add(axesHelper);
-            axesHelper.visible = true;
+            axesHelper.visible = false;
             this._axes.push(axesHelper);
         }
 

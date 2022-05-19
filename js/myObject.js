@@ -3,7 +3,6 @@ import { MyPath } from './myPath.js'
 import { MyDisplay } from './myDisplay.js'
 import { fromLocalToGlobal } from './utils.js'
 import { isSelected } from './selection.js'
-import { Vector3 } from 'three';
 
 class MyObject {
     constructor(mesh, height, bones, restAxis, level, materials) {
@@ -13,9 +12,9 @@ class MyObject {
         this._simulation = {
             paramaters : {
                 dt : 0.016,
-                K : 1.0,
+                K : 100.0,
                 m : 1,
-                mu : 40.0,
+                mu : 20.0,
                 L0 : height / (bones.length - 2)
             },
             positions : [],
@@ -23,17 +22,28 @@ class MyObject {
             forces : []           
         }
 
+        let restBones = [];
         for (let i = 0; i < this.bones.length; i++) {
-            let vector = new Vector3(0, 0, 0);
+            let vector = new THREE.Vector3(0, 0, 0);
             vector.setFromMatrixPosition(bones[i].matrixWorld);
+
+            /*if (i == this.bones.length - 1) {
+                vector.add(new Vector3(0, 20, 0));
+            }*/
             this._simulation.positions.push(vector);
-            this._simulation.velocity.push(new Vector3(0, 0, 0))
-            this._simulation.forces.push(new Vector3(0, 0, 0))
+            this._simulation.velocity.push(new THREE.Vector3(0, 0, 0))
+            this._simulation.forces.push(new THREE.Vector3(0, 0, 0))
+
+            restBones.push(bones[i].clone())
         }
+
+        /*if (bones.length > 5) {
+            console.log('init', bones[5].clone().matrixWorld)
+        }*/
 
         this._restPose = {
             height : height,
-            bones : bones,
+            bones : restBones,
             axis : restAxis
         }
 
@@ -48,6 +58,12 @@ class MyObject {
         this._path = new MyPath();
 
         this._display = new MyDisplay(this, materials);
+
+
+        for (let i = 1; i < this.bones.length; i++) {
+            this._display.links[i-1].position.set(this._simulation.positions[i].x, this._simulation.positions[i].y, this._simulation.positions[i].z);
+        }
+
     }
 
     get mesh() {
@@ -179,34 +195,93 @@ class MyObject {
         return distance;
     }
 
+    reset() {
+        for (let i = 0; i < this.bones.length; i++) {
+            this.bones[i].quaternion.copy(this._restPose.bones[i].quaternion);
+        }
+    }
+    
     updateBones(worldRotation) {
-        for(let i = 1; i <= this.effector; i++) {
+        //this.reset();
+
+        let quaternions = [];
+
+        //for(let i = 1; i <= this.effector; i++) {
+        /*let bonescopy = [];
+
+        bonescopy.push(this.bones[0].clone());
+        bonescopy[0].position.setFromMatrixPosition(this.bones[0].matrixWorld)
+        bonescopy[0].updateMatrixWorld(true);
+        for (let i = 1; i < this.bones.length; i++) {
+            bonescopy.push(this.bones[i].clone());
+            bonescopy[i].updateMatrixWorld(true);
+        }
+*/
+
+        for(let i = 1; i < this.lengthBones - 1; i++) {
             // Put axis in parent space
+            //let parentBone = bonescopy[i-1];
             let parentBone = this.bones[i-1];
             let parentPos = new THREE.Vector3();
             let invParentQ = new THREE.Quaternion();
             let parentScale = new THREE.Vector3();
             parentBone.matrixWorld.decompose(parentPos, invParentQ, parentScale);
-            invParentQ.invert();
+            invParentQ.invert(); // Why?
             let localAxis = worldRotation.axis.clone().applyQuaternion(invParentQ);
     
             // Compute quaternion
             // On peut parametrer les angles mais il faut que sum(theta_i) = theta
             let q = new THREE.Quaternion();
             q.setFromAxisAngle(localAxis, worldRotation.angle / this.effector);
+            //bonescopy[i].applyQuaternion(q);
+            quaternions.push(q);
             this.bones[i].applyQuaternion(q);
         }
+
+        for(let i = 0; i < this.lengthBones; i++) {
+            //bonescopy[i].updateMatrixWorld(true);
+            this.bones[i].updateMatrixWorld(true);
+        }
+
+        /*for (let i = 0; i < this.bones.length; i++) {
+            this.bones[i].quaternion.copy(bonescopy[i].quaternion);
+        }*/
+
+
+        for (let i = 0; i < this.effector; i++) {
+        //for (let i = 0; i < this.lengthBones; i++) {
+            let vector = new THREE.Vector3(0, 0, 0);
+            //vector.setFromMatrixPosition(bonescopy[i].matrixWorld);
+            vector.setFromMatrixPosition(this.bones[i].matrixWorld); // Tester init avec rest pose quand il y a blending
+
+            this._simulation.positions[i].set(vector.x, vector.y, vector.z);            
+        }
+
+
+
+        //console.log('bones', this.bones[5].matrixWorld.clone());
+        //console.log('rest bones', this._restPose.bones[5].matrixWorld.clone());
+
+        console.log(quaternions);
+
+        return quaternions;
+
+
+        /*for (let i = 1; i < this.bones.length; i++) {
+            this.links[i-1].position.set(this._simulation.positions[i].x, this._simulation.positions[i].y, this._simulation.positions[i].z);
+        }
+        this.root.position.set (this._simulation.positions[0].x, this._simulation.positions[0].y, this._simulation.positions[0].z)*/
     }
 
     // Mass spring
     updateForces(force) {
-        console.log("update forces");
+        //console.log("update forces");
         const mu = this._simulation.paramaters.mu;
         const K = this._simulation.paramaters.K;
         const m = this._simulation.paramaters.m / this.bones.length;
         const L0 = this._simulation.paramaters.L0;
 
-        console.log('L0', L0)
+        //console.log('L0', L0)
 
         //this._simulation.forces = Array(this.bones.length).fill(new Vector3(0, 0, 0));
 
@@ -217,13 +292,11 @@ class MyObject {
             // Drawing force
             /*if (i == this.effector) {
                 this._simulation.forces[i].add(force.clone().multiplyScalar(m));
-                console.log('drawing force', force.clone().multiplyScalar(m))
             }*/
-            console.log(this._simulation.forces[i])
 
             // Drag
-            /*this._simulation.forces[i].add(this._simulation.velocity[i].clone().multiplyScalar(-mu * m));
-            console.log ('drag force', this._simulation.velocity[i].clone().multiplyScalar(-mu * m));*/
+            this._simulation.forces[i].add(this._simulation.velocity[i].clone().multiplyScalar(-mu * m));
+            //console.log ('drag force', this._simulation.velocity[i].clone().multiplyScalar(-mu * m));
 
             // Spring forces
             // i, i + 1
@@ -232,8 +305,8 @@ class MyObject {
                 const u = this._simulation.positions[i + 1].clone().sub(this._simulation.positions[i]);
                 u.normalize();
                 this._simulation.forces[i].add(u.clone().multiplyScalar(K * (this._simulation.positions[i + 1].distanceTo(this._simulation.positions[i]) - L0)));
-                console.log(this._simulation.positions[i + 1].distanceTo(this._simulation.positions[i]))
-                console.log(L0)
+                //console.log(this._simulation.positions[i + 1].distanceTo(this._simulation.positions[i]))
+                //console.log(L0)
             }
 
             // i, i - 1
@@ -257,14 +330,16 @@ class MyObject {
                 this._simulation.forces[i].add(u.clone().multiplyScalar(K * (this._simulation.positions[i - 2].distanceTo(this._simulation.positions[i]) - 2 * L0)));
             }
 
-            console.log('position', this._simulation.positions[i].clone())
-            console.log('velocity', this._simulation.velocity[i].clone())
-            console.log('force', this._simulation.forces[i].clone());
+            //console.log('position', this._simulation.positions[i].clone())
+            //console.log('velocity', this._simulation.velocity[i].clone())
+            //console.log('force', this._simulation.forces[i].clone());
         }
     }
 
     updatePV(constraint) {
-        console.log("update PV");
+        //console.log("update PV");
+
+        const c = this._simulation.positions[this._simulation.positions.length - 1].clone();
         const m = this._simulation.paramaters.m / (this.bones.length - 2);
         for (let i = 1; i < this.bones.length; i++) {
             this._simulation.velocity[i].add(this._simulation.forces[i].clone().multiplyScalar(this._simulation.paramaters.dt / m));
@@ -273,16 +348,116 @@ class MyObject {
             //this.links[i-1].position.set(this._simulation.positions[i].x, this._simulation.positions[i].y, this._simulation.positions[i].z);
         }
 
-        this._simulation.positions[this._simulation.positions.length - 1].set(constraint.x, constraint.y, constraint.z);
+        //let localPos = this.bones[0].worldToLocal(this._simulation.positions);
+        //this._simulation.positions[this.path.effector + 1].set(constraint.x, constraint.y, constraint.z);
+        this._simulation.positions[this.path.effector + 1].setFromMatrixPosition(this.bones[this.path.effector + 1].matrixWorld);
+        //this._simulation.positions[this._simulation.positions.length - 1].set(c.x, c.y, c.z);
+        //this._simulation.velocity[this._simulation.positions.length - 1].set(0, 0, 0);
+
         this._simulation.positions[1].set(this._simulation.positions[0].x, this._simulation.positions[0].y, this._simulation.positions[0].z)
         this._simulation.velocity[1].set(0, 0, 0);
 
         for (let i = 1; i < this.bones.length; i++) {
             this.links[i-1].position.set(this._simulation.positions[i].x, this._simulation.positions[i].y, this._simulation.positions[i].z);
         }
+        this.root.position.set (this._simulation.positions[0].x, this._simulation.positions[0].y, this._simulation.positions[0].z)
 
         //console.log('position', [...this._simulation.positions])
         //console.log('velocity', [...this._simulation.velocity])
+    }
+
+    updateBones2(quaternions) {
+        console.log(quaternions);
+        let alpha = 0;
+        //for(let i = this.effector + 1; i < this.lengthBones - 1; i++) {
+        for(let i = this.effector - 1; i < this.lengthBones - 1; i++) {
+        //for(let i = this.effector + 1; i < this.effector + 2; i++) {
+        //for(let i = 1; i < this.lengthBones - 1; i++) {
+            this.bones[i].applyQuaternion(quaternions[i-1].clone().invert());
+            //let q2 = this._restPose.bones[i].quaternion.clone().invert().multiply(this.bones[i].quaternion);
+            //let q2 = this.bones[i].quaternion.clone().multiply(this._restPose.bones[i].quaternion.clone().invert());
+
+            //console.log(this._simulation.positions[i]);
+            this.bones[i].quaternion.copy(this._restPose.bones[i].quaternion);
+            this.bones[i].updateMatrixWorld(true);
+
+
+            // Retrieve current bone 
+            //let currentBone = this.restBones[i];
+            let currentBone = this.bones[i];
+            let currentPos = new THREE.Vector3();
+            let invCurrentQ = new THREE.Quaternion();
+            let currentScale = new THREE.Vector3();
+            currentBone.matrixWorld.decompose(currentPos, invCurrentQ, currentScale);
+            invCurrentQ.invert();
+
+            // Retrieve parent bone info
+            let parentBone = this.bones[i-1];
+            let parentPos = new THREE.Vector3();
+            let invParentQ = new THREE.Quaternion();
+            let parentScale = new THREE.Vector3();
+            parentBone.matrixWorld.decompose(parentPos, invParentQ, parentScale);
+            invParentQ.invert();
+        
+            //console.log('particles pos', this._simulation.positions[i + 1].clone());
+            //console.log('root pos', rootPos);
+
+            // Get world rotation vectors
+            let n = this._simulation.positions[i + 1].clone().sub(currentPos);
+            n.normalize();
+            //console.log('n', n);
+
+            //let t = this.bones[i].localToWorld(this.restBones[i+1].position);
+            let t = new THREE.Vector3();
+            t.setFromMatrixPosition(this.bones[i + 1].matrixWorld);
+            t.sub(currentPos);
+            t.normalize();
+            //console.log('t', t)
+
+
+        
+            // Compute rotation axis
+            let axis = new THREE.Vector3();
+            axis.crossVectors(t, n);
+            axis.normalize();
+
+            //console.log('axis', axis)
+        
+            // Compute world rotation angle
+            let angle = t.dot(n);
+            angle = Math.acos(angle);
+
+            //console.log('angle', angle * 180 / Math.PI)
+
+            // Put axis in parent space
+            let localAxis = axis.clone().applyQuaternion(invParentQ);
+
+            /*let q1 = new THREE.Quaternion();
+            q1.setFromAxisAngle(localAxis, worldRotation.angle / this.effector);*/
+    
+            // Compute quaternion
+            // On peut parametrer les angles mais il faut que sum(theta_i) = theta
+            let q = new THREE.Quaternion();
+            q.setFromAxisAngle(localAxis, angle);
+            //this.bones[i].applyQuaternion(q.slerp(q1, 0.5));
+            //console.log(quaternions[i-1]);
+            
+            //this.bones[i].applyQuaternion(quaternions[i-1]);
+            //this.bones[i].applyQuaternion(q2.slerp(q, 1));
+            //this.bones[i].applyQuaternion(quaternions[i-1].clone().slerp(q, 0.2));
+            if (i < this.effector + 1) {
+                this.bones[i].applyQuaternion(quaternions[i-1].clone().slerp(q, 0));
+                //this.bones[i].applyQuaternion(q2.clone().slerp(q, 0));
+            } else {
+                this.bones[i].applyQuaternion(quaternions[i-1].clone().slerp(q, 0.2));
+                //this.bones[i].applyQuaternion(q2.clone().slerp(q, 0.01));
+            }
+            //console.log('alpha', alpha);
+            alpha = i / (this.lengthBones - 1);
+            //this.bones[i].applyQuaternion(q);
+
+            this.bones[i].updateMatrixWorld(true);
+        }
     }
 
     updateEffector(distance) {

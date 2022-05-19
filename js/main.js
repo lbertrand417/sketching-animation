@@ -98,6 +98,11 @@ animate();
 
 // Update the animation
 function updateAnimation(currentTime) {    
+    // BETTER TO DO IN MULTIPLE STEPS
+    // 1) Bending update
+    // 2) Update mass-spring system (use actual effector position or constraint?)
+    // 3) Mass-spring "bending"
+    // 4) Blend both quaternions
     for(let k = 0; k < objects.length; k++) {
         // If object animated, update its animation
         if(objects[k].lengthPath != 0) { 
@@ -115,15 +120,27 @@ function updateAnimation(currentTime) {
             objects[k].path.updateCurrentState(objectTime);
             let new_pos = objects[k].path.currentPosition;
             //console.log(objects[k].path.currentAcceleration)
-            console.log(objects[k].path.currentAcceleration.length())
+            //console.log(objects[k].path.currentAcceleration.length())
             objects[k].bones[0].localToWorld(new_pos);
 
             // Update bones
             let worldRotation = computeAngleAxis(objects[k], new_pos);
-            //objects[k].updateBones(worldRotation);
-            objects[k].updateForces(objects[k].path.currentAcceleration);
-            //objects[k].updateForces(new Vector3(0,0,0));
-            objects[k].updatePV(new_pos);
+            let quaternions = objects[k].updateBones(worldRotation);
+
+
+            //objects[k].updateForces(objects[k].path.currentAcceleration);
+            //console.log('original', objects[k].path.currentAcceleration);
+            //console.log('original', objects[k].path.currentAcceleration.length());
+            //console.log('x100', objects[k].path.currentAcceleration.clone().multiplyScalar(100));
+            for (let i = 0; i < 50; i++) {
+                
+                //objects[k].updateForces(objects[k].path.currentAcceleration);
+                objects[k].updateForces(new Vector3(0,0,0));
+                objects[k].updatePV(new_pos);
+                //objects[k].updatePV(new THREE.Vector3(0, 20, 0));
+            }
+            objects[k].updateBones2(quaternions);
+            
 
 
             // Update children if parent mesh

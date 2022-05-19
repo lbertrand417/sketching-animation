@@ -113,7 +113,7 @@ let meshObjects = []; // Elements to animate
 const cylinderCount = 30;
 const radiusTop = 0.2;
 const radiusBottom = 3;
-const segmentCount = 7;
+const segmentCount = 20;
 
 let maxHeight = 40;
 

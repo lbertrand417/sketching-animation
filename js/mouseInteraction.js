@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { unselectAll, updateSelection, addTarget } from './selection.js';
 import { computeAngleAxis, project3D } from './utils.js';
 import { orbitControls, updateChildren, updateTimeline } from './main.js';
+import { Vector3 } from 'three';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
 global.renderer.domElement.addEventListener('mousemove', moveObject);
@@ -107,7 +108,16 @@ function moveObject(event) {
         const pI = project3D(event, global.renderer.domElement, p);
 
         let worldRotation = computeAngleAxis(selectedObjects[0], pI);
-        selectedObjects[0].updateBones(worldRotation);
+        let quaternions = selectedObjects[0].updateBones(worldRotation);
+
+        for (let i = 0; i < 50; i++) {
+                
+            //objects[k].updateForces(objects[k].path.currentAcceleration);
+            selectedObjects[0].updateForces(new Vector3(0,0,0));
+            selectedObjects[0].updatePV(pI);
+            //objects[k].updatePV(new THREE.Vector3(0, 20, 0));
+        }
+        selectedObjects[0].updateBones2(quaternions);
 
         selectedObjects[0].bones[0].worldToLocal(pI);
 

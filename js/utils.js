@@ -20,17 +20,20 @@ function resize(e) {
 function computeAngleAxis(object, target) {
     // Retrieve root bone info
     let rootBone = object.bones[0];
+    //let rootBone = object.restBones[0];
     let rootPos = new THREE.Vector3();
     let invRootQ = new THREE.Quaternion();
     let rootScale = new THREE.Vector3();
     rootBone.matrixWorld.decompose(rootPos, invRootQ, rootScale);
-    invRootQ.invert();
  
     // Get world rotation vectors
     let n = target.clone().sub(rootPos);
     n.normalize();
     let t = new THREE.Vector3();
-    t.setFromMatrixPosition(object.bones[object.lengthBones - 1].matrixWorld);
+    console.log(object.lengthBones - 1)
+    console.log('effector', object.effector)
+    t.setFromMatrixPosition(object.bones[object.effector + 1].matrixWorld);
+    //t.setFromMatrixPosition(object.restBones[object.effector + 1].matrixWorld);
     t.sub(rootPos);
     t.normalize();
  
@@ -38,6 +41,8 @@ function computeAngleAxis(object, target) {
     let axis = new THREE.Vector3();
     axis.crossVectors(t, n);
     axis.normalize();
+
+    //console.log('great axis', axis)
  
     // Compute world rotation angle
     let angle = t.dot(n);
