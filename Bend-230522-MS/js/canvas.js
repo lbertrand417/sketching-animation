@@ -45,10 +45,15 @@ timeline.oninput = function() {
     updateAnimation(parseInt(this.value));
 
     for (let k = 0; k < objects.length; k++) {
-        objects[k].updateLinksDisplay();
+        //objects[k].updateLinksDisplay();
         objects[k].updatePathDisplay();
         objects[k].updateTimingDisplay();
     }
+} 
+
+var paramSlider = document.getElementById("param");
+paramSlider.oninput = function() {
+    param = parseFloat(this.value);
 } 
 
 // COMMANDS
@@ -217,6 +222,12 @@ const scene5Button = document.getElementById("scene5");
 scene5Button.addEventListener("click", () => {
     console.log("Scene 5");
     loadScene(5);
+});
+
+const scene6Button = document.getElementById("scene6");
+scene6Button.addEventListener("click", () => {
+    console.log("Scene 6");
+    loadScene(6);
 });
 
 

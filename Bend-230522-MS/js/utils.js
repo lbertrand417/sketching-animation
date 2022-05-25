@@ -57,6 +57,7 @@ function getLocal(global, space) {
     return local;
 }
 
+
 function fromLocalToGlobal(positions, space) {
     let globalPos = [];
     for(let i = 0; i < positions.length; i++) {

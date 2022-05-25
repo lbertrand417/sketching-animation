@@ -102,13 +102,15 @@ function selectObject(event) {
 
 function moveObject(event) {
     if(intersectedObject != null && intersectedObject.length > 0 && !event.shiftKey){
+        selectedObjects[0].path.positions = [];
+        selectedObjects[0].path.timings = [];
+
         console.log('move');
         event.preventDefault();
 
         const pI = project3D(event, global.renderer.domElement, p);
 
         selectedObjects[0].updateBones(pI);
-
 
         selectedObjects[0].bones[0].worldToLocal(pI);
 
@@ -172,8 +174,10 @@ function unselectObject(event) {
             selectedObjects[0].updatePathDisplay();
 
             // Start animation
-            global.animation.isAnimating = true;
-            global.animation.startTime = new Date().getTime();
+            if (global.animation.isAnimating == false) {
+                global.animation.isAnimating = true;
+                global.animation.startTime = new Date().getTime();
+            }
         } else {
             global.sketch.positions = [...selectedObjects[0].path.positions];
             global.sketch.timings = [...selectedObjects[0].path.timings];

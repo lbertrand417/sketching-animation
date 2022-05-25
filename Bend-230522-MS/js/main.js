@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { Vector2, Vector3 } from 'three';
 import { OrbitControls } from '../three.js/examples/jsm/controls/OrbitControls.js';
 import { loadScene, findCorrespondences } from './init.js'
+import { isSelected } from './selection.js';
 import { computeAngleAxis } from './utils.js';
 
 // --------------- INIT ---------------
@@ -48,7 +49,7 @@ materials = {
 };
 
 // Initialize scene
-loadScene(2);
+loadScene(6);
 findCorrespondences();
 
 // Controls
@@ -83,7 +84,6 @@ function animate() {
             objects[k].updatePathDisplay();
             objects[k].updateTimingDisplay();
         }
-        //global.animation.isAnimating = false;
     }
 
     requestAnimationFrame(animate);
@@ -99,6 +99,11 @@ animate();
 
 // Update the animation
 function updateAnimation(currentTime) {    
+    // BETTER TO DO IN MULTIPLE STEPS
+    // 1) Bending update
+    // 2) Update mass-spring system (use actual effector position or constraint?)
+    // 3) Mass-spring "bending"
+    // 4) Blend both quaternions
     for(let k = 0; k < objects.length; k++) {
         // If object animated, update its animation
         if(objects[k].lengthPath != 0) { 
@@ -116,9 +121,8 @@ function updateAnimation(currentTime) {
             objects[k].path.updateCurrentState(objectTime);
             let new_pos = objects[k].path.currentPosition;
             objects[k].bones[0].localToWorld(new_pos);
-            
-            objects[k].updateBones(new_pos);
 
+            objects[k].updateBones(new_pos);
 
             // Update children if parent mesh
             if(objects[k].level == 0) {
@@ -140,7 +144,6 @@ function updateChildren(object) {
     for (let i = 0; i < targets.length; i++) {
         localPos.push(objects[1].bones[0].worldToLocal(targets[i].position.clone()));
     }
-
 
     for(let k = 0; k < objects.length; k++) { // TODO: Adapt
         if(objects[k].level == object.level + 1) {
@@ -178,9 +181,7 @@ function updateChildren(object) {
             let newPos = vertex.clone().sub(rotatedOffset); // Global space
             objects[k].mesh.worldToLocal(newPos); // Local space
             objects[k].bones[0].position.set(newPos.x, newPos.y, newPos.z); 
-            console.log('1', objects[k].restBones[0].position.clone())
             objects[k].restBones[0].position.set(newPos.x, newPos.y, newPos.z); 
-            console.log('2', objects[k].restBones[0].position.clone())
             
             for(let i = 0; i < objects[k].lengthBones; i++) {
                 objects[k].restBones[i].updateMatrixWorld(true);
@@ -192,6 +193,10 @@ function updateChildren(object) {
             objects[k].bones[0].updateMatrixWorld(true);
             objects[k].restBones[0].setRotationFromQuaternion(newRot);
             objects[k].restBones[0].updateMatrixWorld(true);
+
+            objects[k].updateForces(new Vector3(0,0,0));
+            objects[k].updatePV(new Vector3());
+            //objects[k].blendMS();
 
             // Update target
         }
