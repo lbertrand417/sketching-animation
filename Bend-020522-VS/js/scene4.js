@@ -43,8 +43,8 @@ spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
 allObjects.push(spotLight);
 
-const cylinderCount = 5;
-const segmentCount = 7;
+const cylinderCount = 10;
+const height = 50;
 
 function getRandomInt(min, max) {
     min = Math.ceil(min);
@@ -54,23 +54,22 @@ function getRandomInt(min, max) {
 
 // MESH
 
-const maxHeight = 50;
-
-let height;
+const maxSegmentCount = 10;
+let segmentCount;
 for(let k = 0; k < cylinderCount; k++) {
 
-    height = maxHeight * (k + 1) / cylinderCount;
+    segmentCount = maxSegmentCount - k;
     let segmentHeight = height / segmentCount;
 
     const cylinderGeometry = new THREE.CylinderGeometry(5, 5, height, 32, segmentCount);
     const cylinderSkinnedMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
-    //const cylinderMesh = new THREE.Mesh(cylinderGeometry.clone(), materials.unselected.clone());
-    /*const x = getRandomInt(-50, 50);
+    const cylinderMesh = new THREE.Mesh(cylinderGeometry.clone(), materials.unselected.clone());
+    const x = getRandomInt(-50, 50);
     const z = getRandomInt(-50, 50);
     cylinderSkinnedMesh.position.set(x, height / 2, z);
-    cylinderMesh.position.set(x, height / 2, z);*/
-    cylinderSkinnedMesh.castShadow = true;
-    allObjects.push(cylinderSkinnedMesh);
+    cylinderMesh.position.set(x, height / 2, z);
+    cylinderMesh.castShadow = true;
+    allObjects.push(cylinderMesh);
 
     // Initialize weights for skeleton binding
     const skinIndices = [];
@@ -95,7 +94,7 @@ for(let k = 0; k < cylinderCount; k++) {
 
     // SKELETON
     let bones = [];
-    
+
     // Root
     let rootBone = new THREE.Bone();
     rootBone.name = "Root bone";
@@ -125,12 +124,6 @@ for(let k = 0; k < cylinderCount; k++) {
     cylinderSkinnedMesh.add(bones[0]);
     cylinderSkinnedMesh.bind(skeleton);
 
-    const x = getRandomInt(-50, 50);
-    const z = getRandomInt(-50, 50);
-    rootBone.position.x = x;
-    rootBone.position.y = 0;
-    rootBone.position.z = z;
-
     // Update joints
     for(let i = 0; i < bones.length; i++) {
         bones[i].updateMatrixWorld(true);
@@ -142,7 +135,7 @@ for(let k = 0; k < cylinderCount; k++) {
     restAxis.normalize();
 
     // Store object
-    meshObjects.push(new MyObject(cylinderSkinnedMesh, height,
+    meshObjects.push(new MyObject(cylinderSkinnedMesh, cylinderMesh, height,
             bones, restAxis, 1, materials));
 }
 

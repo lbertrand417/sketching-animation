@@ -8,7 +8,6 @@ import { allObjects as allObjects2, meshObjects as meshObjects2 } from './scene2
 import { allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3.js';
 import { allObjects as allObjects4, meshObjects as meshObjects4 } from './scene4.js';
 import { allObjects as allObjects5, meshObjects as meshObjects5 } from './scene5.js';
-import { allObjects as allObjects6, meshObjects as meshObjects6 } from './scene6.js';
 
 // Load a given scene
 function loadScene(s) {
@@ -54,12 +53,6 @@ function loadScene(s) {
                 global.scene.add(allObjects5[i]);
             }
             break;
-        case 6 :
-            objects = [...meshObjects6];
-            for (let i = 0; i < allObjects6.length; i++) {
-                global.scene.add(allObjects6[i]);
-            }
-            break;
     }
 
     // Retrieve the parent if it exists + reset materials
@@ -92,7 +85,6 @@ function loadScene(s) {
     selectedObjects = [];
     updateTimeline();
     
-    findCorrespondences();
 }
 
 // Find correspondences between detail objects and the parent mesh

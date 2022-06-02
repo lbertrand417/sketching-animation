@@ -52,16 +52,12 @@ function selectObject(event) {
 
 
     if (intersectedObject != null && intersectedObject.length > 0 && event.button == 0) {
-        //console.log('timeline', parseInt(timeline.value))
-        refTime = new Date().getTime() - parseInt(timeline.value);
-        //refTime = new Date().getTime() - global.animation.currentTime;
-
         updateSelection(intersectedObject[0].object, event);
         updateTimeline();
         
         if(selectedObjects.length > 0) {
             // Reset
-            //refTime = new Date().getTime();
+            refTime = new Date().getTime();
             global.sketch.positions = [];
             global.sketch.timings = [];
             global.sketch.isClean = false;
@@ -75,9 +71,7 @@ function selectObject(event) {
             selectedObjects[0].bones[0].worldToLocal(pI);
 
             global.sketch.positions.push(pI);
-            let newT = new Date().getTime() - refTime;
-            console.log('new t', newT);
-            global.sketch.timings.push(newT);
+            global.sketch.timings.push(new Date().getTime() - refTime);
         }
     }
 
@@ -108,21 +102,30 @@ function selectObject(event) {
 
 function moveObject(event) {
     if(intersectedObject != null && intersectedObject.length > 0 && !event.shiftKey){
+        selectedObjects[0].path.positions = [];
+        selectedObjects[0].path.timings = [];
+
         console.log('move');
         event.preventDefault();
 
         const pI = project3D(event, global.renderer.domElement, p);
 
-        selectedObjects[0].updateBones(pI);
-        //selectedObjects[0].updateVertices();
+        let worldRotation = computeAngleAxis(selectedObjects[0], pI);
+        let quaternions = selectedObjects[0].updateBones(worldRotation);
 
+        for (let i = 0; i < 50; i++) {
+                
+            //objects[k].updateForces(objects[k].path.currentAcceleration);
+            selectedObjects[0].updateForces(new Vector3(0,0,0));
+            selectedObjects[0].updatePV(pI);
+            //objects[k].updatePV(new THREE.Vector3(0, 20, 0));
+        }
+        selectedObjects[0].updateBones2(quaternions);
 
         selectedObjects[0].bones[0].worldToLocal(pI);
 
         global.sketch.positions.push(pI);
-        let newT = new Date().getTime() - refTime;
-        console.log('new t', newT);
-        global.sketch.timings.push(newT);
+        global.sketch.timings.push(new Date().getTime() - refTime);
 
         if(selectedObjects[0].level == 0) {
             updateChildren(selectedObjects[0]);
@@ -180,18 +183,16 @@ function unselectObject(event) {
             // Display path
             selectedObjects[0].updatePathDisplay();
 
-            //selectedObjects[0].generateBuffers();
-
             // Start animation
-            global.animation.isAnimating = true;
-            global.animation.startTime = new Date().getTime();
+            if (global.animation.isAnimating == false) {
+                global.animation.isAnimating = true;
+                global.animation.startTime = new Date().getTime();
+            }
         } else {
             global.sketch.positions = [...selectedObjects[0].path.positions];
             global.sketch.timings = [...selectedObjects[0].path.timings];
         }
     } 
-
-    //console.log(global.sketch.timings);
 
     intersectedObject = null;
     intersectedParent = null;

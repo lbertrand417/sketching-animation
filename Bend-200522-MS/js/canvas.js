@@ -21,12 +21,9 @@ const playButton = document.getElementById("play");
 playButton.addEventListener("click", () => {
     global.animation.isAnimating = true;
     if(global.animation.stop) {
-        //global.animation.startTime = new Date().getTime() - (timeline.min);
-        global.animation.currentTime = parseInt(timeline.min);
+        global.animation.startTime = new Date().getTime() - (timeline.min);
     } else {
-        //global.animation.startTime = new Date().getTime() - parseInt(timeline.value);
-        //console.log(parseInt(timeline.value));
-        //global.animation.currentTime = parseInt(timeline.value);
+        global.animation.startTime = new Date().getTime() - parseInt(timeline.value);
     }
 });
 
@@ -45,11 +42,10 @@ stopButton.addEventListener("click", () => {
 // Update animation when moving the timeline
 var timeline = document.getElementById("timeline");
 timeline.oninput = function() {
-    global.animation.currentTime = parseInt(this.value); // Faux: ajouter à current time la diff entre previous et next timeline??
     updateAnimation(parseInt(this.value));
 
     for (let k = 0; k < objects.length; k++) {
-        objects[k].updateLinksDisplay();
+        //objects[k].updateLinksDisplay();
         objects[k].updatePathDisplay();
         objects[k].updateTimingDisplay();
     }
@@ -58,7 +54,6 @@ timeline.oninput = function() {
 var paramSlider = document.getElementById("param");
 paramSlider.oninput = function() {
     param = parseFloat(this.value);
-    //selectedObjects[0].generateBuffers();
 } 
 
 // COMMANDS
@@ -105,7 +100,6 @@ pasteButton.addEventListener("click", () => {
         distance = scale * distance;
         selectedObjects[k].updateEffector(distance);
         selectedObjects[k].path.paste(selectedObjects[0].path, scale);
-        //selectedObjects[k].generateBuffers();
 
         if(selectedObjects[k].lengthPath != 0) {
             console.log("print");
@@ -228,12 +222,6 @@ const scene5Button = document.getElementById("scene5");
 scene5Button.addEventListener("click", () => {
     console.log("Scene 5");
     loadScene(5);
-});
-
-const scene6Button = document.getElementById("scene6");
-scene6Button.addEventListener("click", () => {
-    console.log("Scene 6");
-    loadScene(6);
 });
 
 

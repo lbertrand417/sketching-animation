@@ -224,7 +224,8 @@ class MyObject {
         }
 
         for (let i = 1; i <= this.effector; i++) {
-            this.bones[i].applyQuaternion(quaternions[i]);
+            console.log(this.bones[i])
+            this.bones[i].applyQuaternion(quaternions[i-1]);
 
             this.bones[i].updateMatrixWorld(true);
 

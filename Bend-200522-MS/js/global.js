@@ -14,8 +14,7 @@ var global = {
     },
     animation : {
         isAnimating : false,
-        currentTime : 0,
-        startTime : new Date().getTime(),
+        starTime : new Date().getTime(),
         stop : false,
         maxTimeline : 100,
     },

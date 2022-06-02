@@ -6,9 +6,9 @@ import { isSelected } from './selection.js'
 import { Vector3 } from 'three';
 
 class MyObject {
-    constructor(skinnedMesh, height, bones, restAxis, level, materials) {
+    constructor(skinnedMesh, mesh, height, bones, restAxis, level, materials) {
         this._mesh = skinnedMesh;
-        //this._skinnedMesh = skinnedMesh;
+        this._skinnedMesh = skinnedMesh;
         this._bones = bones;
 
         //this.updateVertices();
@@ -29,7 +29,7 @@ class MyObject {
         }
 
         this._restPose = {
-            geometry : this._mesh.geometry.clone(),
+            geometry : this._skinnedMesh.geometry.clone(),
             height : height,
             bones : restBones,
             axis : restAxis
@@ -62,11 +62,11 @@ class MyObject {
     }
 
     get skinIndex() {
-        return this._mesh.geometry.attributes.skinIndex;
+        return this._skinnedMesh.geometry.attributes.skinIndex;
     }
 
     get skinWeight() {
-        return this._mesh.geometry.attributes.skinWeight;
+        return this._skinnedMesh.geometry.attributes.skinWeight;
     }
 
     get bones() {
@@ -75,10 +75,6 @@ class MyObject {
 
     get lengthBones() {
         return this._bones.length;
-    }
-
-    get speed() {
-        return this._angularSpeed;
     }
 
     get height() {
@@ -191,9 +187,32 @@ class MyObject {
         }
     }
 
+    updateVertices() {
+        console.log("update vertices");
+        // Retrieve skinned vertices
+        const skinnedPositionAttribute = this._skinnedMesh.geometry.attributes.position;
+
+        let vertex = new THREE.Vector3();
+
+        const P = this.positions.array;
+
+        for ( let vertexIndex = 0; vertexIndex < skinnedPositionAttribute.count; vertexIndex ++ ) {
+            vertex.fromBufferAttribute( skinnedPositionAttribute, vertexIndex );
+            this._skinnedMesh.boneTransform(vertexIndex, vertex);
+
+            P[3 * vertexIndex] = vertex.x;
+            P[3 * vertexIndex + 1] = vertex.y;
+            P[3 * vertexIndex + 2] = vertex.z;
+        }
+
+        this._mesh.geometry.attributes.position.needsUpdate = true;
+        this._mesh.geometry.computeBoundingBox();
+        this._mesh.geometry.computeBoundingSphere();
+    }
+
     bend(worldRotation) {
         for(let i = 1; i < this.lengthBones - 1; i++) {
-        //for(let i = 1; i <= this.effector + 1; i++) {
+        //for(let i = 1; i < this.effector + 1; i++) {
         //for(let i = this.lengthBones - 2; i < this.lengthBones - 1; i++) {
             // Put axis in parent space
             let localAxis = getLocal(worldRotation.axis, this.bones[i-1])
@@ -206,6 +225,65 @@ class MyObject {
             this.bones[i].updateMatrixWorld(true);
         }
     }
+
+    /*velocitySkinning() {
+        const currentPositions = this.positions;
+
+        let currentPos = new THREE.Vector3();
+        let skinWeight = new THREE.Vector4();
+        let skinIndex = new THREE.Vector4();
+
+        const P = this.positions.array;
+
+
+        for ( let vertexIndex = 0; vertexIndex < currentPositions.count; vertexIndex ++ ) {
+            currentPos.fromBufferAttribute( currentPositions, vertexIndex );
+
+            skinIndex.fromBufferAttribute( this.skinIndex, vertexIndex);
+		    skinWeight.fromBufferAttribute( this.skinWeight, vertexIndex);
+
+            const skinIndexArray = skinIndex.toArray();
+            const skinWeightArray = skinWeight.toArray();
+
+            let minIndex = Infinity;
+
+            for (let i = 0; i < 4; i++) {
+                if (skinWeightArray[i] > Math.pow(10, -3) && skinIndexArray[i] < minIndex) {
+                    minIndex = skinIndexArray[i];
+                }
+            }
+
+            if (minIndex >= this.effector + 1) {
+                let w = this._angularSpeed;
+                let n = w.clone().normalize();
+
+                this.bones[this.effector + 1].worldToLocal(currentPos);
+
+                let v = w.clone().cross(currentPos);
+                let alpha = - param * v.length();
+                //let alpha = - 0.5 * v.length();
+
+                let R4 = new THREE.Matrix4();
+                R4.makeRotationAxis(n, alpha);
+                let R = new THREE.Matrix3();
+                R.setFromMatrix4(R4);
+
+                const Id = new THREE.Matrix3().identity();
+                let d = currentPos.clone().applyMatrix3(R);
+
+                
+                this.bones[this.effector + 1].localToWorld(d);
+
+                P[3 * vertexIndex] = d.x;
+                P[3 * vertexIndex + 1] = d.y;
+                P[3 * vertexIndex + 2] = d.z;
+            }
+        }
+
+        this._mesh.geometry.attributes.position.needsUpdate = true;
+        this._mesh.geometry.computeBoundingBox();
+        this._mesh.geometry.computeBoundingSphere();
+    }*/
 
     velocitySkinning() {
         for (let i = this.effector + 2; i < this.lengthBones; i++) {
@@ -221,42 +299,22 @@ class MyObject {
             //let alpha = - 0.5 * v.length();
 
             let q = new THREE.Quaternion();
-            //q.setFromAxisAngle(n, alpha);
-            q.setFromAxisAngle(n, 2 * alpha / (this.lengthBones - this.effector + 1));
+            q.setFromAxisAngle(n, alpha);
+
+            this.bones[i - 1].applyQuaternion(q);
+
+            this.bones[i - 1].updateMatrixWorld(true);
+
+            /*let R4 = new THREE.Matrix4();
+            R4.makeRotationAxis(n, alpha);
+
             
+            q.setFromRotationMatrix(R4);*/
 
-            // Here we apply q on bones[e + 1] space on bones[i - 1] which is not coherent (TO CHANGE)
-            /*for (let j = this.effector + 2; j <= i - 2; j++) {
-                q.multiply(this.bones[j].quaternion.clone().invert());
-            }*/
-            this.bones[i - 1].applyQuaternion(q);
-
-            this.bones[i - 1].updateMatrixWorld(true);
+            /*let R = new THREE.Matrix3();
+            R.setFromMatrix4(R4);*/
         }
 
-    }
-
-    velocitySkinning2(speed) {
-        this.reset();
-        for (let i = 1; i < this.lengthBones; i++) {
-            let w = speed;
-            let n = w.clone().normalize();
-
-            let currentPos = new THREE.Vector3();
-            currentPos.setFromMatrixPosition(this.bones[i].matrixWorld);
-            this.bones[0].worldToLocal(currentPos);
-
-            let v = w.clone().cross(currentPos);
-            //let alpha = - param * v.length();
-            let alpha = - 0.2 * v.length();
-
-            let q = new THREE.Quaternion();
-            q.setFromAxisAngle(n, 2 * alpha / (this.lengthBones));
-
-            this.bones[i - 1].applyQuaternion(q);
-
-            this.bones[i - 1].updateMatrixWorld(true);
-        }
     }
 
     updateSpeed(oldTarget, newTarget) {
@@ -266,10 +324,16 @@ class MyObject {
 
         if (!isNaN(worldRotation.angle)) {
             new_speed = localAxis.clone().multiplyScalar(worldRotation.angle);
+        } else {
+            console.log("coucou")
         }
 
-        // Smoothen the speed
         this._angularSpeed = new_speed.clone().multiplyScalar(0.1).add(this._angularSpeed.clone().multiplyScalar(1 - 0.1));
+
+
+        console.log('angle', worldRotation.angle * 180 / Math.PI)
+        console.log('speed', this._angularSpeed);
+        console.log('value', this._angularSpeed.length())
     }
 
     updateBones(target) {
@@ -277,11 +341,48 @@ class MyObject {
         const effector = new THREE.Vector3();
         effector.setFromMatrixPosition(this.bones[this.effector + 1].matrixWorld);
         let worldRotation = computeAngleAxis(this.bones[0], effector, target);
-        // LBS
         this.bend(worldRotation);
-        // Add velocity skinning
+        
         this.velocitySkinning();
-    }    
+        //this.updateVertices();
+    }
+
+    // Initialization false
+    generateBuffers() {
+        this._buffers = [];
+        for(let i = 0; i < this.path.positions.length; i++) {
+            let oldTarget = this.path.positions[1].clone();
+            if (i > 0) {
+                oldTarget = this.path.positions[i - 1].clone();
+            }
+            this.bones[0].localToWorld(oldTarget);
+
+            let target = this.path.positions[i].clone();
+            this.bones[0].localToWorld(target);
+
+            this.updateBones(target);
+            this.updateSpeed(oldTarget, target);
+        }
+
+        for (let i = 0; i < this.path.positions.length; i++) {
+            let oldTarget = this.path.positions[1].clone();
+            if (i > 0) {
+                oldTarget = this.path.positions[i - 1].clone();
+            }
+            this.bones[0].localToWorld(oldTarget);
+
+            let target = this.path.positions[i].clone();
+            this.bones[0].localToWorld(target);
+            this.updateBones(target);
+            //this.updateVertices();
+            this.updateSpeed(oldTarget, target);
+            this.velocitySkinning();
+            this._buffers.push(this._mesh.geometry.clone());
+        }
+
+        console.log(this._buffers);
+    }
+    
 
     updateEffector(distance) {
         // compute length btw effector and root of the active object

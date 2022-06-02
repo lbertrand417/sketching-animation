@@ -62,10 +62,10 @@ for(let k = 0; k < cylinderCount; k++) {
     let segmentHeight = height / segmentCount;
 
     const cylinderGeometry = new THREE.CylinderGeometry(5, 5, height, 32, segmentCount);
-    const cylinderMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
-    cylinderMesh.position.set(getRandomInt(-50, 50), height / 2, getRandomInt(-50, 50));
-    cylinderMesh.castShadow = true;
-    allObjects.push(cylinderMesh);
+    const cylinderSkinnedMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
+    //const cylinderMesh = new THREE.Mesh(cylinderGeometry.clone(), materials.unselected.clone());
+    cylinderSkinnedMesh.castShadow = true;
+    allObjects.push(cylinderSkinnedMesh);
 
     // Initialize weights for skeleton binding
     const skinIndices = [];
@@ -117,8 +117,16 @@ for(let k = 0; k < cylinderCount; k++) {
     // Create the skeleton
     const skeleton = new THREE.Skeleton(bones);
 
-    cylinderMesh.add(bones[0]);
-    cylinderMesh.bind(skeleton);
+    cylinderSkinnedMesh.add(bones[0]);
+    cylinderSkinnedMesh.bind(skeleton);
+
+    //cylinderSkinnedMesh.position.set(x, height / 2, z);
+    //cylinderMesh.position.set(x, height / 2, z);
+
+    const x = getRandomInt(-50, 50);
+    const z = getRandomInt(-50, 50);
+    rootBone.position.x = x;
+    rootBone.position.z = z;
 
     // Update joints
     for(let i = 0; i < bones.length; i++) {
@@ -131,7 +139,7 @@ for(let k = 0; k < cylinderCount; k++) {
     restAxis.normalize();
 
     // Store object
-    meshObjects.push(new MyObject(cylinderMesh, height,
+    meshObjects.push(new MyObject(cylinderSkinnedMesh, height,
             bones, restAxis, 1, materials));
 }
 
@@ -139,6 +147,7 @@ for(let k = 0; k < cylinderCount; k++) {
 const planeGeometry = new THREE.PlaneGeometry(100, 100);
 const planeMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff });
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+plane.translateY(- height / 2);
 plane.rotation.x = Math.PI * -.5;
 plane.receiveShadow = true;
 allObjects.push(plane);

@@ -5,8 +5,8 @@ import * as THREE from 'three';
 import { updateTimeline } from './main.js';
 import { allObjects as allObjects1, meshObjects as meshObjects1 } from './scene1.js';
 import { allObjects as allObjects2, meshObjects as meshObjects2 } from './scene2.js';
-import { allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3.js';
-import { allObjects as allObjects4, meshObjects as meshObjects4 } from './scene4.js';
+/*import { allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3.js';
+import { allObjects as allObjects4, meshObjects as meshObjects4 } from './scene4.js';*/
 import { allObjects as allObjects5, meshObjects as meshObjects5 } from './scene5.js';
 import { allObjects as allObjects6, meshObjects as meshObjects6 } from './scene6.js';
 
@@ -92,7 +92,6 @@ function loadScene(s) {
     selectedObjects = [];
     updateTimeline();
     
-    findCorrespondences();
 }
 
 // Find correspondences between detail objects and the parent mesh

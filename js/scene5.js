@@ -43,7 +43,7 @@ spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
 allObjects.push(spotLight);
 
-const cylinderCount = 5;
+const cylinderCount = 1;
 const segmentHeight = 50 / 7;
 const segmentCount = 7;
 const height = segmentHeight * segmentCount;
@@ -67,10 +67,12 @@ function getRandomInt(min, max) {
 
 for(let k = 0; k < cylinderCount; k++) {
     const cylinderGeometry = new THREE.CylinderGeometry(5, 5, sizing.height, 32, sizing.segmentCount);
-    const cylinderMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
-    cylinderMesh.position.set(getRandomInt(-50, 50), 0, getRandomInt(-50, 50));
-    cylinderMesh.castShadow = true;
-    allObjects.push(cylinderMesh);
+    const cylinderSkinnedMesh = new THREE.SkinnedMesh(cylinderGeometry, new THREE.MeshPhongMaterial( { color: 0x000000 }));
+    //const cylinderMesh = new THREE.Mesh(cylinderGeometry.clone(), new THREE.MeshPhongMaterial( { color: 0x000000 }));
+    /*cylinderSkinnedMesh.position.set(x, 0, z);
+    cylinderMesh.position.set(x, 0, z);*/
+    cylinderSkinnedMesh.castShadow = true;
+    allObjects.push(cylinderSkinnedMesh);
 
     // Initialize weights for skeleton binding
     const skinIndices = [];
@@ -123,8 +125,14 @@ for(let k = 0; k < cylinderCount; k++) {
     const skeleton = new THREE.Skeleton(bones);
 
 
-    cylinderMesh.add(bones[0]);
-    cylinderMesh.bind(skeleton);
+    cylinderSkinnedMesh.add(bones[0]);
+    cylinderSkinnedMesh.bind(skeleton);
+
+    /*const x = getRandomInt(-50, 50);
+    const z = getRandomInt(-50, 50);
+    rootBone.position.x = x;
+    rootBone.position.z = z;*/
+    
 
     // Update joints
     for(let i = 0; i < bones.length; i++) {
@@ -138,7 +146,7 @@ for(let k = 0; k < cylinderCount; k++) {
     
 
     // Store object
-    meshObjects.push(new MyObject(cylinderMesh, sizing.height,
+    meshObjects.push(new MyObject(cylinderSkinnedMesh, sizing.height,
             bones, restAxis, 1, materials));
 }
 

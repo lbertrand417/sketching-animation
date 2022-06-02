@@ -46,10 +46,9 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
     let segmentHeight = height / segmentCount;
 
     const cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 32, segmentCount);
-    const cylinderSkinnedMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
-    //const cylinderMesh = new THREE.Mesh(cylinderGeometry.clone(), materials.unselected.clone());
-    cylinderSkinnedMesh.castShadow = true;
-    allObjects.push(cylinderSkinnedMesh);
+    const cylinderMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
+    cylinderMesh.castShadow = true;
+    allObjects.push(cylinderMesh);
 
     // Initialize weights for skeleton binding
     const skinIndices = [];
@@ -101,10 +100,10 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
     // Create the skeleton
     const skeleton = new THREE.Skeleton(bones);
 
-    cylinderSkinnedMesh.add(bones[0]);
-    cylinderSkinnedMesh.bind(skeleton);
+    cylinderMesh.add(bones[0]);
+    cylinderMesh.bind(skeleton);
 
-    return { cylinderSkinnedMesh, bones }
+    return { cylinderMesh, bones }
 }
 
 
@@ -131,7 +130,7 @@ for(let i = 0; i < bodyCylinder.bones.length; i++) {
     bodyCylinder.bones[i].updateMatrixWorld(true);
 }
 
-bodyCylinder.cylinderSkinnedMesh.updateMatrixWorld();
+bodyCylinder.cylinderMesh.updateMatrixWorld();
 
 
 let bones = bodyCylinder.bones;
@@ -140,7 +139,7 @@ endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
 let restAxis = bones[0].worldToLocal(endPoint);
 restAxis.normalize();
 
-meshObjects.push(new MyObject(bodyCylinder.cylinderSkinnedMesh, bodyHeight,
+meshObjects.push(new MyObject(bodyCylinder.cylinderMesh, bodyHeight,
     bodyCylinder.bones, restAxis, 0, materials));
 
 
@@ -189,7 +188,7 @@ for(let i = 0; i < numberLine; i++) {
         restAxis.normalize();
 
         // Store object
-        meshObjects.push(new MyObject(detailCylinder.cylinderSkinnedMesh, height,
+        meshObjects.push(new MyObject(detailCylinder.cylinderMesh, height,
             detailCylinder.bones, restAxis, 1, materials));
     }
 }

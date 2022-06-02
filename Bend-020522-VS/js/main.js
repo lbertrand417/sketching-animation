@@ -48,7 +48,8 @@ materials = {
 };
 
 // Initialize scene
-loadScene(6);
+loadScene(5);
+findCorrespondences();
 
 // Controls
 const orbitControls = new OrbitControls(global.camera, global.renderer.domElement);
@@ -67,6 +68,12 @@ function animate() {
     
     // Animation
     if(global.animation.isAnimating) {
+        //console.log(new Date().getTime() - dt);
+        //dt = new Date().getTime();
+        let currentTime = new Date().getTime() - global.animation.startTime; // Time since animation is started
+        //console.log(currentTime)
+        // TODO: restart startTime when attaining max timing
+
         // Update animation
         updateAnimation(global.animation.currentTime);
 
@@ -108,8 +115,17 @@ function updateAnimation(currentTime) {
                 objectTime -= objects[k].lengthPath * 16;
             }
 
+            // Find position on the path wrt timing
+            /*objects[k].path.updateCurrentState(objectTime);
+            //let new_pos = objects[k].path.currentPosition;
+            let new_pos = objects[k].path.positions[objects[k].path.index].clone();
+            objects[k].bones[0].localToWorld(new_pos);   
+            
+            objects[k].updateBones(new_pos);
+            //objects[k].mesh.geometry = objects[k].buffers[objects[k].path.index];*/
+
             let old_time = objectTime - 16;
-            objects[k].path.updateCurrentState(old_time); // Adapt
+            objects[k].path.updateCurrentState(old_time);
             let old_pos = objects[k].path.currentPosition;
             objects[k].bones[0].localToWorld(old_pos);   
 
@@ -120,7 +136,11 @@ function updateAnimation(currentTime) {
 
             objects[k].updateSpeed(old_pos, new_pos);
             
+            //let previousPositions = objects[k].positions.clone();
             objects[k].updateBones(new_pos);
+            //objects[k].velocitySkinning(previousPositions);
+            //objects[k].velocitySkinning();
+
 
             // Update children if parent mesh
             if(objects[k].level == 0) {
@@ -130,7 +150,7 @@ function updateAnimation(currentTime) {
     }
 }
 
-// Update children position/rotation wrt parent deformation (object is the parent)
+// Update children position/rotation wrt parent deformation
 function updateChildren(object) { 
     const positionAttribute = object.positions;
     let vertex = new THREE.Vector3();
@@ -152,22 +172,6 @@ function updateChildren(object) {
             skinIndex.fromBufferAttribute( object.skinIndex, objects[k].parent.index );
             skinWeight.fromBufferAttribute( object.skinWeight, objects[k].parent.index );
 
-            object.mesh.boneTransform(objects[k].parent.index, vertex) // Find actual local position of the vertex (skinning) 
-            vertex = object.mesh.localToWorld(vertex.clone()); // World space
-
-            // Compute speed DOESNT WORK
-            // Find old position of the parent 
-            let oldPos = new THREE.Vector3();
-            oldPos.setFromMatrixPosition(objects[k].bones[0].matrixWorld);
-
-            let rotatedOffset = objects[k].parent.offsetPos.clone();
-            rotatedOffset.applyQuaternion(objects[k].bones[0].quaternion);
-            oldPos.sub(rotatedOffset);
-
-            console.log('check')
-            console.log('old', oldPos)
-            console.log('new', vertex);
-
             // Compute the rotation of the vertex in world space
             let newRot = new THREE.Quaternion(0, 0, 0, 0); // World space
             for (let i = 0; i < 4; i++) {
@@ -185,17 +189,20 @@ function updateChildren(object) {
             }
             newRot.normalize();
 
-            
+            object.mesh.boneTransform(objects[k].parent.index, vertex) // Find actual local position of the vertex (skinning) 
+            vertex = object.mesh.localToWorld(vertex.clone()); // World space
 
             // Rotate the translation offset
-            rotatedOffset = objects[k].parent.offsetPos.clone();
+            let rotatedOffset = objects[k].parent.offsetPos.clone();
             rotatedOffset.applyQuaternion(newRot);
 
             // Compute new position
             let newPos = vertex.clone().sub(rotatedOffset); // Global space
             objects[k].mesh.worldToLocal(newPos); // Local space
             objects[k].bones[0].position.set(newPos.x, newPos.y, newPos.z); 
+            console.log('1', objects[k].restBones[0].position.clone())
             objects[k].restBones[0].position.set(newPos.x, newPos.y, newPos.z); 
+            console.log('2', objects[k].restBones[0].position.clone())
             
             for(let i = 0; i < objects[k].lengthBones; i++) {
                 objects[k].restBones[i].updateMatrixWorld(true);
@@ -207,9 +214,6 @@ function updateChildren(object) {
             objects[k].bones[0].updateMatrixWorld(true);
             objects[k].restBones[0].setRotationFromQuaternion(newRot);
             objects[k].restBones[0].updateMatrixWorld(true);
-
-            objects[k].reset();
-            objects[k].velocitySkinning2(parent.speed);
 
             // Update target
         }

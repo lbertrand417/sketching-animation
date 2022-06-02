@@ -1,10 +1,9 @@
 import * as THREE from 'three';
 import { MyObject } from './myObject.js'
 
-
 let materials = {
-    unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034 }),
-    selected : new THREE.MeshPhongMaterial( { color: 0x28faa4 }),
+    unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034, transparent : true, opacity : 0.8 }),
+    selected : new THREE.MeshPhongMaterial( { color: 0x28faa4, transparent : true, opacity : 0.8 }),
     selectedBis : new THREE.MeshPhongMaterial( { color: 0x1246bf }),
     effector : new THREE.MeshBasicMaterial( {
         color: new THREE.Color( 0x88ff88 ),
@@ -28,9 +27,8 @@ let materials = {
     timing : new THREE.PointsMaterial({ color: 0xff0000, size: 2 })
 };
 
-let allObjects = []; // All elements of the scene
-let meshObjects = []; // Elements to animate
 
+let allObjects = []; // All elements of the scene
 
 // Lights
 const ambientColor = 0xFFFFFF;
@@ -43,32 +41,13 @@ spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
 allObjects.push(spotLight);
 
-const cylinderCount = 5;
-const segmentCount = 7;
 
-function getRandomInt(min, max) {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min)) + min;
-}
-
-// MESH
-
-const maxHeight = 50;
-
-let height;
-for(let k = 0; k < cylinderCount; k++) {
-
-    height = maxHeight * (k + 1) / cylinderCount;
+function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
     let segmentHeight = height / segmentCount;
 
-    const cylinderGeometry = new THREE.CylinderGeometry(5, 5, height, 32, segmentCount);
+    const cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 32, segmentCount);
     const cylinderSkinnedMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
     //const cylinderMesh = new THREE.Mesh(cylinderGeometry.clone(), materials.unselected.clone());
-    /*const x = getRandomInt(-50, 50);
-    const z = getRandomInt(-50, 50);
-    cylinderSkinnedMesh.position.set(x, height / 2, z);
-    cylinderMesh.position.set(x, height / 2, z);*/
     cylinderSkinnedMesh.castShadow = true;
     allObjects.push(cylinderSkinnedMesh);
 
@@ -93,25 +72,25 @@ for(let k = 0; k < cylinderCount; k++) {
     cylinderGeometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndices, 4));
     cylinderGeometry.setAttribute("skinWeight",new THREE.Float32BufferAttribute(skinWeights, 4));
 
-    // SKELETON
     let bones = [];
-    
+
     // Root
     let rootBone = new THREE.Bone();
     rootBone.name = "Root bone";
-    rootBone.position.y = - height / 2;
+    rootBone.position.y = - height / 2; // Put it at the bottom of the cylinder (instead of middle) --> local pos wrt cylinder pos
     bones.push(rootBone);
 
     // Bones (the first bone is at the same position as the root bone)
     let prevBone = new THREE.Bone();
     prevBone.name = "Bone 0";
-    prevBone.position.y = 0;
+    prevBone.position.y = 0; // Local pos wrt root
     rootBone.add(prevBone);
     bones.push(prevBone);
 
+
     for (let i = 1; i <= segmentCount; i++) {
         const bone = new THREE.Bone();
-        bone.position.y = segmentHeight;
+        bone.position.y = segmentHeight; // Local pos wrt prev bone
         bone.name = "Bone " + i;
         bones.push(bone);
         prevBone.add(bone);
@@ -125,15 +104,77 @@ for(let k = 0; k < cylinderCount; k++) {
     cylinderSkinnedMesh.add(bones[0]);
     cylinderSkinnedMesh.bind(skeleton);
 
-    const x = getRandomInt(-50, 50);
-    const z = getRandomInt(-50, 50);
-    rootBone.position.x = x;
-    rootBone.position.y = 0;
-    rootBone.position.z = z;
+    return { cylinderSkinnedMesh, bones }
+}
+
+
+
+let meshObjects = []; // Elements to animate
+
+const cylinderCount = 10;
+const radiusTop = 0.2;
+const radiusBottom = 3;
+const segmentCount = 20;
+
+let height = 40;
+
+// MESH
+
+
+const bodyHeight = 75;
+const bodyRadius = 5;
+
+const bodyCylinder = createCylinder(bodyRadius, bodyRadius, bodyHeight, segmentCount);
+
+// Update joints
+for(let i = 0; i < bodyCylinder.bones.length; i++) {
+    bodyCylinder.bones[i].updateMatrixWorld(true);
+}
+
+bodyCylinder.cylinderSkinnedMesh.updateMatrixWorld();
+
+
+let bones = bodyCylinder.bones;
+let endPoint = new THREE.Vector3();
+endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
+let restAxis = bones[0].worldToLocal(endPoint);
+restAxis.normalize();
+
+meshObjects.push(new MyObject(bodyCylinder.cylinderSkinnedMesh, bodyHeight,
+    bodyCylinder.bones, restAxis, 0, materials));
+
+
+
+
+let r = bodyRadius;
+let thetaPas = 2 * Math.PI / cylinderCount;
+let theta = 0;
+
+for(let k = 0; k < cylinderCount; k++) {
+
+    const detailCylinder = createCylinder(radiusTop, radiusBottom, height, segmentCount);
+    
+    // Position correctly
+    let bones = detailCylinder.bones;
+    let rootBone = bones[0];
+
+    rootBone.position.set(r * Math.cos(theta), bodyHeight / 2, r * Math.sin(theta));
+
+    let q = new THREE.Quaternion();
+    let axis = rootBone.position.clone().sub(new THREE.Vector3(0, height, 0));
+    axis.normalize();
+    let rotationAxis = new THREE.Vector3(0, 1, 0);
+    rotationAxis.cross(axis);
+    rotationAxis.normalize();
+    q.setFromAxisAngle(rotationAxis, Math.PI / 8);
+    rootBone.applyQuaternion(q);
+
+    theta += thetaPas;
+
 
     // Update joints
-    for(let i = 0; i < bones.length; i++) {
-        bones[i].updateMatrixWorld(true);
+    for(let j = 0; j < bones.length; j++) {
+        bones[j].updateMatrixWorld(true);
     }
 
     let endPoint = new THREE.Vector3();
@@ -142,16 +183,8 @@ for(let k = 0; k < cylinderCount; k++) {
     restAxis.normalize();
 
     // Store object
-    meshObjects.push(new MyObject(cylinderSkinnedMesh, height,
-            bones, restAxis, 1, materials));
+    meshObjects.push(new MyObject(detailCylinder.cylinderSkinnedMesh, height,
+        detailCylinder.bones, restAxis, 1, materials));
 }
-
-// Plane
-const planeGeometry = new THREE.PlaneGeometry(100, 100);
-const planeMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff });
-const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-plane.rotation.x = Math.PI * -.5;
-plane.receiveShadow = true;
-allObjects.push(plane);
 
 export { allObjects, meshObjects };

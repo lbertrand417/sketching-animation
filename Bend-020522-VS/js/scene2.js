@@ -47,8 +47,8 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
 
     const cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 32, segmentCount);
     const cylinderSkinnedMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
-    //const cylinderMesh = new THREE.Mesh(cylinderGeometry.clone(), materials.unselected.clone());
-    cylinderSkinnedMesh.castShadow = true;
+    const cylinderMesh = new THREE.Mesh(cylinderGeometry.clone(), materials.unselected.clone());
+    cylinderMesh.castShadow = true;
     allObjects.push(cylinderSkinnedMesh);
 
     // Initialize weights for skeleton binding
@@ -104,7 +104,7 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount) {
     cylinderSkinnedMesh.add(bones[0]);
     cylinderSkinnedMesh.bind(skeleton);
 
-    return { cylinderSkinnedMesh, bones }
+    return { cylinderMesh, cylinderSkinnedMesh, bones }
 }
 
 
@@ -140,7 +140,7 @@ endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
 let restAxis = bones[0].worldToLocal(endPoint);
 restAxis.normalize();
 
-meshObjects.push(new MyObject(bodyCylinder.cylinderSkinnedMesh, bodyHeight,
+meshObjects.push(new MyObject(bodyCylinder.cylinderSkinnedMesh, bodyCylinder.cylinderMesh, bodyHeight,
     bodyCylinder.bones, restAxis, 0, materials));
 
 
@@ -189,7 +189,7 @@ for(let i = 0; i < numberLine; i++) {
         restAxis.normalize();
 
         // Store object
-        meshObjects.push(new MyObject(detailCylinder.cylinderSkinnedMesh, height,
+        meshObjects.push(new MyObject(detailCylinder.cylinderSkinnedMesh, detailCylinder.cylinderMesh, height,
             detailCylinder.bones, restAxis, 1, materials));
     }
 }

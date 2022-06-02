@@ -17,17 +17,23 @@ function resize(e) {
     global.renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// Compute world angle and axis between effector-origin and target-origin vectors
-function computeAngleAxis(origin, effector, target) {
+function computeAngleAxis(object, target) {
     // Retrieve root bone info
+    //let rootBone = object.bones[0];
+    let rootBone = object.restBones[0];
     let rootPos = new THREE.Vector3();
-    rootPos.setFromMatrixPosition(origin.matrixWorld)
+    let invRootQ = new THREE.Quaternion();
+    let rootScale = new THREE.Vector3();
+    rootBone.matrixWorld.decompose(rootPos, invRootQ, rootScale);
  
     // Get world rotation vectors
     let n = target.clone().sub(rootPos);
     n.normalize();
     let t = new THREE.Vector3();
-    t.copy(effector);
+    //console.log(object.lengthBones - 1)
+    //console.log('effector', object.effector)
+    //t.setFromMatrixPosition(object.bones[object.effector + 1].matrixWorld);
+    t.setFromMatrixPosition(object.restBones[object.effector + 1].matrixWorld);
     t.sub(rootPos);
     t.normalize();
  
@@ -35,27 +41,18 @@ function computeAngleAxis(origin, effector, target) {
     let axis = new THREE.Vector3();
     axis.crossVectors(t, n);
     axis.normalize();
+
+    //console.log('great axis', axis)
  
     // Compute world rotation angle
     let angle = t.dot(n);
     angle = Math.acos(angle);
+
+    console.log('angle', angle * 180 / Math.PI)
  
     return { angle, axis };
-}
+ }
 
-// Put global axis in local space 
-function getLocal(global, space) {
-    // Put axis in parent space
-    let parentBone = space;
-    let parentPos = new THREE.Vector3();
-    let invParentQ = new THREE.Quaternion();
-    let parentScale = new THREE.Vector3();
-    parentBone.matrixWorld.decompose(parentPos, invParentQ, parentScale);
-    invParentQ.invert(); // Why?
-    let local = global.clone().applyQuaternion(invParentQ);
-
-    return local;
-}
 
 function fromLocalToGlobal(positions, space) {
     let globalPos = [];
@@ -102,29 +99,5 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
 }
 
-// Find closest point in an array (return i st value in [array[i], array[i+1]])
-function findInArray(value, array) {
-    let i = 0;
-    let alpha = 0;
-    while (i < array.length - 1) {
-        if(value >= array[i] && value <= array[i + 1]) {
-            alpha = (value - array[i]) / (array[i + 1] - array[i]);
-            return { i, alpha };
-        } else {
-            i++;
-        }
-    }
-    i = array.length - 1;
-    return { i, alpha };
-}
 
-function interpolate(p1, p2, alpha) {
-    if (p1.isVector3) {
-        return p1.clone().multiplyScalar(1 - alpha).add(p2.clone().multiplyScalar(alpha))
-    } else {
-        return (1 - alpha) * p1 + alpha * p2;
-    }
-}
-
-
-export { resize, computeAngleAxis, getLocal, fromLocalToGlobal, project3D, getRandomInt, findInArray, interpolate };
+export { resize, computeAngleAxis, fromLocalToGlobal, project3D, getRandomInt };

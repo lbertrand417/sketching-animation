@@ -1,10 +1,10 @@
-import { findInArray, interpolate } from './utils.js'
+import { Vector3 } from "three";
 
 class MyPath {
     constructor() {
-        this._positions = [];        
+        this._positions = [];
         this._timings = [];
-        this._currentIndex = 0;
+        this._currentIndex = null;
         this._alpha = 0;
         this._startTime = new Date().getTime();
         this._effectorIndex = null;
@@ -51,7 +51,7 @@ class MyPath {
     }
 
     // Compute acceleration btw pi-1 and pi
-    /*get currentAcceleration() {
+    get currentAcceleration() {
         let index = this._currentIndex;
 
         if (index != 0 && index != (this.timings.length - 1)) {
@@ -76,7 +76,7 @@ class MyPath {
         } else {
             return new Vector3(0, 0, 0);
         }
-    }*/
+    }
 
     get startTime() {
         return this._startTime;
@@ -129,68 +129,35 @@ class MyPath {
     // Paste the drawn path to the first selected object
     update(positions, timings) {
         if(positions.length >= 2) {
-            // Retiming and reposition
-            let tempPos = [];
-            let tempT = [];
-
-            //let dt = 1 / 60 * Math.pow(10, 3);
-            let dt = 16;
-            let t = 0;
-            while (t < timings[0]) {
-                t += dt;
-            }
-
-            while (t <= timings[timings.length - 1]) {
-                //console.log('t', t)
-                //console.log('timings', timings)
-                let info = findInArray(t, timings);
-                //console.log('i', info.i);
-                //console.log('alpha', info.alpha);
-                tempPos.push(interpolate(positions[info.i], positions[info.i + 1], info.alpha));
-                tempT.push(interpolate(timings[info.i], timings[info.i + 1], info.alpha));
-                t += dt;
-            }
-
-            //console.log(tempPos);
-            //console.log(tempT);
-
             // Find the unwanted part at the beginning of the drawing (BUG!!)
             let id = 1;
 
-            let v1 = tempPos[id - 1].clone().sub(tempPos[id]);
-            let v2 = tempPos[id].clone().sub(tempPos[id + 1]);
+            let v1 = positions[id - 1].clone().sub(positions[id]);
+            let v2 = positions[id].clone().sub(positions[id + 1]);
 
-            while (v1.dot(v2) > 0 && id < tempPos.length - 2) {
+            while (v1.dot(v2) > 0 && id < positions.length - 2) {
                 id++;
-                v1 = tempPos[id - 1].clone().sub(tempPos[id]);
-                v2 = tempPos[id].clone().sub(tempPos[id + 1]);
+                v1 = positions[id - 1].clone().sub(positions[id]);
+                v2 = positions[id].clone().sub(positions[id + 1]);
             }
 
             // Remove the unwanted part from the path
-            if (id != tempPos.length - 2) {
+            if (id != positions.length - 2) {
                 for(let j = 0; j < id; j++) {
-                    tempPos.shift();
-                    tempT.shift();
+                    positions.shift();
+                    timings.shift();
                 }
             }
 
-            //console.log(tempPos);
-            //console.log(tempT);
-
-
-
             // Copy the path to the first selected object
-            this._positions = [...tempPos];
-            this._timings = [...tempT];
+            this._positions = [...positions];
+            this._timings = [...timings];
 
             // Create a cycle with the path
-            for (let i = tempT.length - 2; i >= 0; i--) {
-                this._timings.push(this._timings[this._timings.length - 1] + (tempT[i + 1] - tempT[i]));
+            for (let i = timings.length - 2; i >= 0; i--) {
+                this._timings.push(this._timings[this._timings.length - 1] + (timings[i + 1] - timings[i]));
                 this._positions.push(this._positions[i].clone());
             }
-
-            console.log('p', this._positions);
-            console.log('t', this._timings);
 
         }
     }
