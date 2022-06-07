@@ -3,7 +3,6 @@ import { MyPath } from './myPath.js'
 import { MyDisplay } from './myDisplay.js'
 import { computeAngleAxis, getLocal, fromLocalToGlobal } from './utils.js'
 import { isSelected } from './selection.js'
-import { Vector3 } from 'three';
 
 class MyObject {
     constructor(skinnedMesh, height, bones, restAxis, level, materials) {
@@ -186,7 +185,8 @@ class MyObject {
 
     reset() {
         for (let i = 0; i < this.bones.length; i++) {
-            this.bones[i].quaternion.copy(this._restPose.bones[i].quaternion);
+            this.bones[i].copy(this._restPose.bones[i])
+            //this.bones[i].quaternion.copy(this._restPose.bones[i].quaternion);
             this.bones[i].updateMatrixWorld(true);
         }
     }
@@ -198,7 +198,7 @@ class MyObject {
             // Put axis in parent space
             let localAxis = getLocal(worldRotation.axis, this.bones[i-1])
     
-            // Compute quaternion
+            // Compute quaternion (formule vraie que pour des os de taille constante)
             let q = new THREE.Quaternion();
             q.setFromAxisAngle(localAxis, 2 * worldRotation.angle / (this.effector + 1));
             this.bones[i].applyQuaternion(q);
@@ -208,6 +208,7 @@ class MyObject {
     }
 
     velocitySkinning() {
+        let sommeAlpha = 0;
         for (let i = this.effector + 2; i < this.lengthBones; i++) {
             let w = this._angularSpeed;
             let n = w.clone().normalize();
@@ -220,15 +221,34 @@ class MyObject {
             let alpha = - param * v.length();
             //let alpha = - 0.5 * v.length();
 
+            /*let R4 = new THREE.Matrix4();
+            R4.makeRotationAxis(n, alpha);
+            let R = new THREE.Matrix3();
+            R.setFromMatrix4(R4);
+
+            let d = currentPos.clone().applyMatrix3(R);
+
+            console.log('d', d);
+
+            currentPos.add(d);
+
+            console.log('currentPos', currentPos);
+            this.bones[this.effector + 1].localToWorld(currentPos);
+            this.bones[i - 1].worldToLocal(currentPos);
+            this.bones[i].position.set(currentPos.x, currentPos.y, currentPos.z);
+
+            
+            this.bones[this.effector + 1].localToWorld(d);*/
+
             let q = new THREE.Quaternion();
             //q.setFromAxisAngle(n, alpha);
-            q.setFromAxisAngle(n, 2 * alpha / (this.lengthBones - this.effector + 1));
+            console.log(i)
+            console.log(alpha * 180 / Math.PI);
+            //q.setFromAxisAngle(n, 2 * alpha / (this.lengthBones - this.effector + 1));
+            q.setFromAxisAngle(n, alpha);
             
 
             // Here we apply q on bones[e + 1] space on bones[i - 1] which is not coherent (TO CHANGE)
-            /*for (let j = this.effector + 2; j <= i - 2; j++) {
-                q.multiply(this.bones[j].quaternion.clone().invert());
-            }*/
             this.bones[i - 1].applyQuaternion(q);
 
             this.bones[i - 1].updateMatrixWorld(true);
@@ -241,6 +261,7 @@ class MyObject {
         for (let i = 1; i < this.lengthBones; i++) {
             let w = speed;
             let n = w.clone().normalize();
+            n.applyQuaternion(this.bones[0].quaternion.clone().invert());
 
             let currentPos = new THREE.Vector3();
             currentPos.setFromMatrixPosition(this.bones[i].matrixWorld);
@@ -260,7 +281,7 @@ class MyObject {
     }
 
     updateSpeed(oldTarget, newTarget) {
-        let worldRotation = computeAngleAxis(this.bones[this.effector], oldTarget, newTarget);
+        let worldRotation = computeAngleAxis(this.bones[this.effector + 1], oldTarget, newTarget);
         let localAxis = getLocal(worldRotation.axis, this.bones[this.effector]);
         let new_speed = new THREE.Vector3(0,0,0);
 

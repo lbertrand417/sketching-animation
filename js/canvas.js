@@ -236,6 +236,12 @@ scene6Button.addEventListener("click", () => {
     loadScene(6);
 });
 
+const scene7Button = document.getElementById("scene7");
+scene7Button.addEventListener("click", () => {
+    console.log("Scene 7");
+    loadScene(7);
+});
+
 
 // CANVAS
 window.addEventListener('resize', resize);

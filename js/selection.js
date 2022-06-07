@@ -82,6 +82,10 @@ function autoSelect(event) {
 function retrieveObject(effector) {
     for (let k = 0; k < objects.length; k++) {
         for (let i = 0; i < objects[k].lengthLinks; i++) {
+            if(objects[k].level == 0) {
+                console.log(effector);
+                console.log(objects[k].links[i])
+            }
             if (effector === objects[k].links[i]) {
                 console.log('k', k);
                 console.log('i', i)

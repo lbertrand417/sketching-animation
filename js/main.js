@@ -95,6 +95,10 @@ animate();
 
 // Update the animation
 function updateAnimation(currentTime) {    
+    /*if (parent != null) {
+        updateChildren(parent);
+    }*/
+
     for(let k = 0; k < objects.length; k++) {
         // If object animated, update its animation
         if(objects[k].lengthPath != 0) { 
@@ -122,12 +126,27 @@ function updateAnimation(currentTime) {
             
             objects[k].updateBones(new_pos);
 
-            // Update children if parent mesh
-            if(objects[k].level == 0) {
-                updateChildren(objects[k]);
+            if (objects[k].level == 0) {
+                updateChildren(parent);
             }
+
+            /*if (parent != null) {
+                //objects[k].reset();
+                objects[k].velocitySkinning2(parent.speed);
+            }*/
         }
     }
+
+    // Update children if parent mesh
+    /*if(parent != null) {
+        //objects[k].updateBones(new_pos);
+        updateChildren(parent);
+
+        /*for(let k = 0; k < objects.length; k++) {
+            objects[k].reset();
+            objects[k].velocitySkinning2(parent.speed);
+        }
+    }*/
 }
 
 // Update children position/rotation wrt parent deformation (object is the parent)
@@ -162,7 +181,7 @@ function updateChildren(object) {
 
             let rotatedOffset = objects[k].parent.offsetPos.clone();
             rotatedOffset.applyQuaternion(objects[k].bones[0].quaternion);
-            oldPos.sub(rotatedOffset);
+            oldPos.add(rotatedOffset);
 
             console.log('check')
             console.log('old', oldPos)

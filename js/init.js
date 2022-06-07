@@ -9,6 +9,7 @@ import { allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3
 import { allObjects as allObjects4, meshObjects as meshObjects4 } from './scene4.js';
 import { allObjects as allObjects5, meshObjects as meshObjects5 } from './scene5.js';
 import { allObjects as allObjects6, meshObjects as meshObjects6 } from './scene6.js';
+import { allObjects as allObjects7, meshObjects as meshObjects7 } from './scene7.js';
 
 // Load a given scene
 function loadScene(s) {
@@ -60,6 +61,12 @@ function loadScene(s) {
                 global.scene.add(allObjects6[i]);
             }
             break;
+        case 7 :
+            objects = [...meshObjects7];
+            for (let i = 0; i < allObjects7.length; i++) {
+                global.scene.add(allObjects7[i]);
+            }
+            break;
     }
 
     // Retrieve the parent if it exists + reset materials
@@ -96,8 +103,11 @@ function loadScene(s) {
 }
 
 // Find correspondences between detail objects and the parent mesh
+// ATTENTION NE FONCTIONNE PAS APRES UN CHANGEMENT DE SCENE
+// NE FONCTIONNE PAS SI LA FORME MERE EST TOURNEE
 function findCorrespondences() {
     if(parent != null) {
+        console.log('find correspondences')
         const positionAttribute = parent.positions;
 
         let vertex = new THREE.Vector3();
@@ -106,6 +116,7 @@ function findCorrespondences() {
 
         for ( let vertexIndex = 0; vertexIndex < positionAttribute.count; vertexIndex ++ ) {
             vertex.fromBufferAttribute( positionAttribute, vertexIndex );
+            //parent.mesh.boneTransform(vertexIndex, vertex)
             vertex = parent.mesh.localToWorld(vertex.clone()); // World space
 
             skinIndex.fromBufferAttribute( parent.skinIndex, vertexIndex);

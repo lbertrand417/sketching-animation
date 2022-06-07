@@ -3,9 +3,8 @@
 // Import libraries
 import * as THREE from 'three';
 import { unselectAll, updateSelection, addTarget } from './selection.js';
-import { computeAngleAxis, project3D } from './utils.js';
+import { project3D } from './utils.js';
 import { orbitControls, updateChildren, updateTimeline } from './main.js';
-import { Vector3 } from 'three';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
 global.renderer.domElement.addEventListener('mousemove', moveObject);
@@ -56,6 +55,7 @@ function selectObject(event) {
         refTime = new Date().getTime() - parseInt(timeline.value);
         //refTime = new Date().getTime() - global.animation.currentTime;
 
+        console.log(intersectedObject[0].object)
         updateSelection(intersectedObject[0].object, event);
         updateTimeline();
         
