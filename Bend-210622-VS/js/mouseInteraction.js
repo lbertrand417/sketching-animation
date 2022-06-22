@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { materials } from './materials.js';
 import { unselectAll, updateSelection, addTarget } from './selection.js';
-import { project3D, worldPos } from './utils.js';
+import { project3D } from './utils.js';
 import { orbitControls, updateChildren, updateTimeline } from './main.js';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
@@ -56,7 +56,7 @@ function selectObject(event) {
         refTime = new Date().getTime() - parseInt(timeline.value);
         //refTime = new Date().getTime() - global.animation.currentTime;
 
-        //console.log(intersectedObject[0].object)
+        console.log(intersectedObject[0].object)
         updateSelection(intersectedObject[0].object, event);
         updateTimeline();
         
@@ -71,15 +71,13 @@ function selectObject(event) {
             orbitControls.enabled = false;
 
             // Project on the plane in 3D space
-
-            p = selectedObjects[0].bones[selectedObjects[0].path.effector + 1].position.clone();
-            p = worldPos(p, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].path.effector);
+            p.setFromMatrixPosition(selectedObjects[0].links[selectedObjects[0].effector].matrixWorld); // Stay in the plane
             const pI = project3D(event, global.renderer.domElement, p);
             selectedObjects[0].bones[0].worldToLocal(pI);
 
             global.sketch.positions.push(pI);
             let newT = new Date().getTime() - refTime;
-            //console.log('new t', newT);
+            console.log('new t', newT);
             global.sketch.timings.push(newT);
         }
     }
@@ -89,8 +87,7 @@ function selectObject(event) {
         orbitControls.enabled = false;
 
         console.log("intersected");
-        p = parent.mesh.position.clone();
-       
+        p.setFromMatrixPosition(parent.mesh.matrixWorld);
         let pos3D = project3D(event, global.renderer.domElement, p);
 
         posOffset = pos3D.clone().sub(parent.mesh.position);
@@ -112,14 +109,12 @@ function selectObject(event) {
 
 function moveObject(event) {
     if(intersectedObject != null && intersectedObject.length > 0 && !event.shiftKey){
-        global.animation.isAnimating = false;
-
-        //console.log('move');
+        console.log('move');
         event.preventDefault();
 
         const pI = project3D(event, global.renderer.domElement, p);
 
-        selectedObjects[0].bend(selectedObjects[0].bones, pI);
+        selectedObjects[0].updateBones(pI);
         //selectedObjects[0].updateVertices();
 
 
@@ -127,24 +122,23 @@ function moveObject(event) {
 
         global.sketch.positions.push(pI);
         let newT = new Date().getTime() - refTime;
-        //console.log('new t', newT);
+        console.log('new t', newT);
         global.sketch.timings.push(newT);
 
-        //if(selectedObjects[0].level == 0) {
-        if(selectedObjects[0].parent.object == null) {
+        if(selectedObjects[0].level == 0) {
             updateChildren(selectedObjects[0]);
         }
     }
 
     if(intersectedParent != null && intersectedParent.length > 0) {
-        //console.log('move');
+        console.log('move');
         const pI = project3D(event, global.renderer.domElement, p);
 
         let axis = pI.clone().sub(parent.mesh.position.clone().add(posOffset)).normalize();
         let distance = parent.mesh.position.clone().add(posOffset).distanceTo(pI);
 
         parent.mesh.translateOnAxis(axis, distance);
-        parent.mesh.updateMatrixWorld(); // Important
+        parent.mesh.updateMatrixWorld();
 
         /*parent.restBones[0].position.setFromMatrixPosition(parent.bones[0].matrixWorld);
         parent.restBones[0].updateMatrixWorld(true);*/
@@ -168,10 +162,9 @@ function moveObject(event) {
         }
     }
 
-    // TODO : Optimize
     for(let k = 0; k < objects.length; k++) {
-        objects[k].display.updateLinks();
-        objects[k].display.updatePath();
+        objects[k].updateLinksDisplay();
+        objects[k].updatePathDisplay();
     }
 }
 
@@ -186,7 +179,7 @@ function unselectObject(event) {
             selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
 
             // Display path
-            selectedObjects[0].display.updatePath();
+            selectedObjects[0].updatePathDisplay();
 
             //selectedObjects[0].generateBuffers();
 

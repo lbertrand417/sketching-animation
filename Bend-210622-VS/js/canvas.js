@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { loadScene } from './init.js'
 import { updateAnimation, updateTimeline } from './main.js'
 import { addTarget, autoSelect } from './selection.js'
-import { getRandomInt, resize, project3D, worldPos } from './utils.js';
+import { getRandomInt, resize, project3D } from './utils.js';
 
 // SKETCH CANVAS
 let refTime = new Date().getTime(); // Time when we start drawing the line
@@ -49,9 +49,9 @@ timeline.oninput = function() {
     updateAnimation(parseInt(this.value));
 
     for (let k = 0; k < objects.length; k++) {
-        objects[k].display.updateLinks();
-        objects[k].display.updatePath();
-        objects[k].display.updateTiming();
+        //objects[k].updateLinksDisplay();
+        objects[k].updatePathDisplay();
+        objects[k].updateTimingDisplay();
     }
 } 
 
@@ -101,10 +101,7 @@ const pasteButton = document.getElementById("paste");
 pasteButton.addEventListener("click", () => {
     for (let k = 1; k < selectedObjects.length; k++) {
         let scale = selectedObjects[k].height / selectedObjects[0].height; // scale
-        let pos = selectedObjects[0].bones[selectedObjects[0].effector + 1].position.clone();
-        pos = worldPos(pos, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].effector);
-        let distance = selectedObjects[0].distanceToRoot(pos);
-        //let distance = selectedObjects[0].distanceToRoot(selectedObjects[0].links[selectedObjects[0].effector]);
+        let distance = selectedObjects[0].distanceToRoot(selectedObjects[0].links[selectedObjects[0].effector]);
         distance = scale * distance;
         selectedObjects[k].updateEffector(distance);
         selectedObjects[k].path.paste(selectedObjects[0].path, scale);
@@ -112,7 +109,7 @@ pasteButton.addEventListener("click", () => {
 
         if(selectedObjects[k].lengthPath != 0) {
             console.log("print");
-            selectedObjects[k].display.updatePath();
+            selectedObjects[k].updatePathDisplay();
         }
     }
 });
@@ -308,10 +305,9 @@ function setPosition(e) {
         global.sketch.isClean = true;
     }
 
-    /*let p =  new THREE.Vector3(); // une position du plan
-    p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].path.effector].matrixWorld);*/
-    let p = selectedObjects[0].bones[selectedObjects[0].path.effector + 1].position.clone();
-    p = worldPos(p, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].path.effector);
+    let p =  new THREE.Vector3(); // une position du plan
+    //p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].lengthBones - 1].matrixWorld);
+    p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].path.effector].matrixWorld);
     let pI = project3D(e, canvas2D, p);
     selectedObjects[0].bones[0].worldToLocal(pI);
 
@@ -325,7 +321,7 @@ function updateScene(e) {
     selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
 
     // Display path
-    selectedObjects[0].display.updatePath();
+    selectedObjects[0].updatePathDisplay();
 
     // Update timeline 
     updateTimeline();

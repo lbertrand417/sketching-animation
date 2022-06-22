@@ -2,16 +2,14 @@ import * as THREE from 'three';
 import { materials } from './materials.js';
 import { MyPath } from './myPath.js'
 import { MyDisplay } from './myDisplay.js'
-import { computeAngleAxis, getLocal, rotate, fromLocalToGlobal, resizeCurve, worldPos } from './utils.js'
+import { computeAngleAxis, getLocal, rotate, fromLocalToGlobal, resizeCurve } from './utils.js'
 import { isSelected } from './selection.js'
 
 class MyObject {
     constructor(mesh, height, bones, restAxis, level, parent, materials) {
         this._mesh = mesh;
+
         this._bones = bones;
-        this._angularSpeed = new THREE.Vector3();
-
-
         let restBones = [];
         let parentBones = [];
         restBones.push(bones[0]);
@@ -24,27 +22,28 @@ class MyObject {
             let parentBone = bones[i].clone();
             parentBones[i - 1].add(parentBone);
             parentBones.push(parentBone);
-        }      
+        }
+
+        this._angularSpeed = new THREE.Vector3();
 
 
         this._restPose = {
+            geometry : this._mesh.geometry.clone(),
             height : height,
             bones : restBones,
             axis : restAxis
         }
 
-        //this._level = level;
+        this._level = level;
 
         this._parent = { 
             object : parent,
-            anchor : 0,
+            index : 0,
             offsetPos : new THREE.Vector3(),
             offsetQ : new THREE.Quaternion(),
             speed : new THREE.Vector3(),
             motion : parentBones
         };
-
-        this._children = [];
 
         this._path = new MyPath();
 
@@ -69,11 +68,11 @@ class MyObject {
     get restBones() { return this._restPose.bones; }
     get restAxis() { return this._restPose.axis; }
 
-    //get level() { return this._level; }
-    //get isParent() { return this._level == 0; }
+    get level() { return this._level; }
+    get isParent() { return this._level == 0; }
     get parent() { return this._parent; }
-    get children() { return this._children; }
-    addChild(o) { this._children.push(o); }
+    get parentSpeed() { return this._parent.speed; }
+    set parentSpeed(s) { this._parent.speed = s; }
 
     get path() { return this._path; }
     get lengthPath() { return this._path.positions.length; }
@@ -83,7 +82,6 @@ class MyObject {
     set target(t) { this._path.target = t; }
     get hasTarget() { return !(this._path.target == null); }
 
-    get display() { return this._display; }
     get links() { return this._display.links; }
     get lengthLinks() { return this._display.links.length; }
     linkMaterial(i, material) { this._display.links[i].material = material; }
@@ -96,13 +94,12 @@ class MyObject {
     get speedDisplay() { return this._display.speeds; }
     get axisDisplay() { return this._display.axis; }
 
-    // Point as global variable
     distanceToRoot(point) {
-        //let pos = new THREE.Vector3();
+        let pos = new THREE.Vector3();
     
-        //pos.setFromMatrixPosition(point.matrixWorld);
-        this._bones[0].worldToLocal(point);
-        let distance = point.distanceTo(new THREE.Vector3(0,0,0));
+        pos.setFromMatrixPosition(point.matrixWorld);
+        this._bones[0].worldToLocal(pos);
+        let distance = pos.distanceTo(new THREE.Vector3(0,0,0));
         
         return distance;
     }
@@ -110,26 +107,23 @@ class MyObject {
     reset(bones) {
         for (let i = 0; i < bones.length; i++) {
             bones[i].quaternion.copy(this._restPose.bones[i].quaternion);
-            bones[i].updateMatrixWorld(true); // Important
+            bones[i].updateMatrixWorld(true);
         }
     }
 
     ownVS() {
         let sommeAlpha = 0;
         for (let i = this.effector + 2; i < this.lengthBones; i++) {
-            //console.log(this._angularSpeed.length())
             let w = this._angularSpeed;
             let n = w.clone().normalize();
 
-            let currentPos = this.bones[i].position.clone();
-            currentPos = worldPos(currentPos, this, this.bones, i - 1);
-            //currentPos.setFromMatrixPosition(this.bones[i].matrixWorld);
+            let currentPos = new THREE.Vector3();
+            currentPos.setFromMatrixPosition(this.bones[i].matrixWorld);
             const points = [];
             points.push(currentPos.clone());
 
-            let origin = this.bones[this.effector + 1].position.clone();
-            origin = worldPos(origin, this, this.bones, this.effector);
-            //origin.setFromMatrixPosition(this.bones[this.effector + 1].matrixWorld);
+            let origin = new THREE.Vector3();
+            origin.setFromMatrixPosition(this.bones[this.effector + 1].matrixWorld);
             let v = w.clone().cross(currentPos.clone().sub(origin));
 
             let new_pos = currentPos.clone().add(v.clone().multiplyScalar(10));
@@ -139,10 +133,9 @@ class MyObject {
             
             let theta;
             if (this.level == 0) {
-                theta = - 0.5 * v.length(); // theta = angle objectif entre effector, old bone i et new bone i
+                theta = - 0 * v.length(); // theta = angle objectif entre effector, old bone i et new bone i
             } else {
-                //theta = - param * v.length(); // theta = angle objectif entre effector, old bone i et new bone i
-                theta = - 2 * v.length(); // theta = angle objectif entre effector, old bone i et new bone i
+                theta = - param * v.length(); // theta = angle objectif entre effector, old bone i et new bone i
             }
             
             let q = new THREE.Quaternion();
@@ -152,22 +145,15 @@ class MyObject {
             n.applyQuaternion(this.bones[0].quaternion.clone().invert());
             q.setFromAxisAngle(n, alpha);        
 
-            //console.log('q', q)
-
             // Here we apply q on bones[e + 1] space on bones[i - 1] which is not coherent (TO CHANGE)
             this.bones[i - 1].applyQuaternion(q);
 
             this.bones[i - 1].updateMatrixWorld(true);
-
-            
         }
-
-        //worldPos(this.bones[5].position, this.bones, 4);
 
     }
 
     parentVS() {
-        let parent = this._parent.object;
         let speed = this._parent.speed;
 
         //console.log('vs2')
@@ -178,12 +164,10 @@ class MyObject {
         let newPosArray = [];
         let speeds = [];
 
-        let rootPos = this._restPose.bones[0].position.clone();
-        rootPos = worldPos(rootPos, this, this._restPose.bones, -1);
-        //rootPos.setFromMatrixPosition(this._restPose.bones[0].matrixWorld); // Root of the detail
-        let origin = parent.bones[0].position.clone();
-        origin = worldPos(origin, parent, parent.bones, -1);
-        //origin.setFromMatrixPosition(parent.bones[0].matrixWorld); // Origin of the motion in parent mesh
+        let rootPos = new THREE.Vector3();
+        rootPos.setFromMatrixPosition(this._restPose.bones[0].matrixWorld); // Root of the detail
+        let origin = new THREE.Vector3();
+        origin.setFromMatrixPosition(parent.bones[0].matrixWorld); // Origin of the motion in parent mesh
 
 
         this.links[0].position.copy(rootPos);
@@ -192,16 +176,15 @@ class MyObject {
             let n = w.clone().normalize();
 
 
-            let currentPos = this._restPose.bones[i].position.clone();
-            currentPos = worldPos(currentPos, this, this._restPose.bones, i-1);
-            //currentPos.setFromMatrixPosition(this._restPose.bones[i].matrixWorld);
+            let currentPos = new THREE.Vector3();
+            currentPos.setFromMatrixPosition(this._restPose.bones[i].matrixWorld);
 
 
             let detailDiff =  currentPos.clone().sub(rootPos);
             let parentDiff = currentPos.clone().sub(origin);
 
             // Retrieve main bone of the correspondant vertex in parent mesh
-            let corIndex = this._parent.anchor;
+            let corIndex = this._parent.index;
             let skinWeight = new THREE.Vector4();
             let skinIndex = new THREE.Vector4();
             skinIndex.fromBufferAttribute( parent.skinIndex, corIndex );
@@ -249,18 +232,15 @@ class MyObject {
         for (let i = 2; i < this.lengthBones; i++) {
             this.links[i - 1].position.copy(newPosArray[i - 2]);
 
-            let effector = bones[i].position.clone();
-            effector = worldPos(effector, this, bones, i-1);
-            //effector.setFromMatrixPosition(bones[i].matrixWorld);
+            let effector = new THREE.Vector3();
+            effector.setFromMatrixPosition(bones[i].matrixWorld);
             let worldRotation = computeAngleAxis(bones[i-1], effector, newPosArray[i-2]);
             let localAxis = getLocal(worldRotation.axis, bones[i-2]);
             rotate(localAxis, worldRotation.angle, bones[i-1])
 
             const points = [];
             //points.push(newPosArray[i - 2].clone());
-            effector = bones[i].position.clone();
-            effector = worldPos(effector, this, bones, i-1);
-            //effector.setFromMatrixPosition(bones[i].matrixWorld);
+            effector.setFromMatrixPosition(bones[i].matrixWorld);
             points.push(effector.clone());
             points.push(effector.clone().add(speeds[i - 2].clone().divideScalar(10)));
 
@@ -268,7 +248,6 @@ class MyObject {
         }
     }
 
-    // Optimiser pour ne pas avoir à faire de copies des bones + ca crée pleins de bugs de faire comme ca ?
     getSpeed(t, b, origin) {
         let oldTime;
         if (t - 16 >= this.path.timings[0]) {
@@ -277,44 +256,29 @@ class MyObject {
             oldTime = t + 16;
         }  
 
-        let tempBones = [];
-        for (let i = 0; i < this.lengthBones; i++) {
-            tempBones.push(this.bones[i].clone());
-        }
-
         // Retrieve old objective
         this.path.updateCurrentTime(oldTime); // Adapt
         let oldTarget = this.path.currentPosition;
         this.bones[0].localToWorld(oldTarget);   
-        //this.bend(tempBones, oldTarget);
-        this.bend(this.bones, oldTarget);
-        let oldPos = this.bones[b].position.clone();
-        oldPos = worldPos(oldPos, this, this.bones, b - 1);
-        //oldPos.setFromMatrixPosition(tempBones[b].matrixWorld)
-        //oldPos.setFromMatrixPosition(this.bones[b].matrixWorld)
+        this.updateBones(oldTarget);
+        let oldPos = new THREE.Vector3();
+        oldPos.setFromMatrixPosition(b.matrixWorld)
 
         // Retrieve new objective
         this.path.updateCurrentTime(t);
         let newTarget = this.path.currentPosition;
         this.bones[0].localToWorld(newTarget); 
-        //this.bend(tempBones, newTarget);
-        this.bend(this.bones, newTarget);
-        let newPos = this.bones[b].position.clone();
-        newPos = worldPos(newPos, this, this.bones, b-1);
-        //newPos.setFromMatrixPosition(tempBones[b].matrixWorld)
-        //newPos.setFromMatrixPosition(this.bones[b].matrixWorld)
+        this.updateBones(newTarget);
+        let newPos = new THREE.Vector3();
+        newPos.setFromMatrixPosition(b.matrixWorld)
 
-        //let worldRotation = computeAngleAxis(tempBones[origin], oldPos, newPos);
-        let worldRotation = computeAngleAxis(this.bones[origin], oldPos, newPos);
+        let worldRotation = computeAngleAxis(origin, oldPos, newPos);
 
         //console.log('world axis', worldRotation.axis);
-        //console.log('angle', worldRotation.angle);
 
         let points = [];
-        let originPos = this.bones[origin].position.clone();
-        originPos = worldPos(originPos, this, this.bones, origin-1);
-        //originPos.setFromMatrixPosition(tempBones[origin].matrixWorld)
-        //originPos.setFromMatrixPosition(this.bones[origin].matrixWorld)
+        let originPos = new THREE.Vector3();
+        originPos.setFromMatrixPosition(origin.matrixWorld)
         points.push(originPos.clone());
         points.push(originPos.clone().add(worldRotation.axis.clone().multiplyScalar(10)));
         this._display.axis.geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -332,33 +296,32 @@ class MyObject {
         return speed;
     }
 
-    bend(bones, target) {
-        this.reset(bones);
-        let effector = bones[this.effector + 1].position.clone();
-        effector = worldPos(effector, this, bones, this.effector);
-        //effector.setFromMatrixPosition(bones[this.effector + 1].matrixWorld);
-        let worldRotation = computeAngleAxis(bones[0], effector, target);
+    updateBones(target) {
+        this.reset(this.bones);
+        const effector = new THREE.Vector3();
+        effector.setFromMatrixPosition(this.bones[this.effector + 1].matrixWorld);
+        let worldRotation = computeAngleAxis(this.bones[0], effector, target);
         for(let i = 1; i < this.lengthBones - 1; i++) {
-            let localAxis = getLocal(worldRotation.axis, bones[i-1])
+            let localAxis = getLocal(worldRotation.axis, this.bones[i-1])
             let angle = 2 * worldRotation.angle / (this.effector + 1)
-            rotate(localAxis, angle, bones[i]);
+            rotate(localAxis, angle, this.bones[i]);
         }
     } 
     
     blend(alpha) {
-        //console.log('blend')
+        console.log('blend')
         for (let i = 0; i < this.lengthBones; i++) {
             let q1 = this.bones[i].quaternion.clone();
             let q2 = this._parent.motion[i].quaternion.clone();
 
-            //console.log('i', i)
-            //console.log('q1', q1.clone());
-            //console.log('q2', q2.clone())
+            console.log('i', i)
+            console.log('q1', q1.clone());
+            console.log('q2', q2.clone())
 
             //let q = q1.clone().multiplyScalar(alpha).add(q2.clone().multiplyScalar(1 - alpha));
             let q = q1.clone().slerp(q2, alpha);
 
-            //console.log('q', q.clone())
+            console.log('q', q.clone())
 
             this.bones[i].quaternion.copy(q);
 
@@ -371,17 +334,14 @@ class MyObject {
         // find the link that has the closest length
         // Take into account the scale factor btw the 2 shapes
         let res = 0;
-        let bonePos = this.bones[0].position.clone();
-        bonePos = worldPos(bonePos, this, this.bones, -1);
-        //bonePos.setFromMatrixPosition(this.links[0].matrixWorld);
-        this.bones[0].worldToLocal(bonePos);
-        let current_d = bonePos.distanceTo(new THREE.Vector3(0,0,0));
+        let linkPos = new THREE.Vector3();
+        linkPos.setFromMatrixPosition(this.links[0].matrixWorld);
+        this.bones[0].worldToLocal(linkPos);
+        let current_d = linkPos.distanceTo(new THREE.Vector3(0,0,0));
         for (let i = 1; i < this.lengthLinks; i++) {
-            bonePos = this.bones[i+1].position.clone();
-            bonePos = worldPos(bonePos, this, this.bones, i);
-            //bonePos.setFromMatrixPosition(this.links[i].matrixWorld);
-            this.bones[0].worldToLocal(bonePos);
-            let new_d = bonePos.distanceTo(new THREE.Vector3(0,0,0));
+            linkPos.setFromMatrixPosition(this.links[i].matrixWorld);
+            this.bones[0].worldToLocal(linkPos);
+            let new_d = linkPos.distanceTo(new THREE.Vector3(0,0,0));
     
             if (Math.abs(new_d - distance) < Math.abs(current_d - distance)) {
                 res = i;
@@ -390,7 +350,45 @@ class MyObject {
         }
         this.effector = res;
 
-        this.display.updateLinks();
+        this.updateLinksDisplay();
+    }
+
+    // Display functions
+    updateLinksDisplay() {
+        // Update bones
+        /*for(let i = 0; i < this.lengthBones; i++) {
+            this.bones[i].updateMatrixWorld(true);
+            this.restBones[i].updateMatrixWorld(true);
+        }*/
+
+        for(let i = 0; i < this.lengthLinks; i++) {
+            //this.links[i].position.setFromMatrixPosition(this.bones[i+1].matrixWorld);
+            //this.links[i].position.setFromMatrixPosition(this.restBones[i+1].matrixWorld);
+            this.links[i].position.setFromMatrixPosition(this._parent.motion[i+1].matrixWorld);
+            //console.log(this.links[i].position)
+            //this.linkMaterial(i, this._display.materials.links.clone());
+        }
+        if (this.effector != null && isSelected(this)) {
+            //this.linkMaterial(this.path.effector, this._display.materials.effector.clone());
+        }
+
+        //this.root.position.setFromMatrixPosition(this.bones[0].matrixWorld);
+        //this.root.position.setFromMatrixPosition(this.restBones[0].matrixWorld);
+        this.root.position.setFromMatrixPosition(this._parent.motion[0].matrixWorld);
+    }
+
+    updatePathDisplay() {
+        let globalPos = fromLocalToGlobal(this.path.positions, this.bones[0]);
+        this._display.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+    }
+
+    updateTimingDisplay() {
+        if (this.lengthPath != 0) {
+            let globalPos = this.bones[0].localToWorld(this.path.currentPosition);
+            this._display.timing.geometry = new THREE.BufferGeometry().setFromPoints([globalPos]);
+        } else {
+            this._display.timing.geometry = new THREE.BufferGeometry().setFromPoints([]);
+        }
     }
 
 }

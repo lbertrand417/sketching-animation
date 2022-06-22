@@ -149,7 +149,7 @@ function loadScene(s) {
             global.scene.add(objects[k].speedDisplay[i]);
             objects[k].linkMaterial(i, materials.links.clone());
         }
-        if(objects[k].parent.object == null) {
+        if(objects[k].isParent) {
             parent = objects[k];
         }
     }
@@ -173,69 +173,56 @@ function loadScene(s) {
 // Find correspondences between detail objects and the parent mesh
 // ATTENTION NE FONCTIONNE PAS APRES UN CHANGEMENT DE SCENE
 function findCorrespondences() {
-    //console.log(parent);
     if(parent != null) {
         console.log('find correspondences')
         const positionAttribute = parent.positions;
-
-        //console.log(parent.children.length);
-        //console.log(parent.children);
 
         // Find closest point in parent mesh
         for ( let vertexIndex = 0; vertexIndex < positionAttribute.count; vertexIndex ++ ) {
             let vertex = getVertex(parent, vertexIndex);
 
             // For every detail objects
-            for (let k = 0; k < parent.children.length; k++) {
-            //for (let k = 0; k < objects.length; k++) {
-                //if(objects[k].level != 0) {
-                //if(objects[k].parent != null) {
-                // Retrieve current closest point in parent mesh
-                let child = parent.children[k];
+            for (let k = 0; k < objects.length; k++) {
+                if(objects[k].level != 0) {
+                    // Retrieve current closest point in parent mesh
+                    let currentCor = getVertex(parent, objects[k].parent.index)
 
-                //console.log(child);
+                    // Retrieve root position
+                    let worldRootPos = objects[k].mesh.localToWorld(objects[k].bones[0].position.clone());
+                    // Equivalent to
+                    // let test = new THREE.Vector3();
+                    // test.setFromMatrixPosition(objects[k].bones[0].matrixWorld);
 
-                let currentCor = getVertex(parent, child.parent.anchor)
+                    // Compute distances btw root and current closest point and btw root and new vertex
+                    let currentD = worldRootPos.clone().distanceTo(currentCor);
+                    let newD = worldRootPos.clone().distanceTo(vertex);
 
-                // Retrieve root position
-                let worldRootPos = child.mesh.localToWorld(child.bones[0].position.clone());
-                // Equivalent to
-                // let test = new THREE.Vector3();
-                // test.setFromMatrixPosition(objects[k].bones[0].matrixWorld);
-
-                // Compute distances btw root and current closest point and btw root and new vertex
-                let currentD = worldRootPos.clone().distanceTo(currentCor);
-                let newD = worldRootPos.clone().distanceTo(vertex);
-
-                // If new vertex is closer
-                if(newD < currentD) {
-                    child.parent.anchor = vertexIndex;
+                    // If new vertex is closer
+                    if(newD < currentD) {
+                        objects[k].parent.index = vertexIndex;
+                    }
                 }
-                //}
             }
         }
 
         // Compute position/rotation offsets
-        //for (let k = 0; k < objects.length; k++) {
-        for (let k = 0; k < parent.children.length; k++) {
-            //if(objects[k].level != 0) {
-            let child = parent.children[k];
-            //console.log(child.parent.anchor)
-            let vertex = getVertex(parent, child.parent.anchor)
-            let vertexRot = getRotation(parent, child.parent.anchor);
+        for (let k = 0; k < objects.length; k++) {
+            if(objects[k].level != 0) {
+                let vertex = getVertex(parent, objects[k].parent.index)
+                let vertexRot = getRotation(parent, objects[k].parent.index);
 
-            let worldRootPos = child.mesh.localToWorld(child.bones[0].position.clone());
+                let worldRootPos = objects[k].mesh.localToWorld(objects[k].bones[0].position.clone());
 
-            child.parent.offsetPos = worldRootPos.clone().sub(vertex); // Global translation offset
-            child.parent.offsetPos.applyQuaternion(vertexRot.clone().invert()); // Local translation offset
+                objects[k].parent.offsetPos = worldRootPos.clone().sub(vertex); // Global translation offset
+                objects[k].parent.offsetPos.applyQuaternion(vertexRot.clone().invert()); // Local translation offset
 
-            child.parent.offsetQ = vertexRot.invert().multiply(child.bones[0].quaternion); // Global rotation offset
+                objects[k].parent.offsetQ = vertexRot.invert().multiply(objects[k].bones[0].quaternion); // Global rotation offset
 
-            /*let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
-            let point = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
-            point.position.set(vertex.x, vertex.y, vertex.z); // From cylinder local space to world
-            global.scene.add(point);*/
-            //}
+                /*let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
+                let point = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
+                point.position.set(vertex.x, vertex.y, vertex.z); // From cylinder local space to world
+                global.scene.add(point);*/
+            }
         }
     }
 }

@@ -24,9 +24,6 @@ function computeAngleAxis(origin, effector, target) {
     // Retrieve root bone info
     let rootPos = new THREE.Vector3();
     rootPos.setFromMatrixPosition(origin.matrixWorld)
-    //console.log('origin', rootPos);
-    //console.log('effector', effector);
-    //console.log('target', target);
  
     // Get world rotation vectors
     let n = target.clone().sub(rootPos);
@@ -83,23 +80,6 @@ function fromLocalToGlobal(positions, space) {
         let p = positions[i].clone();
         globalPos.push(space.localToWorld(p));
     }
-    return globalPos;
-}
-
-
-function worldPos(point, object, bones, index) {
-    let globalPos = point.clone();
-    for (let i = index; i >= 0; i--) {
-        globalPos.applyMatrix4(bones[i].matrix);
-    }
-    globalPos.applyMatrix4(object.mesh.matrix);
-
-    let trueValue = new THREE.Vector3();
-    trueValue.setFromMatrixPosition(bones[index + 1].matrixWorld);
-
-    //console.log('true value', trueValue);
-    //console.log('mine', globalPos.clone());
-
     return globalPos;
 }
 
@@ -213,4 +193,4 @@ function resizeCurve(array, segmentSize) {
 }
 
 
-export { resize, computeAngleAxis, getLocal, rotate, fromLocalToGlobal, worldPos, project3D, getRandomInt, findInArray, interpolate, getVertex, getRotation, resizeCurve };
+export { resize, computeAngleAxis, getLocal, rotate, fromLocalToGlobal, project3D, getRandomInt, findInArray, interpolate, getVertex, getRotation, resizeCurve };

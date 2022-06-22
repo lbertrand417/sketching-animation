@@ -1,21 +1,43 @@
 import * as THREE from 'three';
+import { fromLocalToGlobal, worldPos } from './utils.js'
+import { isSelected } from './selection.js'
 
 class MyDisplay {
     constructor(object, materials) {
+        this._object = object;
         this._materials = materials;
 
         let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
 
         this._links = [];
+        this._speeds = [];
+        
         for(let i = 1; i < object.bones.length; i++) {
             let link = new THREE.Mesh( sphereGeometry, materials.links.clone() );
-            link.position.setFromMatrixPosition(object.bones[i].matrixWorld);
+
+            let pos = object.bones[i].position.clone();
+            pos = worldPos(pos, object, object.bones, i-1);
+            link.position.set(pos.x, pos.y, pos.z);
+            //link.position.setFromMatrixPosition(object.bones[i].matrixWorld);
             link.visible = true;
             this._links.push(link);
+
+            const lineMaterial = new THREE.LineBasicMaterial( { color: 0x000000 } );
+            const geometry = new THREE.BufferGeometry().setFromPoints([]);
+            const line = new THREE.Line( geometry, lineMaterial );
+            this._speeds.push(line)        
         }
+
+        const lineMaterial2 = new THREE.LineBasicMaterial( { color: 0xff0000 } );
+        const geometry2 = new THREE.BufferGeometry().setFromPoints([]);
+        this._axis = new THREE.Line( geometry2, lineMaterial2 );
     
         this._root = new THREE.Mesh( sphereGeometry, materials.root.clone() );
-        this._root.position.setFromMatrixPosition(object.bones[0].matrixWorld); // From cylinder local space to world
+
+        let pos = object.bones[0].position.clone();
+        pos = worldPos(pos, object, object.bones, -1);
+        this._root.position.set(pos.x, pos.y, pos.z);
+        //this._root.position.setFromMatrixPosition(object.bones[0].matrixWorld); // From cylinder local space to world
         this._root.visible = true;
 
         this._skeleton = new THREE.SkeletonHelper( object.bones[0] );
@@ -33,34 +55,64 @@ class MyDisplay {
     
         const timingGeometry = new THREE.BufferGeometry().setFromPoints([]);
         this._timing = new THREE.Points( timingGeometry, materials.timing.clone() );
+
     }
 
-    get materials() {
-        return this._materials;
+    get materials() { return this._materials; }
+    get links() { return this._links; }
+    get root() { return this._root; }
+    get skeleton() { return this._skeleton; }
+    get axes() { return this._axes; }
+
+    get path() { return this._path; }
+    get timing() { return this._timing; }
+    get speeds() { return this._speeds; }
+    get axis() { return this._axis; }
+
+    // Display functions
+    updateLinks() {
+        // Update bones
+        /*for(let i = 0; i < this.lengthBones; i++) {
+            this.bones[i].updateMatrixWorld(true);
+            this.restBones[i].updateMatrixWorld(true);
+        }*/
+
+        for(let i = 0; i < this.links.length; i++) {
+            let pos = this._object.bones[i+1].position.clone();
+            pos = worldPos(pos, this._object, this._object.bones, i);
+            this.links[i].position.set(pos.x, pos.y, pos.z);
+
+            //this.links[i].position.setFromMatrixPosition(this._object.bones[i+1].matrixWorld);
+            //this.links[i].position.setFromMatrixPosition(this.restBones[i+1].matrixWorld);
+            //this.links[i].position.setFromMatrixPosition(this._object.parent.motion[i+1].matrixWorld);
+            //console.log(this.links[i].position)
+            //this.linkMaterial(i, this._display.materials.links.clone());
+        }
+        if (this._object.effector != null && isSelected(this)) {
+            //this.linkMaterial(this.path.effector, this._display.materials.effector.clone());
+        }
+
+        let pos = this._object.bones[0].position.clone();
+        pos = worldPos(pos, this._object, this._object.bones, -1);
+        this.root.position.set(pos.x, pos.y, pos.z);
+
+        //this.root.position.setFromMatrixPosition(this._object.bones[0].matrixWorld);
+        //this.root.position.setFromMatrixPosition(this.restBones[0].matrixWorld);
+        //this.root.position.setFromMatrixPosition(this._object.parent.motion[0].matrixWorld);
     }
 
-    get links() {
-        return this._links;
+    updatePath() {
+        let globalPos = fromLocalToGlobal(this._object.path.positions, this._object.bones[0]);
+        this.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
     }
 
-    get root() {
-        return this._root;
-    }
-
-    get skeleton() {
-        return this._skeleton;
-    }
-
-    get axes() {
-        return this._axes;
-    }
-
-    get path() {
-        return this._path;
-    }
-
-    get timing() {
-        return this._timing;
+    updateTiming() {
+        if (this._object.lengthPath != 0) {
+            let globalPos = this._object.bones[0].localToWorld(this._object.path.currentPosition);
+            this.timing.geometry = new THREE.BufferGeometry().setFromPoints([globalPos]);
+        } else {
+            this.timing.geometry = new THREE.BufferGeometry().setFromPoints([]);
+        }
     }
 }
 

@@ -150,8 +150,8 @@ class MyPath {
                 this._positions.push(this._positions[i].clone());
             }
 
-            //console.log('p', this._positions);
-            //console.log('t', this._timings);
+            console.log('p', this._positions);
+            console.log('t', this._timings);
 
         }
     }

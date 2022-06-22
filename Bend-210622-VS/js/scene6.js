@@ -110,10 +110,8 @@ for(let k = 0; k < cylinderCount; k++) {
     restAxis.normalize();
 
     // Store object
-    let object = new MyObject(detailCylinder.cylinderSkinnedMesh, height,
-        detailCylinder.bones, restAxis, 1, parent, materials);
-    meshObjects.push(object);
-    parent.addChild(object);
+    meshObjects.push(new MyObject(detailCylinder.cylinderSkinnedMesh, height,
+        detailCylinder.bones, restAxis, 1, parent, materials));
 }
 
 export { allObjects, meshObjects };

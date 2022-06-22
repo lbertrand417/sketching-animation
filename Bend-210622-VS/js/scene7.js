@@ -49,7 +49,7 @@ axis.normalize();
 rotationAxis = new THREE.Vector3(1, 0, 0);
 rotationAxis.cross(axis);
 rotationAxis.normalize();
-//console.log(rotationAxis)
+console.log(rotationAxis)
 Q.setFromAxisAngle(rotationAxis, Math.PI / 4);
 //rootBone.applyQuaternion(Q);
 
@@ -115,10 +115,8 @@ for(let i = 0; i < numberLine; i++) {
         restAxis.normalize();
 
         // Store object
-        let object = new MyObject(detailCylinder.cylinderSkinnedMesh, height,
-            detailCylinder.bones, restAxis, 1, parent, materials)
-        meshObjects.push(object);
-        parent.addChild(object);
+        meshObjects.push(new MyObject(detailCylinder.cylinderSkinnedMesh, height,
+            detailCylinder.bones, restAxis, 1, parent, materials));
     }
 }
 
