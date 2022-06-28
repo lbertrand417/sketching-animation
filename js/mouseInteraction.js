@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { materials } from './materials.js';
 import { unselectAll, updateSelection, addTarget } from './selection.js';
-import { project3D, worldPos } from './utils.js';
+import { localPos, project3D, worldPos } from './utils.js';
 import { orbitControls, updateChildren, updateTimeline } from './main.js';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
@@ -74,8 +74,9 @@ function selectObject(event) {
 
             p = selectedObjects[0].bones[selectedObjects[0].path.effector + 1].position.clone();
             p = worldPos(p, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].path.effector);
-            const pI = project3D(event, global.renderer.domElement, p);
-            selectedObjects[0].bones[0].worldToLocal(pI);
+            let pI = project3D(event, global.renderer.domElement, p);
+            pI = localPos(pI, selectedObjects[0], selectedObjects[0].bones, 0);
+            //selectedObjects[0].bones[0].worldToLocal(pI);
 
             global.sketch.positions.push(pI);
             let newT = new Date().getTime() - refTime;
@@ -117,13 +118,25 @@ function moveObject(event) {
         //console.log('move');
         event.preventDefault();
 
-        const pI = project3D(event, global.renderer.domElement, p);
+        let pI = project3D(event, global.renderer.domElement, p);
+
+        let oldRootPos;
+        if(selectedObjects[0].children.length != 0) {
+            oldRootPos = selectedObjects[0].bones[2].position.clone();
+            oldRootPos = worldPos(oldRootPos, selectedObjects[0], selectedObjects[0].bones, 1);
+        }
 
         selectedObjects[0].bend(selectedObjects[0].bones, pI);
         //selectedObjects[0].updateVertices();
 
+        let newRootPos;
+        if(selectedObjects[0].children.length != 0) {
+            newRootPos = selectedObjects[0].bones[2].position.clone();
+            newRootPos = worldPos(oldRootPos, selectedObjects[0], selectedObjects[0].bones, 1);
+        }
 
-        selectedObjects[0].bones[0].worldToLocal(pI);
+        pI = localPos(pI, selectedObjects[0], selectedObjects[0].bones, 0);
+        //selectedObjects[0].bones[0].worldToLocal(pI);
 
         global.sketch.positions.push(pI);
         let newT = new Date().getTime() - refTime;
@@ -131,8 +144,9 @@ function moveObject(event) {
         global.sketch.timings.push(newT);
 
         //if(selectedObjects[0].level == 0) {
-        if(selectedObjects[0].parent.object == null) {
-            updateChildren(selectedObjects[0]);
+        if(selectedObjects[0].children.length != 0) {
+            let speed = selectedObjects[0].getSpeed(1, oldRootPos, newRootPos);
+            updateChildren(selectedObjects[0], speed);
         }
     }
 
@@ -143,22 +157,32 @@ function moveObject(event) {
         let axis = pI.clone().sub(parent.mesh.position.clone().add(posOffset)).normalize();
         let distance = parent.mesh.position.clone().add(posOffset).distanceTo(pI);
 
+        console.log('1', )
+        let oldRootPos = parent.bones[2].position.clone();
+        oldRootPos = worldPos(oldRootPos, parent, parent.bones, 1);
+
         parent.mesh.translateOnAxis(axis, distance);
         parent.mesh.updateMatrixWorld(); // Important
+        //parent.mesh.updateWorldMatrix(true, false);
+
+        let newRootPos = parent.bones[2].position.clone();
+        newRootPos = worldPos(oldRootPos, parent, parent.bones, 1);
 
         /*parent.restBones[0].position.setFromMatrixPosition(parent.bones[0].matrixWorld);
         parent.restBones[0].updateMatrixWorld(true);*/
 
         // TODO: Update trajectory
 
-        // Update children
-        updateChildren(parent);
+        // Update children TODO : Linear VS
+        let speed = new THREE.Vector3();
+        updateChildren(parent, speed);
     }
 
     if(intersectedTarget != null && intersectedTarget.length > 0) {
         const pI = project3D(event, global.renderer.domElement, p);
 
         intersectedTarget[0].object.position.set(pI.x, pI.y, pI.z);
+        intersectedTarget[0].object.updateWorldMatrix(true, false);
 
 
         for(let k = 0; k < objects.length; k++) {

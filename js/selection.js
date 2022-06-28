@@ -1,6 +1,7 @@
 "use strict;"
 
 import { materials } from './materials.js';
+import { worldPos } from './utils.js';
 
 function unselectAll() {
     for (let k = 0; k < selectedObjects.length; k++) {
@@ -105,7 +106,9 @@ function addTarget(object) {
         let localPos = object.path.positions[Math.floor(object.lengthPath / 2)].clone();
         localPos.applyAxisAngle(object.restAxis, theta);
 
-        let distance = object.bones[0].localToWorld(localPos).distanceTo(object.target.position);
+        let globalPos = worldPos(localPos, object, object.bones, 0);
+        //let globalPos = object.bones[0].localToWorld(localPos);
+        let distance = globalPos.distanceTo(object.target.position);
         distances.push(distance);
         theta += dt;
     }
@@ -122,8 +125,8 @@ function addTarget(object) {
     }
 
     // Update path display
-    object.updatePathDisplay();
-    object.updateTimingDisplay();
+    object.display.updatePath();
+    object.display.updateTiming();
 }
 
 export { autoSelect, isSelected, unselectAll, updateSelection, retrieveObject, addTarget }

@@ -9,11 +9,13 @@ let allObjects = []; // All elements of the scene
 const ambientColor = 0xFFFFFF;
 const ambientIntensity = 0.2;
 const ambientLight = new THREE.AmbientLight(ambientColor, ambientIntensity);
+ambientLight.updateWorldMatrix(true, false);
 allObjects.push(ambientLight);
 
 let spotLight = new THREE.SpotLight( 0xffffff, 0.7 );
 spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
+spotLight.updateWorldMatrix(true, false);
 allObjects.push(spotLight);
 
 

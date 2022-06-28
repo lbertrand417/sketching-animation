@@ -10,65 +10,27 @@ class MyPath {
         this._target = null;
     }
 
-    get positions() {
-        return this._positions;
-    }
+    get positions() { return this._positions; }
+    set positions(p) { this._positions = p; }
 
-    set positions(p) {
-        this._positions = p;
-    }
+    get timings() { return this._timings; }
+    set timings(t) { this._timings = t; }
 
-    get timings() {
-        return this._timings;
-    }
+    get index() { return this._currentIndex; }
+    set index(i) { this._currentIndex = i; }
 
-    set timings(t) {
-        this._timings = t;
-    }
+    get currentPosition() { return this._positions[this._currentIndex].clone(); }
+    get currentTime() { return this._timings[this._currentIndex]; }
 
-    get index() {
-        return this._currentIndex;
-    }
+    get startTime() { return this._startTime; }
+    set startTime(t) { this._startTime = t; }
 
-    set index(i) {
-        this._currentIndex = i;
-    }
+    get effector() { return this._effectorIndex; }
+    set effector(e) { this._effectorIndex = e; }
 
-    get currentPosition() {
-        return this._positions[this._currentIndex].clone();
-    }
-
-    get currentTime() {
-        return this._timings[this._currentIndex];
-    }
-
-    get startTime() {
-        return this._startTime;
-    }
-
-    set startTime(t) {
-        this._startTime = t;
-    }
-
-    get effector() {
-        return this._effectorIndex;
-    }
-
-    set effector(e) {
-        this._effectorIndex = e;
-    }
-
-    get target() {
-        return this._target;
-    }
-
-    set target(t) {
-        this._target = t;
-    }
-
-    get hasTarget() {
-        return this._target != null;
-    }
+    get target() { return this._target; }
+    set target(t) { this._target = t; }
+    get hasTarget() { return this._target != null; }
 
 
     // Find position in the object path wrt a given timing

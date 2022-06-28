@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { materials } from './materials.js';
 import { updateTimeline } from './main.js';
-import { getVertex, getRotation } from './utils.js';
+import { getVertex, getRotation, worldPos } from './utils.js';
 import { allObjects as allObjects1, meshObjects as meshObjects1 } from './scene1.js';
 import { allObjects as allObjects2, meshObjects as meshObjects2 } from './scene2.js';
 import { allObjects as allObjects3, meshObjects as meshObjects3 } from './scene3.js';
@@ -85,6 +85,7 @@ function loadScene(s) {
     let axesHelper = new THREE.AxesHelper( 10 );
     axesHelper.position.set(30, 0, 0);
     global.scene.add( axesHelper );
+    //global.scene.autoUpdate = false;
 
     // Deactivate animation
     global.animation.isAnimating = false;
@@ -149,7 +150,7 @@ function loadScene(s) {
             global.scene.add(objects[k].speedDisplay[i]);
             objects[k].linkMaterial(i, materials.links.clone());
         }
-        if(objects[k].parent.object == null) {
+        if(objects[k].parent.object == null && objects[k].children.length != 0) {
             parent = objects[k];
         }
     }
@@ -198,7 +199,8 @@ function findCorrespondences() {
                 let currentCor = getVertex(parent, child.parent.anchor)
 
                 // Retrieve root position
-                let worldRootPos = child.mesh.localToWorld(child.bones[0].position.clone());
+                let worldRootPos = worldPos(child.bones[0].position.clone(), child, child.bones, -1);
+                //let worldRootPos = child.mesh.localToWorld(child.bones[0].position.clone());
                 // Equivalent to
                 // let test = new THREE.Vector3();
                 // test.setFromMatrixPosition(objects[k].bones[0].matrixWorld);
@@ -224,17 +226,18 @@ function findCorrespondences() {
             let vertex = getVertex(parent, child.parent.anchor)
             let vertexRot = getRotation(parent, child.parent.anchor);
 
-            let worldRootPos = child.mesh.localToWorld(child.bones[0].position.clone());
+            let worldRootPos = worldPos(child.bones[0].position.clone(), child, child.bones, -1);
+            //let worldRootPos = child.mesh.localToWorld(child.bones[0].position.clone());
 
             child.parent.offsetPos = worldRootPos.clone().sub(vertex); // Global translation offset
             child.parent.offsetPos.applyQuaternion(vertexRot.clone().invert()); // Local translation offset
 
             child.parent.offsetQ = vertexRot.invert().multiply(child.bones[0].quaternion); // Global rotation offset
 
-            /*let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
+            let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
             let point = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
             point.position.set(vertex.x, vertex.y, vertex.z); // From cylinder local space to world
-            global.scene.add(point);*/
+            global.scene.add(point);
             //}
         }
     }

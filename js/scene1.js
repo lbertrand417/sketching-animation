@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { MyObject } from './myObject.js'
 import { materials } from './materials.js';
-import { getRandomInt } from './utils.js'
+import { getRandomInt, updateMatrix } from './utils.js'
 import { createCylinder } from './init.js'
 
 let allObjects = []; // All elements of the scene
@@ -12,10 +12,12 @@ let meshObjects = []; // Elements to animate
 const ambientColor = 0xFFFFFF;
 const ambientIntensity = 0.2;
 const ambientLight = new THREE.AmbientLight(ambientColor, ambientIntensity);
+ambientLight.updateWorldMatrix(true, false);
 allObjects.push(ambientLight);
 
 let spotLight = new THREE.SpotLight( 0xffffff, 0.7 );
 spotLight.position.set( 0, 60, 40 );
+spotLight.updateWorldMatrix(true, false);
 spotLight.castShadow = true;
 allObjects.push(spotLight);
 
@@ -51,7 +53,7 @@ for(let k = 0; k < cylinderCount; k++) {
 
     // Update joints
     for(let i = 0; i < bones.length; i++) {
-        bones[i].updateMatrixWorld(true);
+        bones[i].updateWorldMatrix(true, false);
     }
 
     let endPoint = new THREE.Vector3();
@@ -72,6 +74,7 @@ const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 plane.translateY(-halfHeight);
 plane.rotation.x = Math.PI * -.5;
 plane.receiveShadow = true;
+plane.updateWorldMatrix(true, false);
 allObjects.push(plane);
 
 export { allObjects, meshObjects };

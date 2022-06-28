@@ -12,11 +12,13 @@ let meshObjects = []; // Elements to animate
 const ambientColor = 0xFFFFFF;
 const ambientIntensity = 0.2;
 const ambientLight = new THREE.AmbientLight(ambientColor, ambientIntensity);
+ambientLight.updateWorldMatrix(true, false);
 allObjects.push(ambientLight);
 
 let spotLight = new THREE.SpotLight( 0xffffff, 0.7 );
 spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
+spotLight.updateWorldMatrix(true, false);
 allObjects.push(spotLight);
 
 const cylinderCount = 10;
@@ -63,6 +65,7 @@ const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 plane.translateY(- height / 2);
 plane.rotation.x = Math.PI * -.5;
 plane.receiveShadow = true;
+plane.updateWorldMatrix(true, false);
 allObjects.push(plane);
 
 export { allObjects, meshObjects };

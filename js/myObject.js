@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { materials } from './materials.js';
 import { MyPath } from './myPath.js'
 import { MyDisplay } from './myDisplay.js'
-import { computeAngleAxis, getLocal, rotate, fromLocalToGlobal, resizeCurve, worldPos } from './utils.js'
+import { computeAngleAxis, localDir, rotate, fromLocalToGlobal, resizeCurve, worldPos, localPos } from './utils.js'
 import { isSelected } from './selection.js'
 
 class MyObject {
@@ -101,7 +101,8 @@ class MyObject {
         //let pos = new THREE.Vector3();
     
         //pos.setFromMatrixPosition(point.matrixWorld);
-        this._bones[0].worldToLocal(point);
+        point = localPos(point, this, this._bones, 0);
+        //this._bones[0].worldToLocal(point);
         let distance = point.distanceTo(new THREE.Vector3(0,0,0));
         
         return distance;
@@ -110,7 +111,8 @@ class MyObject {
     reset(bones) {
         for (let i = 0; i < bones.length; i++) {
             bones[i].quaternion.copy(this._restPose.bones[i].quaternion);
-            bones[i].updateMatrixWorld(true); // Important
+            //bones[i].updateMatrixWorld(true); // Important
+            bones[i].updateWorldMatrix(true, false); // Important
         }
     }
 
@@ -142,7 +144,7 @@ class MyObject {
                 theta = - 0.5 * v.length(); // theta = angle objectif entre effector, old bone i et new bone i
             } else {
                 //theta = - param * v.length(); // theta = angle objectif entre effector, old bone i et new bone i
-                theta = - 2 * v.length(); // theta = angle objectif entre effector, old bone i et new bone i
+                theta = - 0 * v.length(); // theta = angle objectif entre effector, old bone i et new bone i
             }
             
             let q = new THREE.Quaternion();
@@ -157,7 +159,8 @@ class MyObject {
             // Here we apply q on bones[e + 1] space on bones[i - 1] which is not coherent (TO CHANGE)
             this.bones[i - 1].applyQuaternion(q);
 
-            this.bones[i - 1].updateMatrixWorld(true);
+            //this.bones[i - 1].updateMatrixWorld(true);
+            this.bones[i - 1].updateWorldMatrix(true, false);
 
             
         }
@@ -187,6 +190,7 @@ class MyObject {
 
 
         this.links[0].position.copy(rootPos);
+        this.links[0].updateWorldMatrix(true, false);
         for (let i = 2; i < this.lengthBones; i++) {
             let w = speed.clone();
             let n = w.clone().normalize();
@@ -252,8 +256,11 @@ class MyObject {
             let effector = bones[i].position.clone();
             effector = worldPos(effector, this, bones, i-1);
             //effector.setFromMatrixPosition(bones[i].matrixWorld);
-            let worldRotation = computeAngleAxis(bones[i-1], effector, newPosArray[i-2]);
-            let localAxis = getLocal(worldRotation.axis, bones[i-2]);
+            let origin = bones[i-1].position.clone();
+            origin = worldPos(origin, this, bones, i-2);
+            //let worldRotation = computeAngleAxis(bones[i-1], effector, newPosArray[i-2]);
+            let worldRotation = computeAngleAxis(origin, effector, newPosArray[i-2]);
+            let localAxis = localDir(worldRotation.axis, bones, i-2);
             rotate(localAxis, worldRotation.angle, bones[i-1])
 
             const points = [];
@@ -269,6 +276,7 @@ class MyObject {
     }
 
     // Optimiser pour ne pas avoir à faire de copies des bones + ca crée pleins de bugs de faire comme ca ?
+    //getSpeed(origin, oldPos, newPos) {
     getSpeed(t, b, origin) {
         let oldTime;
         if (t - 16 >= this.path.timings[0]) {
@@ -277,15 +285,16 @@ class MyObject {
             oldTime = t + 16;
         }  
 
-        let tempBones = [];
+        /*let tempBones = [];
         for (let i = 0; i < this.lengthBones; i++) {
             tempBones.push(this.bones[i].clone());
-        }
+        }*/
 
         // Retrieve old objective
         this.path.updateCurrentTime(oldTime); // Adapt
         let oldTarget = this.path.currentPosition;
-        this.bones[0].localToWorld(oldTarget);   
+        oldTarget = worldPos(oldTarget, this, this.bones, 0);
+        //this.bones[0].localToWorld(oldTarget);  
         //this.bend(tempBones, oldTarget);
         this.bend(this.bones, oldTarget);
         let oldPos = this.bones[b].position.clone();
@@ -296,7 +305,8 @@ class MyObject {
         // Retrieve new objective
         this.path.updateCurrentTime(t);
         let newTarget = this.path.currentPosition;
-        this.bones[0].localToWorld(newTarget); 
+        newTarget = worldPos(newTarget, this, this.bones, 0);
+        //this.bones[0].localToWorld(newTarget); 
         //this.bend(tempBones, newTarget);
         this.bend(this.bones, newTarget);
         let newPos = this.bones[b].position.clone();
@@ -305,14 +315,17 @@ class MyObject {
         //newPos.setFromMatrixPosition(this.bones[b].matrixWorld)
 
         //let worldRotation = computeAngleAxis(tempBones[origin], oldPos, newPos);
-        let worldRotation = computeAngleAxis(this.bones[origin], oldPos, newPos);
+        let originPos = this.bones[origin].position.clone();
+        originPos = worldPos(originPos, this, this.bones, origin - 1);
+        //let worldRotation = computeAngleAxis(this.bones[origin], oldPos, newPos);
+        let worldRotation = computeAngleAxis(originPos, oldPos, newPos);
 
         //console.log('world axis', worldRotation.axis);
         //console.log('angle', worldRotation.angle);
 
         let points = [];
-        let originPos = this.bones[origin].position.clone();
-        originPos = worldPos(originPos, this, this.bones, origin-1);
+        //let originPos = this.bones[origin].position.clone();
+        //originPos = worldPos(originPos, this, this.bones, origin-1);
         //originPos.setFromMatrixPosition(tempBones[origin].matrixWorld)
         //originPos.setFromMatrixPosition(this.bones[origin].matrixWorld)
         points.push(originPos.clone());
@@ -337,9 +350,12 @@ class MyObject {
         let effector = bones[this.effector + 1].position.clone();
         effector = worldPos(effector, this, bones, this.effector);
         //effector.setFromMatrixPosition(bones[this.effector + 1].matrixWorld);
-        let worldRotation = computeAngleAxis(bones[0], effector, target);
+        let origin = bones[0].position.clone();
+        origin = worldPos(origin, this, bones, -1);
+        //let worldRotation = computeAngleAxis(bones[0], effector, target);
+        let worldRotation = computeAngleAxis(origin, effector, target);
         for(let i = 1; i < this.lengthBones - 1; i++) {
-            let localAxis = getLocal(worldRotation.axis, bones[i-1])
+            let localAxis = localDir(worldRotation.axis, bones, i-1)
             let angle = 2 * worldRotation.angle / (this.effector + 1)
             rotate(localAxis, angle, bones[i]);
         }
@@ -362,7 +378,8 @@ class MyObject {
 
             this.bones[i].quaternion.copy(q);
 
-            this.bones[i].updateMatrixWorld(true);
+            //this.bones[i].updateMatrixWorld(true);
+            this.bones[i].updateWorldMatrix(true, false);
         }
     }
 
@@ -372,15 +389,16 @@ class MyObject {
         // Take into account the scale factor btw the 2 shapes
         let res = 0;
         let bonePos = this.bones[0].position.clone();
-        bonePos = worldPos(bonePos, this, this.bones, -1);
+        //bonePos = worldPos(bonePos, this, this.bones, -1);
         //bonePos.setFromMatrixPosition(this.links[0].matrixWorld);
-        this.bones[0].worldToLocal(bonePos);
+        //this.bones[0].worldToLocal(bonePos);
         let current_d = bonePos.distanceTo(new THREE.Vector3(0,0,0));
         for (let i = 1; i < this.lengthLinks; i++) {
             bonePos = this.bones[i+1].position.clone();
             bonePos = worldPos(bonePos, this, this.bones, i);
             //bonePos.setFromMatrixPosition(this.links[i].matrixWorld);
-            this.bones[0].worldToLocal(bonePos);
+            bonePos = localPos(bonePos, this, this.bones, 0);
+            //this.bones[0].worldToLocal(bonePos);
             let new_d = bonePos.distanceTo(new THREE.Vector3(0,0,0));
     
             if (Math.abs(new_d - distance) < Math.abs(current_d - distance)) {

@@ -3,9 +3,10 @@
 // Import libraries
 import * as THREE from 'three';
 import { loadScene } from './init.js'
+import { materials } from './materials.js'
 import { updateAnimation, updateTimeline } from './main.js'
 import { addTarget, autoSelect } from './selection.js'
-import { getRandomInt, resize, project3D, worldPos } from './utils.js';
+import { getRandomInt, resize, project3D, worldPos, localPos } from './utils.js';
 
 // SKETCH CANVAS
 let refTime = new Date().getTime(); // Time when we start drawing the line
@@ -75,13 +76,18 @@ targetButton.addEventListener("click", () => {
             if (selectedObjects[0].hasTarget === false) {
                 target = new THREE.Mesh(sphereGeometry, materials.root.clone());
                 let targetPos = new THREE.Vector3();
-                if (parent != null) {
+                console.log(parent);
+                if (selectedObjects[0].parent.object != null) {
                     targetPos = parent.links[parent.lengthLinks - 1].position.clone();
                 } else {
-                    targetPos = selectedObjects[0].bones[0].localToWorld(selectedObjects[0].path.positions[Math.floor(selectedObjects[0].lengthPath / 2)].clone());
+                    let index = Math.floor(selectedObjects[0].lengthPath / 2)
+                    targetPos = selectedObjects[0].path.positions[index].clone();
+                    targetPos = worldPos(targetPos, selectedObjects[0], selectedObjects[0].bones, 0);
+                    //targetPos = selectedObjects[0].bones[0].localToWorld(selectedObjects[0].path.positions[index].clone());
                 }
 
                 target.position.set(targetPos.x, targetPos.y, targetPos.z);
+                target.updateWorldMatrix(true, false);
                 global.scene.add(target);
                 targets.push(target);
             } else  {
@@ -313,7 +319,8 @@ function setPosition(e) {
     let p = selectedObjects[0].bones[selectedObjects[0].path.effector + 1].position.clone();
     p = worldPos(p, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].path.effector);
     let pI = project3D(e, canvas2D, p);
-    selectedObjects[0].bones[0].worldToLocal(pI);
+    pI = localPos(pI.clone(), selectedObjects[0], selectedObjects[0].bones, 0);
+    //selectedObjects[0].bones[0].worldToLocal(pI);
 
     global.sketch.positions.push(pI);
     global.sketch.timings.push(new Date().getTime() - refTime);

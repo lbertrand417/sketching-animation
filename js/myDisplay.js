@@ -20,11 +20,14 @@ class MyDisplay {
             link.position.set(pos.x, pos.y, pos.z);
             //link.position.setFromMatrixPosition(object.bones[i].matrixWorld);
             link.visible = true;
+            //link.updateMatrix();
+            link.updateWorldMatrix(true, false);
             this._links.push(link);
 
             const lineMaterial = new THREE.LineBasicMaterial( { color: 0x000000 } );
             const geometry = new THREE.BufferGeometry().setFromPoints([]);
             const line = new THREE.Line( geometry, lineMaterial );
+            line.visible = false;
             this._speeds.push(line)        
         }
 
@@ -39,6 +42,8 @@ class MyDisplay {
         this._root.position.set(pos.x, pos.y, pos.z);
         //this._root.position.setFromMatrixPosition(object.bones[0].matrixWorld); // From cylinder local space to world
         this._root.visible = true;
+        //this._root.updateMatrix();
+        this._root.updateWorldMatrix(true, false);
 
         this._skeleton = new THREE.SkeletonHelper( object.bones[0] );
         this._skeleton.visible = false;
@@ -81,6 +86,7 @@ class MyDisplay {
             let pos = this._object.bones[i+1].position.clone();
             pos = worldPos(pos, this._object, this._object.bones, i);
             this.links[i].position.set(pos.x, pos.y, pos.z);
+            this.links[i].updateWorldMatrix(true, false);
 
             //this.links[i].position.setFromMatrixPosition(this._object.bones[i+1].matrixWorld);
             //this.links[i].position.setFromMatrixPosition(this.restBones[i+1].matrixWorld);
@@ -95,6 +101,7 @@ class MyDisplay {
         let pos = this._object.bones[0].position.clone();
         pos = worldPos(pos, this._object, this._object.bones, -1);
         this.root.position.set(pos.x, pos.y, pos.z);
+        this._root.updateWorldMatrix(true, false);
 
         //this.root.position.setFromMatrixPosition(this._object.bones[0].matrixWorld);
         //this.root.position.setFromMatrixPosition(this.restBones[0].matrixWorld);
@@ -102,13 +109,15 @@ class MyDisplay {
     }
 
     updatePath() {
-        let globalPos = fromLocalToGlobal(this._object.path.positions, this._object.bones[0]);
+        let globalPos = fromLocalToGlobal(this._object.path.positions, this._object, 0);
         this.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
     }
 
     updateTiming() {
         if (this._object.lengthPath != 0) {
-            let globalPos = this._object.bones[0].localToWorld(this._object.path.currentPosition);
+            let globalPos = this._object.path.currentPosition.clone();
+            globalPos = worldPos(globalPos, this._object, this._object.bones, 0);
+            //let globalPos = this._object.bones[0].localToWorld(this._object.path.currentPosition);
             this.timing.geometry = new THREE.BufferGeometry().setFromPoints([globalPos]);
         } else {
             this.timing.geometry = new THREE.BufferGeometry().setFromPoints([]);

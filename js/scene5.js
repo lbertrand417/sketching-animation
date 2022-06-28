@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { MyObject } from './myObject.js'
 import { materials } from './materials.js';
 import { createCylinder } from './init.js'
+import { getRandomInt } from './utils.js'
 
 let allObjects = []; // All elements of the scene
 let meshObjects = []; // Elements to animate
@@ -11,14 +12,16 @@ let meshObjects = []; // Elements to animate
 const ambientColor = 0xFFFFFF;
 const ambientIntensity = 0.2;
 const ambientLight = new THREE.AmbientLight(ambientColor, ambientIntensity);
+ambientLight.updateWorldMatrix(true, false);
 allObjects.push(ambientLight);
 
 let spotLight = new THREE.SpotLight( 0xffffff, 0.7 );
 spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
+spotLight.updateWorldMatrix(true, false);
 allObjects.push(spotLight);
 
-const cylinderCount = 1;
+const cylinderCount = 2;
 const segmentHeight = 50 / 7;
 const segmentCount = 7;
 const height = segmentHeight * segmentCount;
@@ -33,10 +36,10 @@ for(let k = 0; k < cylinderCount; k++) {
     let bones = bodyCylinder.bones;
     let rootBone = bones[0];
 
-    /*const x = getRandomInt(-50, 50);
+    const x = getRandomInt(-50, 50);
     const z = getRandomInt(-50, 50);
     rootBone.position.x = x;
-    rootBone.position.z = z;*/
+    rootBone.position.z = z;
     
 
     // Update joints
@@ -62,6 +65,7 @@ const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 plane.translateY(-halfHeight);
 plane.rotation.x = Math.PI * -.5;
 plane.receiveShadow = true;
+plane.updateWorldMatrix(true, false);
 allObjects.push(plane);
 
 export { allObjects, meshObjects };
