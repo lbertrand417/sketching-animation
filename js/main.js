@@ -11,7 +11,7 @@ import { getRotation, getVertex, worldPos, localPos, updateMatrix } from './util
 // Initalize renderer
 global.renderer = new THREE.WebGLRenderer();
 global.renderer.setSize(window.innerWidth, window.innerHeight);
-global.renderer.shadowMap.enabled = true;
+//global.renderer.shadowMap.enabled = true;
 document.body.appendChild(global.renderer.domElement); // renderer.domElement creates a canvas
 
 // Initialize camera
@@ -35,7 +35,6 @@ orbitControls.update();
 
 // --------------- ANIMATION ---------------
 
-//let dt = new Date().getTime();
 // Main animation loop
 function animate() {
     
@@ -56,14 +55,9 @@ function animate() {
         global.animation.currentTime += 16;
     }
 
-    //global.scene.updateWorldMatrix(true, false);
     for (let k = 0; k < objects.length; k++) {
         for(let i = 0; i < objects[k].lengthBones; i++) {
-            //objects[k].bones[i].updateMatrixWorld(true);
-            //objects[k].bones[i].matrixAutoUpdate = false;
-            updateMatrix(objects[k].bones[i]);
-            objects[k].bones[i].updateMatrix();
-            objects[k].bones[i].updateWorldMatrix(true, false);
+            objects[k].bones[i].updateWorldMatrix(false, false);
         }
     }
 
@@ -93,87 +87,73 @@ function updateAnimation(currentTime) {
                 objectTime -= objects[k].lengthPath * 16;
             }
         
-            // TODO : récupérer info old time
             // Old effector position
-            let oldPos = objects[k].bones[objects[k].effector + 1].position.clone();
-            oldPos = worldPos(oldPos, objects[k], objects[k].bones, objects[k].effector);
+            let oldPos = objects[k].lbs[objects[k].effector + 1].position.clone();
+            oldPos = worldPos(oldPos, objects[k], objects[k].lbs, objects[k].effector);
 
             let oldRootPos;
             if(objects[k].children.length != 0) {
-                oldRootPos = objects[k].bones[2].position.clone();
-                oldRootPos = worldPos(oldRootPos, objects[k], objects[k].bones, 1);
+                oldRootPos = objects[k].lbs[2].position.clone();
+                oldRootPos = worldPos(oldRootPos, objects[k], objects[k].lbs, 1);
             }
 
             objects[k].path.updateCurrentTime(objectTime);
             let newTarget = objects[k].path.currentPosition;
-            //let test = worldPos(newTarget, objects[k], )
             objects[k].bones[0].localToWorld(newTarget); 
             objects[k].bend(objects[k].bones, newTarget);
+            objects[k].bend(objects[k].lbs, newTarget);
 
-            let newPos = objects[k].bones[objects[k].effector + 1].position.clone();
-            newPos = worldPos(newPos, objects[k], objects[k].bones, objects[k].effector);
+            let newPos = objects[k].lbs[objects[k].effector + 1].position.clone();
+            newPos = worldPos(newPos, objects[k], objects[k].lbs, objects[k].effector);
 
             let newRootPos;
             if(objects[k].children.length != 0) {
-                newRootPos = objects[k].bones[2].position.clone();
-                newRootPos = worldPos(oldRootPos, objects[k], objects[k].bones, 1);
+                newRootPos = objects[k].lbs[2].position.clone();
+                newRootPos = worldPos(newRootPos, objects[k], objects[k].lbs, 1);
             }
 
 
-            //let new_speed = objects[k].getSpeed(objects[k].effector, oldPos, newPos);
-            let new_speed = objects[k].getSpeed(objectTime, objects[k].effector + 1, objects[k].effector);
+            let new_speed = objects[k].getSpeed(objects[k].effector, oldPos, newPos);
             let alpha = 0.05;
             objects[k].speed = new_speed.clone().multiplyScalar(alpha).add(objects[k].speed.clone().multiplyScalar(1 - alpha));
 
             
-            
-
-            // TODO : Récupérer info current time et calculer own speeed et parent speed
-
-            objects[k].ownVS(); // Utiliser own speed
+            if (objects[k].children.length == 0) {
+                objects[k].ownVS(); // Utiliser own speed
+            }
 
 
             // Update targets
             if(objects[k].children.length != 0) {
-                //let speed = objects[k].getSpeed(1, oldRootPos, newRootPos);
-                let speed = objects[k].getSpeed(objectTime, 2, 1);
+                let speed = objects[k].getSpeed(1, oldRootPos, newRootPos);
+                console.log('speed 2', speed.length())
                 updateChildren(objects[k], speed); // Utiliser parent speed
             }
         }
 
-        let alpha;
+        let alpha
         if(objects[k].parent.object == null) {
             alpha = 0;
         } else {
-            alpha = 1;
+            alpha = a;
         }
-        objects[k].blend(alpha);
+        objects[k].blend(alpha); // Ne blend plus...
     }
 }
 
 // Update children position/rotation wrt parent deformation (object is the parent)
 function updateChildren(object, speed) { 
-    //let speed = new THREE.Vector3();
     const alpha = 0.05;
-    /*if (object.lengthPath != 0 && object.children.length != 0) {
-        /*speed = object.getSpeed(time, object.bones[object.lengthBones - 1], object.bones[0]);
-        speed.divideScalar(object.height); // Not height mais length bones
-        speed = object.getSpeed(time, 2, 1);
-    }*/
 
     // Store local position of targets
     let localPosA = [];
     for (let i = 0; i < targets.length; i++) {
         let pos = targets[i].position.clone();
         pos = localPos(pos, objects[1], objects[1].bones, 0);
-        //let pos = objects[1].bones[0].worldToLocal(targets[i].position.clone());
         localPosA.push(pos);
     }
 
 
-    //for(let k = 0; k < objects.length; k++) { // TODO: Adapt
-        //if(objects[k].level == object.level + 1) {
-        //if(objects[k].parent.object != null) {
     for(let k = 0; k < object.children.length; k++) { 
         let child = object.children[k];
 
@@ -185,33 +165,24 @@ function updateChildren(object, speed) {
         newPos.applyQuaternion(newRot);
         newPos.add(vertex);
         newPos = localPos(newPos, child, child.bones, -1);
-        //child.mesh.worldToLocal(newPos); // Local space
         child.bones[0].position.set(newPos.x, newPos.y, newPos.z);
 
 
         // Compute new rotation
         newRot.multiply(child.parent.offsetQ);
         child.bones[0].setRotationFromQuaternion(newRot);
-        //child.bones[0].updateMatrixWorld(true);
-        child.bones[0].updateWorldMatrix(true, false);
+        child.bones[0].updateWorldMatrix(false, false);
 
 
-        //if (object.lengthPath != 0) {
         child.parent.speed = speed.clone().multiplyScalar(alpha).add(child.parent.speed.clone().multiplyScalar(1 - alpha));
-        //console.log(speed);
         child.parentVS();
-            //}
-
-            // Update target
-        //}
     }
 
-    // Update targets (Adapt?)
+    // Update targets (Adapt?) --> Add VS on the target too?
     for (let i = 0; i < targets.length; i++) {
-        //let newPos = objects[1].bones[0].localToWorld(localPos[i].clone());
         let newPos = worldPos(localPosA[i], objects[1], objects[1].bones, 0);
         targets[i].position.set(newPos.x, newPos.y, newPos.z);
-        targets[i].updateWorldMatrix(true, false);
+        targets[i].updateWorldMatrix(false, false);
     }
 
 }

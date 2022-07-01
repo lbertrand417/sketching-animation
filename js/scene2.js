@@ -10,13 +10,13 @@ let allObjects = []; // All elements of the scene
 const ambientColor = 0xFFFFFF;
 const ambientIntensity = 0.2;
 const ambientLight = new THREE.AmbientLight(ambientColor, ambientIntensity);
-ambientLight.updateWorldMatrix(true, false);
+ambientLight.updateWorldMatrix(false, false);
 allObjects.push(ambientLight);
 
 let spotLight = new THREE.SpotLight( 0xffffff, 0.7 );
 spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
-spotLight.updateWorldMatrix(true, false);
+spotLight.updateWorldMatrix(false, false);
 
 allObjects.push(spotLight);
 
@@ -40,9 +40,9 @@ const bodyCylinder = createCylinder(bodyRadius, bodyRadius, bodyHeight, segmentC
 allObjects.push(bodyCylinder.cylinderSkinnedMesh);
 
 // Update joints
-for(let i = 0; i < bodyCylinder.bones.length; i++) {
+/*for(let i = 0; i < bodyCylinder.bones.length; i++) {
     bodyCylinder.bones[i].updateMatrixWorld(true);
-}
+}*/
 
 bodyCylinder.cylinderSkinnedMesh.updateMatrixWorld();
 
@@ -54,7 +54,7 @@ let restAxis = bones[0].worldToLocal(endPoint);
 restAxis.normalize();
 
 let parent = new MyObject(bodyCylinder.cylinderSkinnedMesh, bodyHeight,
-    bodyCylinder.bones, restAxis, 0, null, materials)
+    bodyCylinder.bones, restAxis, null, materials)
 meshObjects.push(parent);
 
 
@@ -68,7 +68,6 @@ for(let i = 0; i < numberLine; i++) {
     let theta = 0;
 
     height = maxHeight  - (numberLine - i) * 3;
-    let segmentHeight = height / segmentCount;
 
     for(let k = 0; k < numberElement; k++) {
 
@@ -92,11 +91,12 @@ for(let i = 0; i < numberLine; i++) {
 
         theta += thetaPas;
 
+        detailCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
         // Update joints
-        for(let j = 0; j < bones.length; j++) {
+        /*for(let j = 0; j < bones.length; j++) {
             bones[j].updateMatrixWorld(true);
-        }
+        }*/
 
         let endPoint = new THREE.Vector3();
         endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
@@ -105,7 +105,7 @@ for(let i = 0; i < numberLine; i++) {
 
         // Store object
         let object = new MyObject(detailCylinder.cylinderSkinnedMesh, height,
-            detailCylinder.bones, restAxis, 1, parent, materials)
+            detailCylinder.bones, restAxis, parent, materials)
         meshObjects.push(object);
         parent.addChild(object);
     }

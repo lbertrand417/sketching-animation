@@ -56,12 +56,11 @@ Q.setFromAxisAngle(rotationAxis, Math.PI / 4);
 //rootBone.applyQuaternion(Q);
 
 // Update joints
-for(let i = 0; i < bodyCylinder.bones.length; i++) {
+/*for(let i = 0; i < bodyCylinder.bones.length; i++) {
     bodyCylinder.bones[i].updateMatrixWorld(true);
-}
+}*/
 
-
-bodyCylinder.cylinderSkinnedMesh.updateMatrixWorld();
+bodyCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
 
 let endPoint = new THREE.Vector3();
@@ -70,7 +69,7 @@ let restAxis = bones[0].worldToLocal(endPoint);
 restAxis.normalize();
 
 let parent = new MyObject(bodyCylinder.cylinderSkinnedMesh, bodyHeight,
-    bodyCylinder.bones, restAxis, 0, null, materials);
+    bodyCylinder.bones, restAxis, null, materials);
 meshObjects.push(parent);
 
 
@@ -107,9 +106,11 @@ for(let i = 0; i < numberLine; i++) {
 
 
         // Update joints
-        for(let j = 0; j < bones.length; j++) {
+        /*for(let j = 0; j < bones.length; j++) {
             bones[j].updateMatrixWorld(true);
-        }
+        }*/
+
+        detailCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
         let endPoint = new THREE.Vector3();
         endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
@@ -118,7 +119,7 @@ for(let i = 0; i < numberLine; i++) {
 
         // Store object
         let object = new MyObject(detailCylinder.cylinderSkinnedMesh, height,
-            detailCylinder.bones, restAxis, 1, parent, materials)
+            detailCylinder.bones, restAxis, parent, materials)
         meshObjects.push(object);
         parent.addChild(object);
     }

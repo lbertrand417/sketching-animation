@@ -18,10 +18,8 @@ class MyDisplay {
             let pos = object.bones[i].position.clone();
             pos = worldPos(pos, object, object.bones, i-1);
             link.position.set(pos.x, pos.y, pos.z);
-            //link.position.setFromMatrixPosition(object.bones[i].matrixWorld);
             link.visible = true;
-            //link.updateMatrix();
-            link.updateWorldMatrix(true, false);
+            link.updateWorldMatrix(false, false);
             this._links.push(link);
 
             const lineMaterial = new THREE.LineBasicMaterial( { color: 0x000000 } );
@@ -40,17 +38,19 @@ class MyDisplay {
         let pos = object.bones[0].position.clone();
         pos = worldPos(pos, object, object.bones, -1);
         this._root.position.set(pos.x, pos.y, pos.z);
-        //this._root.position.setFromMatrixPosition(object.bones[0].matrixWorld); // From cylinder local space to world
         this._root.visible = true;
-        //this._root.updateMatrix();
-        this._root.updateWorldMatrix(true, false);
+        this._root.updateWorldMatrix(false, false);
 
-        this._skeleton = new THREE.SkeletonHelper( object.bones[0] );
+        // Skeleton ne fonctionne pas
+        this._skeleton = new THREE.SkeletonHelper( object.bones[1]);
+        this._skeleton.bones[0].updateMatrixWorld(true);
+        this._skeleton.updateMatrixWorld();
         this._skeleton.visible = false;
         this._axes = [];
         for (let i = 0; i < object.lengthBones; i++) {
             let axesHelper = new THREE.AxesHelper( 10 );
             object.bones[i].add(axesHelper);
+            axesHelper.updateWorldMatrix(false, false);
             axesHelper.visible = false;
             this._axes.push(axesHelper);
         }
@@ -76,23 +76,24 @@ class MyDisplay {
 
     // Display functions
     updateLinks() {
-        // Update bones
-        /*for(let i = 0; i < this.lengthBones; i++) {
-            this.bones[i].updateMatrixWorld(true);
-            this.restBones[i].updateMatrixWorld(true);
-        }*/
-
         for(let i = 0; i < this.links.length; i++) {
-            let pos = this._object.bones[i+1].position.clone();
+            /*let pos = this._object.bones[i+1].position.clone();
             pos = worldPos(pos, this._object, this._object.bones, i);
             this.links[i].position.set(pos.x, pos.y, pos.z);
             this.links[i].updateWorldMatrix(true, false);
+            this.links[i].updateWorldMatrix(false, false);*/
 
-            //this.links[i].position.setFromMatrixPosition(this._object.bones[i+1].matrixWorld);
-            //this.links[i].position.setFromMatrixPosition(this.restBones[i+1].matrixWorld);
-            //this.links[i].position.setFromMatrixPosition(this._object.parent.motion[i+1].matrixWorld);
-            //console.log(this.links[i].position)
-            //this.linkMaterial(i, this._display.materials.links.clone());
+            let pos = this._object.lbs[i+1].position.clone();
+            pos = worldPos(pos, this._object, this._object.lbs, i);
+            this.links[i].position.set(pos.x, pos.y, pos.z);
+            //this.links[i].updateWorldMatrix(true, false);
+            this.links[i].updateWorldMatrix(false, false);
+
+            /*let pos = this._object.parent.motion[i+1].position.clone();
+            pos = worldPos(pos, this._object, this._object.parent.motion, i);
+            this.links[i].position.set(pos.x, pos.y, pos.z);
+            this.links[i].updateWorldMatrix(true, false);
+            this.links[i].updateWorldMatrix(false, false);*/
         }
         if (this._object.effector != null && isSelected(this)) {
             //this.linkMaterial(this.path.effector, this._display.materials.effector.clone());
@@ -101,11 +102,7 @@ class MyDisplay {
         let pos = this._object.bones[0].position.clone();
         pos = worldPos(pos, this._object, this._object.bones, -1);
         this.root.position.set(pos.x, pos.y, pos.z);
-        this._root.updateWorldMatrix(true, false);
-
-        //this.root.position.setFromMatrixPosition(this._object.bones[0].matrixWorld);
-        //this.root.position.setFromMatrixPosition(this.restBones[0].matrixWorld);
-        //this.root.position.setFromMatrixPosition(this._object.parent.motion[0].matrixWorld);
+        this._root.updateWorldMatrix(false, false);
     }
 
     updatePath() {
@@ -117,7 +114,6 @@ class MyDisplay {
         if (this._object.lengthPath != 0) {
             let globalPos = this._object.path.currentPosition.clone();
             globalPos = worldPos(globalPos, this._object, this._object.bones, 0);
-            //let globalPos = this._object.bones[0].localToWorld(this._object.path.currentPosition);
             this.timing.geometry = new THREE.BufferGeometry().setFromPoints([globalPos]);
         } else {
             this.timing.geometry = new THREE.BufferGeometry().setFromPoints([]);

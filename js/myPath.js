@@ -55,7 +55,6 @@ class MyPath {
             let tempPos = [];
             let tempT = [];
 
-            //let dt = 1 / 60 * Math.pow(10, 3);
             let dt = 16;
             let t = 0;
             while (t < timings[0]) {
@@ -63,19 +62,12 @@ class MyPath {
             }
 
             while (t <= timings[timings.length - 1]) {
-                //console.log('t', t)
-                //console.log('timings', timings)
                 let info = findInArray(t, timings);
-                //console.log('i', info.i);
-                //console.log('alpha', info.alpha);
                 tempPos.push(interpolate(positions[info.i], positions[info.i + 1], info.alpha));
 
                 tempT.push(t);
                 t += dt;
             }
-
-            //console.log(tempPos);
-            //console.log(tempT);
 
             // Find the unwanted part at the beginning of the drawing (BUG!!)
             let id = 1;
@@ -97,11 +89,6 @@ class MyPath {
                 }
             }
 
-            //console.log(tempPos);
-            //console.log(tempT);
-
-
-
             // Copy the path to the first selected object
             this._positions = [...tempPos];
             this._timings = [...tempT];
@@ -111,10 +98,6 @@ class MyPath {
                 this._timings.push(this._timings[this._timings.length - 1] + (tempT[i + 1] - tempT[i]));
                 this._positions.push(this._positions[i].clone());
             }
-
-            //console.log('p', this._positions);
-            //console.log('t', this._timings);
-
         }
     }
 

@@ -11,13 +11,13 @@ let allObjects = []; // All elements of the scene
 const ambientColor = 0xFFFFFF;
 const ambientIntensity = 0.2;
 const ambientLight = new THREE.AmbientLight(ambientColor, ambientIntensity);
-ambientLight.updateWorldMatrix(true, false);
+ambientLight.updateWorldMatrix(false, false);
 allObjects.push(ambientLight);
 
 let spotLight = new THREE.SpotLight( 0xffffff, 0.7 );
 spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
-spotLight.updateWorldMatrix(true, false);
+spotLight.updateWorldMatrix(false, false);
 allObjects.push(spotLight);
 
 let meshObjects = []; // Elements to animate
@@ -46,9 +46,9 @@ q1.setFromAxisAngle(rotationAxis, Math.PI / 2);
 rootBone.applyQuaternion(q1);
 
 // Update joints
-for(let i = 0; i < bodyCylinder.bones.length; i++) {
+/*for(let i = 0; i < bodyCylinder.bones.length; i++) {
     bodyCylinder.bones[i].updateMatrixWorld(true);
-}
+}*/
 
 bodyCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
@@ -60,7 +60,7 @@ let restAxis = bones[0].worldToLocal(endPoint);
 restAxis.normalize();
 
 let parent = new MyObject(bodyCylinder.cylinderSkinnedMesh, bodyHeight,
-    bodyCylinder.bones, restAxis, 0, null, materials)
+    bodyCylinder.bones, restAxis, null, materials)
 meshObjects.push(parent);
 
 
@@ -102,9 +102,11 @@ for(let k = 0; k < cylinderCount; k++) {
 
 
     // Update joints
-    for(let j = 0; j < bones.length; j++) {
+    /*for(let j = 0; j < bones.length; j++) {
         bones[j].updateMatrixWorld(true);
-    }
+    }*/
+
+    detailCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
     let endPoint = new THREE.Vector3();
     endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
@@ -113,7 +115,7 @@ for(let k = 0; k < cylinderCount; k++) {
 
     // Store object
     let object = new MyObject(detailCylinder.cylinderSkinnedMesh, height,
-        detailCylinder.bones, restAxis, 1, parent, materials);
+        detailCylinder.bones, restAxis, parent, materials);
     meshObjects.push(object);
     parent.addChild(object);
 }

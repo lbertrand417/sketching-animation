@@ -22,13 +22,8 @@ const playButton = document.getElementById("play");
 playButton.addEventListener("click", () => {
     global.animation.isAnimating = true;
     if(global.animation.stop) {
-        //global.animation.startTime = new Date().getTime() - (timeline.min);
         global.animation.currentTime = parseInt(timeline.min);
-    } else {
-        //global.animation.startTime = new Date().getTime() - parseInt(timeline.value);
-        //console.log(parseInt(timeline.value));
-        //global.animation.currentTime = parseInt(timeline.value);
-    }
+    } 
 });
 
 const pauseButton = document.getElementById("pause");
@@ -59,7 +54,11 @@ timeline.oninput = function() {
 var paramSlider = document.getElementById("param");
 paramSlider.oninput = function() {
     param = parseFloat(this.value);
-    //selectedObjects[0].generateBuffers();
+} 
+
+var alphaSlider = document.getElementById("alpha");
+alphaSlider.oninput = function() {
+    a = parseFloat(this.value);
 } 
 
 // COMMANDS
@@ -78,16 +77,16 @@ targetButton.addEventListener("click", () => {
                 let targetPos = new THREE.Vector3();
                 console.log(parent);
                 if (selectedObjects[0].parent.object != null) {
-                    targetPos = parent.links[parent.lengthLinks - 1].position.clone();
+                    targetPos = parent.bones[parent.lengthBones - 1].position.clone();
+                    targetPos = worldPos(targetPos, parent, parent.bones, parent.lengthBones - 2)
                 } else {
                     let index = Math.floor(selectedObjects[0].lengthPath / 2)
                     targetPos = selectedObjects[0].path.positions[index].clone();
                     targetPos = worldPos(targetPos, selectedObjects[0], selectedObjects[0].bones, 0);
-                    //targetPos = selectedObjects[0].bones[0].localToWorld(selectedObjects[0].path.positions[index].clone());
                 }
 
                 target.position.set(targetPos.x, targetPos.y, targetPos.z);
-                target.updateWorldMatrix(true, false);
+                target.updateWorldMatrix(false, false);
                 global.scene.add(target);
                 targets.push(target);
             } else  {
@@ -110,11 +109,9 @@ pasteButton.addEventListener("click", () => {
         let pos = selectedObjects[0].bones[selectedObjects[0].effector + 1].position.clone();
         pos = worldPos(pos, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].effector);
         let distance = selectedObjects[0].distanceToRoot(pos);
-        //let distance = selectedObjects[0].distanceToRoot(selectedObjects[0].links[selectedObjects[0].effector]);
         distance = scale * distance;
         selectedObjects[k].updateEffector(distance);
         selectedObjects[k].path.paste(selectedObjects[0].path, scale);
-        //selectedObjects[k].generateBuffers();
 
         if(selectedObjects[k].lengthPath != 0) {
             console.log("print");
@@ -314,13 +311,10 @@ function setPosition(e) {
         global.sketch.isClean = true;
     }
 
-    /*let p =  new THREE.Vector3(); // une position du plan
-    p.setFromMatrixPosition(selectedObjects[0].bones[selectedObjects[0].path.effector].matrixWorld);*/
     let p = selectedObjects[0].bones[selectedObjects[0].path.effector + 1].position.clone();
     p = worldPos(p, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].path.effector);
     let pI = project3D(e, canvas2D, p);
     pI = localPos(pI.clone(), selectedObjects[0], selectedObjects[0].bones, 0);
-    //selectedObjects[0].bones[0].worldToLocal(pI);
 
     global.sketch.positions.push(pI);
     global.sketch.timings.push(new Date().getTime() - refTime);

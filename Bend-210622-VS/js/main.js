@@ -129,7 +129,7 @@ function updateAnimation(currentTime) {
         if(objects[k].level == 0) {
             alpha = 0;
         } else {
-            alpha = 0.5;
+            alpha = 1;
         }
         objects[k].blend(alpha);
     }

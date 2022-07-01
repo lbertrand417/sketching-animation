@@ -37,6 +37,7 @@ function isSelected(object) {
 
 function select(k, effectorIndex) {
     if (isSelected(objects[k])) {
+        console.log('effector', objects[k].effector)
         objects[k].linkMaterial(objects[k].effector, materials.links.clone());
     } else {
         if (selectedObjects.length == 0) {
@@ -63,6 +64,9 @@ function updateSelection(effector, event) {
         const objectIndex = indexes.k;
         const effectorIndex = indexes.i;
 
+        console.log('o', objectIndex);
+        console.log('e', effectorIndex);
+
         if(isSelected(objects[objectIndex]) && objects[objectIndex].links[objects[objectIndex].effector] === effector) {
             unselect(objectIndex);
         } else {
@@ -75,7 +79,12 @@ function updateSelection(effector, event) {
 function autoSelect(event) {
     console.log("auto select");
     for(let k = 0; k < objects.length; k++) {
-        if(selectedObjects.length != 0 && objects[k].level == selectedObjects[0].level) {
+        console.log()
+        if(selectedObjects.length != 0 && selectedObjects[0].parent.object === objects[k].parent.object) {
+            let pos = selectedObjects[0].bones[selectedObjects[0].effector + 1].position.clone();
+            pos = worldPos(pos, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].effector);
+            let distance = selectedObjects[0].distanceToRoot(pos);
+            objects[k].updateEffector(distance)
             select(k, objects[k].effector);
         }
     }
@@ -85,13 +94,7 @@ function autoSelect(event) {
 function retrieveObject(effector) {
     for (let k = 0; k < objects.length; k++) {
         for (let i = 0; i < objects[k].lengthLinks; i++) {
-            /*if(objects[k].level == 0) {
-                //console.log(effector);
-                //console.log(objects[k].links[i])
-            }*/
             if (effector === objects[k].links[i]) {
-                //console.log('k', k);
-                //console.log('i', i)
                 return { k, i };
             }
         }
@@ -107,7 +110,6 @@ function addTarget(object) {
         localPos.applyAxisAngle(object.restAxis, theta);
 
         let globalPos = worldPos(localPos, object, object.bones, 0);
-        //let globalPos = object.bones[0].localToWorld(localPos);
         let distance = globalPos.distanceTo(object.target.position);
         distances.push(distance);
         theta += dt;

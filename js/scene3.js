@@ -11,13 +11,13 @@ let meshObjects = []; // Elements to animate
 const ambientColor = 0xFFFFFF;
 const ambientIntensity = 0.2;
 const ambientLight = new THREE.AmbientLight(ambientColor, ambientIntensity);
-ambientLight.updateWorldMatrix(true, false);
+ambientLight.updateWorldMatrix(false, false);
 allObjects.push(ambientLight);
 
 let spotLight = new THREE.SpotLight( 0xffffff, 0.7 );
 spotLight.position.set( 0, 60, 40 );
 spotLight.castShadow = true;
-spotLight.updateWorldMatrix(true, false);
+spotLight.updateWorldMatrix(false, false);
 allObjects.push(spotLight);
 
 const cylinderCount = 5;
@@ -51,9 +51,11 @@ for(let k = 0; k < cylinderCount; k++) {
     rootBone.position.z = z;
 
     // Update joints
-    for(let i = 0; i < bones.length; i++) {
+    /*for(let i = 0; i < bones.length; i++) {
         bones[i].updateMatrixWorld(true);
-    }
+    }*/
+
+    bodyCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
     let endPoint = new THREE.Vector3();
     endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
@@ -62,7 +64,7 @@ for(let k = 0; k < cylinderCount; k++) {
 
     // Store object
     meshObjects.push(new MyObject(bodyCylinder.cylinderSkinnedMesh, height,
-            bones, restAxis, 1, null, materials));
+            bones, restAxis, null, materials));
 }
 
 // Plane
@@ -71,7 +73,7 @@ const planeMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff });
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 plane.rotation.x = Math.PI * -.5;
 plane.receiveShadow = true;
-plane.updateWorldMatrix(true, false);
+plane.updateWorldMatrix(false, false);
 allObjects.push(plane);
 
 export { allObjects, meshObjects };

@@ -18,7 +18,6 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount, materials
 
     const cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 32, segmentCount);
     const cylinderSkinnedMesh = new THREE.SkinnedMesh(cylinderGeometry, materials.unselected.clone());
-    //const cylinderMesh = new THREE.Mesh(cylinderGeometry.clone(), materials.unselected.clone());
     cylinderSkinnedMesh.castShadow = true;
 
     // Initialize weights for skeleton binding
@@ -84,8 +83,9 @@ function loadScene(s) {
     global.scene.background = new THREE.Color( 0xEEEEEE );
     let axesHelper = new THREE.AxesHelper( 10 );
     axesHelper.position.set(30, 0, 0);
+    axesHelper.updateWorldMatrix(false, false)
     global.scene.add( axesHelper );
-    //global.scene.autoUpdate = false;
+    global.scene.autoUpdate = false;
 
     // Deactivate animation
     global.animation.isAnimating = false;
@@ -155,7 +155,7 @@ function loadScene(s) {
         }
     }
 
-
+    selectableObjects = [];
     for (let k = 0; k < objects.length; k++) {
         for (let i = 0; i < objects[k].lengthLinks; i++) {
             selectableObjects.push(objects[k].links[i]);
@@ -179,28 +179,19 @@ function findCorrespondences() {
         console.log('find correspondences')
         const positionAttribute = parent.positions;
 
-        //console.log(parent.children.length);
-        //console.log(parent.children);
-
         // Find closest point in parent mesh
         for ( let vertexIndex = 0; vertexIndex < positionAttribute.count; vertexIndex ++ ) {
             let vertex = getVertex(parent, vertexIndex);
 
             // For every detail objects
             for (let k = 0; k < parent.children.length; k++) {
-            //for (let k = 0; k < objects.length; k++) {
-                //if(objects[k].level != 0) {
-                //if(objects[k].parent != null) {
                 // Retrieve current closest point in parent mesh
                 let child = parent.children[k];
-
-                //console.log(child);
 
                 let currentCor = getVertex(parent, child.parent.anchor)
 
                 // Retrieve root position
                 let worldRootPos = worldPos(child.bones[0].position.clone(), child, child.bones, -1);
-                //let worldRootPos = child.mesh.localToWorld(child.bones[0].position.clone());
                 // Equivalent to
                 // let test = new THREE.Vector3();
                 // test.setFromMatrixPosition(objects[k].bones[0].matrixWorld);
@@ -209,25 +200,19 @@ function findCorrespondences() {
                 let currentD = worldRootPos.clone().distanceTo(currentCor);
                 let newD = worldRootPos.clone().distanceTo(vertex);
 
-                // If new vertex is closer
                 if(newD < currentD) {
                     child.parent.anchor = vertexIndex;
                 }
-                //}
             }
         }
 
         // Compute position/rotation offsets
-        //for (let k = 0; k < objects.length; k++) {
         for (let k = 0; k < parent.children.length; k++) {
-            //if(objects[k].level != 0) {
             let child = parent.children[k];
-            //console.log(child.parent.anchor)
             let vertex = getVertex(parent, child.parent.anchor)
             let vertexRot = getRotation(parent, child.parent.anchor);
 
             let worldRootPos = worldPos(child.bones[0].position.clone(), child, child.bones, -1);
-            //let worldRootPos = child.mesh.localToWorld(child.bones[0].position.clone());
 
             child.parent.offsetPos = worldRootPos.clone().sub(vertex); // Global translation offset
             child.parent.offsetPos.applyQuaternion(vertexRot.clone().invert()); // Local translation offset
@@ -238,7 +223,6 @@ function findCorrespondences() {
             let point = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
             point.position.set(vertex.x, vertex.y, vertex.z); // From cylinder local space to world
             global.scene.add(point);
-            //}
         }
     }
 }

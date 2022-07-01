@@ -6,6 +6,7 @@ import { materials } from './materials.js';
 import { unselectAll, updateSelection, addTarget } from './selection.js';
 import { localPos, project3D, worldPos } from './utils.js';
 import { orbitControls, updateChildren, updateTimeline } from './main.js';
+import { Vector3 } from 'three';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
 global.renderer.domElement.addEventListener('mousemove', moveObject);
@@ -52,17 +53,13 @@ function selectObject(event) {
 
 
     if (intersectedObject != null && intersectedObject.length > 0 && event.button == 0) {
-        //console.log('timeline', parseInt(timeline.value))
         refTime = new Date().getTime() - parseInt(timeline.value);
-        //refTime = new Date().getTime() - global.animation.currentTime;
 
-        //console.log(intersectedObject[0].object)
         updateSelection(intersectedObject[0].object, event);
         updateTimeline();
         
         if(selectedObjects.length > 0) {
             // Reset
-            //refTime = new Date().getTime();
             global.sketch.positions = [];
             global.sketch.timings = [];
             global.sketch.isClean = false;
@@ -71,16 +68,13 @@ function selectObject(event) {
             orbitControls.enabled = false;
 
             // Project on the plane in 3D space
-
             p = selectedObjects[0].bones[selectedObjects[0].path.effector + 1].position.clone();
             p = worldPos(p, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].path.effector);
             let pI = project3D(event, global.renderer.domElement, p);
             pI = localPos(pI, selectedObjects[0], selectedObjects[0].bones, 0);
-            //selectedObjects[0].bones[0].worldToLocal(pI);
 
             global.sketch.positions.push(pI);
             let newT = new Date().getTime() - refTime;
-            //console.log('new t', newT);
             global.sketch.timings.push(newT);
         }
     }
@@ -115,7 +109,6 @@ function moveObject(event) {
     if(intersectedObject != null && intersectedObject.length > 0 && !event.shiftKey){
         global.animation.isAnimating = false;
 
-        //console.log('move');
         event.preventDefault();
 
         let pI = project3D(event, global.renderer.domElement, p);
@@ -127,51 +120,42 @@ function moveObject(event) {
         }
 
         selectedObjects[0].bend(selectedObjects[0].bones, pI);
-        //selectedObjects[0].updateVertices();
+        // BEND LBS??
 
         let newRootPos;
         if(selectedObjects[0].children.length != 0) {
             newRootPos = selectedObjects[0].bones[2].position.clone();
-            newRootPos = worldPos(oldRootPos, selectedObjects[0], selectedObjects[0].bones, 1);
+            newRootPos = worldPos(newRootPos, selectedObjects[0], selectedObjects[0].bones, 1);
         }
 
         pI = localPos(pI, selectedObjects[0], selectedObjects[0].bones, 0);
-        //selectedObjects[0].bones[0].worldToLocal(pI);
 
         global.sketch.positions.push(pI);
         let newT = new Date().getTime() - refTime;
-        //console.log('new t', newT);
         global.sketch.timings.push(newT);
 
-        //if(selectedObjects[0].level == 0) {
         if(selectedObjects[0].children.length != 0) {
+            console.log('hey')
             let speed = selectedObjects[0].getSpeed(1, oldRootPos, newRootPos);
+            console.log('speed', speed.length())
             updateChildren(selectedObjects[0], speed);
         }
     }
 
     if(intersectedParent != null && intersectedParent.length > 0) {
-        //console.log('move');
         const pI = project3D(event, global.renderer.domElement, p);
 
         let axis = pI.clone().sub(parent.mesh.position.clone().add(posOffset)).normalize();
         let distance = parent.mesh.position.clone().add(posOffset).distanceTo(pI);
 
-        console.log('1', )
         let oldRootPos = parent.bones[2].position.clone();
         oldRootPos = worldPos(oldRootPos, parent, parent.bones, 1);
 
         parent.mesh.translateOnAxis(axis, distance);
         parent.mesh.updateMatrixWorld(); // Important
-        //parent.mesh.updateWorldMatrix(true, false);
 
         let newRootPos = parent.bones[2].position.clone();
         newRootPos = worldPos(oldRootPos, parent, parent.bones, 1);
-
-        /*parent.restBones[0].position.setFromMatrixPosition(parent.bones[0].matrixWorld);
-        parent.restBones[0].updateMatrixWorld(true);*/
-
-        // TODO: Update trajectory
 
         // Update children TODO : Linear VS
         let speed = new THREE.Vector3();
@@ -182,7 +166,7 @@ function moveObject(event) {
         const pI = project3D(event, global.renderer.domElement, p);
 
         intersectedTarget[0].object.position.set(pI.x, pI.y, pI.z);
-        intersectedTarget[0].object.updateWorldMatrix(true, false);
+        intersectedTarget[0].object.updateWorldMatrix(false, false);
 
 
         for(let k = 0; k < objects.length; k++) {
@@ -212,8 +196,6 @@ function unselectObject(event) {
             // Display path
             selectedObjects[0].display.updatePath();
 
-            //selectedObjects[0].generateBuffers();
-
             // Start animation
             global.animation.isAnimating = true;
             global.animation.startTime = new Date().getTime();
@@ -222,9 +204,7 @@ function unselectObject(event) {
             global.sketch.timings = [...selectedObjects[0].path.timings];
         }
     } 
-
-    //console.log(global.sketch.timings);
-
+    
     intersectedObject = null;
     intersectedParent = null;
     intersectedTarget = null;

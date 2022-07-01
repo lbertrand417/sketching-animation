@@ -20,14 +20,7 @@ function resize(e) {
 }
 
 // Compute world angle and axis between effector-origin and target-origin vectors
-function computeAngleAxis(origin, effector, target) {
-    // Retrieve root bone info
-    //let rootPos = new THREE.Vector3();
-    //rootPos.setFromMatrixPosition(origin.matrixWorld)
-    //console.log('origin', rootPos);
-    //console.log('effector', effector);
-    //console.log('target', target);
- 
+function computeAngleAxis(origin, effector, target) { 
     // Get world rotation vectors
     let n = target.clone().sub(origin);
     n.normalize();
@@ -55,29 +48,10 @@ function computeAngleAxis(origin, effector, target) {
 
 // Put global axis in local space 
 function localDir(axis, bones, index) {
-    //console.log(space);
-    // Put axis in parent space
-    /*let parentBone = space;
-    let parentPos = new THREE.Vector3();
-    let invParentQ = new THREE.Quaternion();
-    let parentScale = new THREE.Vector3();
-    parentBone.matrixWorld.decompose(parentPos, invParentQ, parentScale);
-    //console.log('Q1', invParentQ.clone());
-    invParentQ.invert(); // Why?
-    let local = global.clone().applyQuaternion(invParentQ);
-
-    console.log('true', local);*/
-
     let local = axis.clone();
-    //localPos.applyQuaternion(object.mesh.quaternion.clone().invert());
     for (let i = 0; i <= index; i++) {
-        //console.log(bones[i]);
-        //console.log(i);
         local.applyQuaternion(bones[i].quaternion.clone().invert());
-    }
-
-    //console.log('test', localPos);
-    
+    }   
 
     return local;
 }
@@ -87,16 +61,14 @@ function rotate(axis, angle, origin) {
     let q = new THREE.Quaternion();
     q.setFromAxisAngle(axis, angle);
     origin.applyQuaternion(q);
-    //origin.updateMatrixWorld(true);
-    origin.updateWorldMatrix(true, false);
+    origin.updateWorldMatrix(false, false);
 }
 
-// TODO: Enlever parce que utilisé qu'une fois
+// TODO: A enlever parce que utilisé qu'une fois
 function fromLocalToGlobal(positions, object, index) {
     let globalPos = [];
     for(let i = 0; i < positions.length; i++) {
         let p = positions[i].clone();
-        //let newPos = space.localToWorld(p.clone());
         let newPos = worldPos(p, object, object.bones, index);
         globalPos.push(newPos);
     }
@@ -110,12 +82,6 @@ function worldPos(point, object, bones, index) {
         globalPos.applyMatrix4(bones[i].matrix);
     }
     globalPos.applyMatrix4(object.mesh.matrix);
-
-    let trueValue = new THREE.Vector3();
-    trueValue.setFromMatrixPosition(bones[index + 1].matrixWorld);
-
-    //console.log('true value', trueValue);
-    //console.log('mine', globalPos.clone());
 
     return globalPos;
 }
@@ -203,6 +169,7 @@ function getVertex(object, index) {
     return vertex;
 }
 
+// WRONG
 function getWorldQuaternion(object, bones, index) {
     let worldQ = new THREE.Quaternion();
     for (let i = index - 1; i >= 0; i--) {
@@ -229,10 +196,8 @@ function getRotation(object, index) {
             let boneIndex = skinIndex.getComponent(i);
             
             let boneQ = getWorldQuaternion(object, object.bones, boneIndex);
-            //console.log('test', boneQ.clone())
             boneQ = new THREE.Quaternion();
             object.bones[boneIndex].getWorldQuaternion(boneQ);
-            //console.log('true', boneQ.clone())
             boneQ.set(weight * boneQ.x, weight * boneQ.y, weight * boneQ.z, weight * boneQ.w);
             Q.set(Q.x + boneQ.x, Q.y + boneQ.y, Q.z + boneQ.z, Q.w + boneQ.w);
         }

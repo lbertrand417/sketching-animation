@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
 var materials = {
-    unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034, transparent : true, opacity : 1 }),
-    selected : new THREE.MeshPhongMaterial( { color: 0x28faa4, transparent : true, opacity : 1 }),
+    unselected : new THREE.MeshPhongMaterial( { color: 0xeb4034, transparent : false, opacity : 0.2 }),
+    selected : new THREE.MeshPhongMaterial( { color: 0x28faa4, transparent : false, opacity : 0.2 }),
     selectedBis : new THREE.MeshPhongMaterial( { color: 0x1246bf }),
     effector : new THREE.MeshBasicMaterial( {
         color: new THREE.Color( 0x88ff88 ),
