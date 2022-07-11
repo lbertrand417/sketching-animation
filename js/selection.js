@@ -110,7 +110,7 @@ function addTarget(object) {
         localPos.applyAxisAngle(object.restAxis, theta);
 
         let globalPos = worldPos(localPos, object, object.bones, 0);
-        let distance = globalPos.distanceTo(object.target.position);
+        let distance = globalPos.distanceTo(object.target.VSpos);
         distances.push(distance);
         theta += dt;
     }
@@ -125,6 +125,8 @@ function addTarget(object) {
         localPos.applyAxisAngle(object.restAxis, theta);
         object.path.positions[i] = localPos;
     }
+
+    object.path.VSpositions = [...object.path.positions]
 
     // Update path display
     object.display.updatePath();

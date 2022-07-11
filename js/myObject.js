@@ -112,6 +112,7 @@ class MyObject {
     }
 
     ownVS() {
+        console.log('own VS')
         let sommeAlpha = 0;
         for (let i = this.effector + 2; i < this.lengthBones; i++) {
             let w = this._angularSpeed;
@@ -149,6 +150,7 @@ class MyObject {
     }
 
     parentVS() {
+        console.log('parent VS')
         let parent = this._parent.object;
         let speed = this._parent.speed;
 
@@ -196,7 +198,8 @@ class MyObject {
             let v = w.clone().cross(parentDiff).multiplyScalar(boneIndex * detailDiff.length());
             speeds.push(v);
 
-            let theta = - param * v.length();
+            //let theta = - param * v.length();
+            let theta = - 0.02 * v.length();
 
             let R4 = new THREE.Matrix4();
             R4.makeRotationAxis(n, theta);

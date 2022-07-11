@@ -4,9 +4,11 @@
 import * as THREE from 'three';
 import { loadScene } from './init.js'
 import { materials } from './materials.js'
+import { MyTarget } from './myTarget.js';
 import { updateAnimation, updateTimeline } from './main.js'
 import { addTarget, autoSelect } from './selection.js'
-import { getRandomInt, resize, project3D, worldPos, localPos } from './utils.js';
+import { getRandomInt, resize, project3D, worldPos, localPos, findInArray, interpolate } from './utils.js';
+import { Vector3 } from 'three';
 
 // SKETCH CANVAS
 let refTime = new Date().getTime(); // Time when we start drawing the line
@@ -65,15 +67,21 @@ alphaSlider.oninput = function() {
 const drawButton = document.getElementById("draw");
 drawButton.addEventListener("click", drawingCanvas);
 
+const curveButton = document.getElementById("curve");
+curveButton.addEventListener("click", (e) => {
+    offsetcurve = true;
+    drawingCanvas(e);
+});
+
 const targetButton = document.getElementById("target");
 targetButton.addEventListener("click", () => {
         console.log("Select target");
         if(selectedObjects.length > 0 && selectedObjects[0].lengthPath > 0) {
-            let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
+            //let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
 
-            let target = null;
+            let myTarget = null;
             if (selectedObjects[0].hasTarget === false) {
-                target = new THREE.Mesh(sphereGeometry, materials.root.clone());
+                //target = new THREE.Mesh(sphereGeometry, materials.root.clone());
                 let targetPos = new THREE.Vector3();
                 console.log(parent);
                 if (selectedObjects[0].parent.object != null) {
@@ -85,18 +93,20 @@ targetButton.addEventListener("click", () => {
                     targetPos = worldPos(targetPos, selectedObjects[0], selectedObjects[0].bones, 0);
                 }
 
-                target.position.set(targetPos.x, targetPos.y, targetPos.z);
-                target.updateWorldMatrix(false, false);
-                global.scene.add(target);
-                targets.push(target);
+                //target.position.set(targetPos.x, targetPos.y, targetPos.z);
+                myTarget = new MyTarget(targetPos);
+                //target.mesh.updateWorldMatrix(false, false);
+                global.scene.add(myTarget.mesh);
+                targets.push(myTarget);
             } else  {
-                target = selectedObjects[0].target;
+                myTarget = selectedObjects[0].target;
             }
 
             // Update le tableau des targets
 
             for (let i = 0; i < selectedObjects.length; i++) {
-                selectedObjects[i].target = target;
+                selectedObjects[i].target = myTarget;
+                myTarget.targeted.push(selectedObjects[i]);
                 addTarget(selectedObjects[i]);
             }
         }
@@ -137,11 +147,14 @@ timingButton.addEventListener("click", () => {
 const orientationButton = document.getElementById("orientationoffset");
 orientationButton.addEventListener("click", () => {
     for(let k = 0; k < selectedObjects.length; k++) {
+        console.log('k', k);
         let randomOffset = Math.random() * Math.PI * 2;
+        console.log('random Offset', randomOffset)
+        console.log('restAxis', selectedObjects[k].restAxis);
         selectedObjects[k].path.offsetOrientation(selectedObjects[k].restAxis, randomOffset);
 
         // Update path display
-        selectedObjects[k].updatePathDisplay();
+        selectedObjects[k].display.updatePath();
     }
 });
 
@@ -161,6 +174,14 @@ function drawingCanvas(e) {
         }
     }
 }
+
+const syncButton = document.getElementById("sync");
+syncButton.addEventListener("click", () => {
+    for (let k = 0; k < selectedObjects.length; k++) {
+        let parentPath = selectedObjects[k].parent.object.path;
+        selectedObjects[k].path.synchronize(parentPath);
+    }
+})
 
 // DISPLAY
 const rootButton = document.getElementById("root");
@@ -296,9 +317,9 @@ function setPosition(e) {
     if(e.type == "mousedown") {
         refTime = new Date().getTime();
         global.animation.isAnimating = false;
-        for (let k = 0; k < objects.length; k++) {
+        /*for (let k = 0; k < objects.length; k++) {
             objects[k].pathIndex = null;
-        }
+        }*/
 
         let rect = canvas2D.getBoundingClientRect();
         pos.x = e.clientX - rect.left;
@@ -311,10 +332,16 @@ function setPosition(e) {
         global.sketch.isClean = true;
     }
 
-    let p = selectedObjects[0].bones[selectedObjects[0].path.effector + 1].position.clone();
-    p = worldPos(p, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].path.effector);
-    let pI = project3D(e, canvas2D, p);
-    pI = localPos(pI.clone(), selectedObjects[0], selectedObjects[0].bones, 0);
+    let pI;
+    if(offsetcurve) {
+        pI = project3D(e, canvas2D, new Vector3());
+    } else {
+        let p = selectedObjects[0].bones[selectedObjects[0].path.effector + 1].position.clone();
+        p = worldPos(p, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].path.effector);
+        pI = project3D(e, canvas2D, p);
+        pI = localPos(pI.clone(), selectedObjects[0], selectedObjects[0].bones, 0);
+    }
+    
 
     global.sketch.positions.push(pI);
     global.sketch.timings.push(new Date().getTime() - refTime);
@@ -323,10 +350,57 @@ function setPosition(e) {
 function updateScene(e) {
     global.sketch.isClean = false;
     
-    selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
+    if(offsetcurve) {
+        // Retiming and reposition
+        let tempPos = [];
+        let tempT = [];
 
-    // Display path
-    selectedObjects[0].display.updatePath();
+        let dt = 16;
+        let t = 0;
+        while (t < global.sketch.timings[0]) {
+            t += dt;
+        }
+
+        while (t <= global.sketch.timings[global.sketch.timings.length - 1]) {
+            let info = findInArray(t, global.sketch.timings);
+            tempPos.push(interpolate(global.sketch.positions[info.i], global.sketch.positions[info.i + 1], info.alpha));
+
+            tempT.push(t);
+            t += dt;
+        }
+
+        const pathGeometry = new THREE.BufferGeometry().setFromPoints(global.sketch.positions);
+        let path = new THREE.Line(pathGeometry, materials.unselectedpath.clone());
+        global.scene.add(path)
+        console.log('offset',tempT)
+        for (let k = 0; k < selectedObjects.length; k++) {
+            let effector = selectedObjects[k].bones[selectedObjects[k].path.effector + 1].position.clone();
+            effector = worldPos(effector, selectedObjects[k], selectedObjects[k].bones, selectedObjects[k].path.effector);
+            let effector_proj = new THREE.Vector3(effector.x, effector.y, 0);
+            let d = Infinity;
+            let closestId = 0;
+            for(let i = 0; i < tempPos.length; i++) {
+                let new_d = effector_proj.distanceTo(tempPos[i]);
+                if (new_d < d) {
+                    closestId = i;
+                    d = new_d;
+                }
+            }
+            console.log('id', closestId)
+            let timingoffset = tempT[closestId];
+            /*for(let i = 0; i < selectedObjects[k].lengthPath; i++) {
+                selectedObjects[k].path.timings[i] += timingoffset;
+            }*/
+            console.log('old timings', selectedObjects[k].path.timings)
+            selectedObjects[k].path.offsetTiming(timingoffset);
+            console.log('new timings', selectedObjects[k].path.timings)
+        }
+    } else {
+        selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
+
+        // Display path
+        selectedObjects[0].display.updatePath(); 
+    }
 
     // Update timeline 
     updateTimeline();

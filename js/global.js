@@ -33,3 +33,4 @@ var targets = [];
 var param = 0;
 var a = 0;
 
+var offsetcurve = false;

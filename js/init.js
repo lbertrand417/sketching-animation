@@ -85,7 +85,7 @@ function loadScene(s) {
     axesHelper.position.set(30, 0, 0);
     axesHelper.updateWorldMatrix(false, false)
     global.scene.add( axesHelper );
-    global.scene.autoUpdate = false;
+    //global.scene.autoUpdate = false;
 
     // Deactivate animation
     global.animation.isAnimating = false;
@@ -163,6 +163,7 @@ function loadScene(s) {
     }
 
     // Retrieve targets
+    //for (let i = 0; i <)
 
     // Reset selected objects
     selectedObjects = [];

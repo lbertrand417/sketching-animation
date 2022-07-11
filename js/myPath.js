@@ -1,8 +1,12 @@
-import { findInArray, interpolate } from './utils.js'
+"use strict;"
+
+import * as THREE from 'three'
+import { computeAngleAxis, findInArray, fromLocalToGlobal, interpolate, worldPos } from './utils.js'
 
 class MyPath {
     constructor() {
-        this._positions = [];        
+        this._positions = [];  
+        this._VSpositions = [];      
         this._timings = [];
         this._currentIndex = 0;
         this._startTime = new Date().getTime();
@@ -13,13 +17,17 @@ class MyPath {
     get positions() { return this._positions; }
     set positions(p) { this._positions = p; }
 
+    get VSpositions() { return this._VSpositions; }
+    set VSpositions(p) { this._VSpositions = p; }
+
     get timings() { return this._timings; }
     set timings(t) { this._timings = t; }
 
     get index() { return this._currentIndex; }
     set index(i) { this._currentIndex = i; }
 
-    get currentPosition() { return this._positions[this._currentIndex].clone(); }
+    //get currentPosition() { return this._positions[this._currentIndex].clone(); }
+    get currentPosition() { return this._VSpositions[this._currentIndex].clone(); }
     get currentTime() { return this._timings[this._currentIndex]; }
 
     get startTime() { return this._startTime; }
@@ -98,6 +106,8 @@ class MyPath {
                 this._timings.push(this._timings[this._timings.length - 1] + (tempT[i + 1] - tempT[i]));
                 this._positions.push(this._positions[i].clone());
             }
+
+            this._VSpositions = [...this._positions];
         }
     }
 
@@ -120,6 +130,8 @@ class MyPath {
             localPos.multiplyScalar(scale);
             this._positions.push(localPos); 
         }
+
+        this._VSpositions = [...this._positions];
     }
 
     // Add a random timing offset to all selected objects
@@ -136,6 +148,114 @@ class MyPath {
             localPos.applyAxisAngle(axis, offset);
             this._positions[i] = localPos;
         }
+
+        this._VSpositions = [...this._positions];
+    }
+
+    findExtremum() {
+        let angle = - Infinity;
+        let axis;
+        let leftIndex;
+        let rightIndex;
+        let L = Math.floor(this.VSpositions.length / 2);
+        for (let i = 0; i <= L; i++) {
+            for (let j = i; j <= L; j++) {
+                let worldRotation = computeAngleAxis(new THREE.Vector3(), this.VSpositions[i], this.VSpositions[j]);
+                if (worldRotation.angle > angle) {
+                    leftIndex = i;
+                    rightIndex = j;
+                    angle = worldRotation.angle;
+                    axis = worldRotation.axis;
+                }
+            }
+        }
+
+        console.log('left', leftIndex);
+        console.log('right', rightIndex)
+        return { leftIndex, rightIndex, angle, axis }
+    }
+
+    // Synchronize this.path with path
+    synchronize(path){
+        // Find extremum of this path
+        console.log('detail')
+        console.log(this.VSpositions)
+        let info = this.findExtremum();
+        let leftExt = this.VSpositions[info.leftIndex].clone();
+        let leftTiming = this.timings[info.leftIndex];
+        let rightExt = this.VSpositions[info.rightIndex].clone();
+        let rightTiming = this.timings[info.rightIndex];
+        let angle = info.angle;
+        let axis = info.axis;
+
+        console.log('parent')
+        console.log(path.VSpositions)
+        let parentInfo = path.findExtremum();
+        let parentLeftExt = path.VSpositions[parentInfo.leftIndex].clone();
+        let parentLeftTiming = path.timings[parentInfo.leftIndex];
+        let parentTightExt = path.VSpositions[parentInfo.rightIndex].clone();
+        let parentRightTiming = path.timings[parentInfo.rightIndex];
+        let parentAngle = parentInfo.angle;
+        let parentAxis = parentInfo.axis;
+
+        /*if (axis.dot(parentAxis) < 0) {
+
+        }*/
+        let newTimings = [...this.timings];
+        newTimings[info.leftIndex] = parentLeftTiming;
+        newTimings[info.rightIndex] = parentRightTiming;
+        let parentDenom = parentRightTiming - parentLeftTiming;
+        let detailDenom = rightTiming - leftTiming;
+
+        for (let i = info.leftIndex + 1; i < info.rightIndex; i++) {
+            newTimings[i] = (this.timings[i] - this.timings[i-1]) / detailDenom * parentDenom + newTimings[i-1];
+        }
+
+        for (let i = info.rightIndex; i < this.timings.length; i++) {
+            newTimings[i] = (this.timings[i] - this.timings[i-1]) / detailDenom * parentDenom + newTimings[i-1];
+        }
+
+        for (let i = info.leftIndex; i >= 0; i--) {
+            newTimings[i] = newTimings[i+1] - (this.timings[i+1] - this.timings[i]) / detailDenom * parentDenom;
+        }
+
+        console.log('original', this.timings);
+        console.log('new', newTimings)
+        console.log('parent', path.timings);
+
+        // Retiming and reposition
+        let tempPos = [];
+        let tempT = [];
+
+        let dt = 16;
+        let t = 0;
+        while (t < newTimings[0]) {
+            t += dt;
+        }
+
+        console.log('t', t)
+
+        while (t <= Math.round(newTimings[newTimings.length - 1])) {
+            let info = findInArray(t, newTimings);
+            console.log(info)
+            if(info.i + 1 < this.positions.length) {
+                tempPos.push(interpolate(this.positions[info.i], this.positions[info.i + 1], info.alpha));
+            } else {
+                tempPos.push(this.positions[info.i]);
+            }
+
+            tempT.push(t);
+            t += dt;
+        }
+
+        this.positions = [...tempPos];
+        this.VSpositions = [...tempPos];
+        this.timings = [...tempT];
+
+        console.log('original', this.timings);
+        console.log('new', newTimings)
+        console.log('retiming', tempT)
+        console.log('parent', path.timings);
     }
 }
 

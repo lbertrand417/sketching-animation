@@ -40,7 +40,13 @@ function selectObject(event) {
     raycaster.setFromCamera( mouse3D, global.camera );
 
     if(targets.length != 0) {
-        intersectedTarget = raycaster.intersectObjects(targets);
+        let meshTargets = [];
+        for (let i = 0; i < targets.length; i++) {
+            meshTargets.push(targets[i].mesh);
+        }
+        
+        console.log(meshTargets);
+        intersectedTarget = raycaster.intersectObjects(meshTargets);
     }
 
     if(selectableObjects != null && (intersectedTarget == null || intersectedTarget.length == 0)) {
@@ -168,9 +174,16 @@ function moveObject(event) {
         intersectedTarget[0].object.position.set(pI.x, pI.y, pI.z);
         intersectedTarget[0].object.updateWorldMatrix(false, false);
 
+        for (let i = 0; i < targets.length; i++) {
+            if (intersectedTarget[0].object === targets[i].mesh) {
+                console.log('cc')
+                targets[i].pos = intersectedTarget[0].object.position.clone();
+            }
+        }
 
         for(let k = 0; k < objects.length; k++) {
-            if(objects[k].target === intersectedTarget[0].object) {
+            if(objects[k].hasTarget && objects[k].target.mesh === intersectedTarget[0].object) {
+                console.log('ok');
                 addTarget(objects[k]);
             }
         }

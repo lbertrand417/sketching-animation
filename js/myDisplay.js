@@ -32,6 +32,7 @@ class MyDisplay {
         const lineMaterial2 = new THREE.LineBasicMaterial( { color: 0xff0000 } );
         const geometry2 = new THREE.BufferGeometry().setFromPoints([]);
         this._axis = new THREE.Line( geometry2, lineMaterial2 );
+        this._axis.visible = false;
     
         this._root = new THREE.Mesh( sphereGeometry, materials.root.clone() );
 
@@ -106,7 +107,7 @@ class MyDisplay {
     }
 
     updatePath() {
-        let globalPos = fromLocalToGlobal(this._object.path.positions, this._object, 0);
+        let globalPos = fromLocalToGlobal(this._object.path.VSpositions, this._object, 0);
         this.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
     }
 
