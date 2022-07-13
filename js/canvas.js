@@ -3,12 +3,141 @@
 // Import libraries
 import * as THREE from 'three';
 import { loadScene } from './init.js'
-import { materials } from './materials.js'
-import { MyTarget } from './myTarget.js';
 import { updateAnimation, updateTimeline } from './main.js'
-import { addTarget, autoSelect } from './selection.js'
-import { getRandomInt, resize, project3D, worldPos, localPos, findInArray, interpolate } from './utils.js';
-import { Vector3 } from 'three';
+import { autoSelect, randomOrientation, targetOrientation, synchronize, randomTiming, paste } from './selection.js'
+import { resize, project3D, worldPos, localPos, retime } from './utils.js';
+import { GUI } from '../node_modules/dat.gui/build/dat.gui.module.js'
+
+var settings = {
+    root: true,
+    links: true,
+    axes: false,
+    speeds: false,
+    path: true,
+    scenes: "Flower",
+    draw: false,
+    autoSelect: autoSelect,
+    paste: paste,
+    randomOrientation: randomOrientation,
+    target: targetOrientation,
+    sync: synchronize,
+    randomTiming: randomTiming,
+    curveTiming: false,
+    targetVSparam: 2,
+    ownVSparam: 5,
+    parentVSparam: 25
+}
+
+const gui = new GUI()
+const sceneFolder = gui.addFolder('Scenes')
+sceneFolder.add(settings, 'scenes', [ 'Basic', 'Orientation', 'Scale', 'Bones', 'Anemone', 'Flower', 'Pole' ] ).name("Scenes").onChange(function (value) {
+    switch (value) {
+        case "Basic":
+            loadScene(5);
+            break;
+        case "Orientation":
+            loadScene(1);
+            break;
+        case "Scale":
+            loadScene(3);
+            break;
+        case "Bones":
+            loadScene(4);
+            break;
+        case "Anemone":
+            loadScene(2);
+            break;
+        case "Flower":
+            loadScene(6);
+            break;
+        case "Pole":
+            loadScene(7);
+            break;
+        default:
+            break;
+    }
+});
+sceneFolder.add(settings, 'draw').name("Draw").onChange(function (value) {
+    if (value) {
+        settings.curveTiming = false;
+        updateGUI(gui);
+    }
+    drawingCanvas()
+});
+sceneFolder.add(settings, 'autoSelect').name("Auto Select")
+sceneFolder.add(settings, 'paste').name("Paste")
+sceneFolder.open();
+
+const orientationFolder = gui.addFolder('Orientation');
+orientationFolder.add(settings, 'randomOrientation').name("Random")
+orientationFolder.add(settings, 'target').name("Target")
+orientationFolder.open()
+
+const timingFolder = gui.addFolder('Timing');
+timingFolder.add(settings, 'sync').name("Synchronize")
+timingFolder.add(settings, 'randomTiming').name("Random");
+timingFolder.add(settings, 'curveTiming').name("Curve").onChange(function (value) {
+    if (value) {
+        settings.draw = false;
+        updateGUI(gui);
+    }
+    drawingCanvas();
+})
+timingFolder.open();
+
+const paramFolder = gui.addFolder("Parameters")
+//paramFolder.add(settings, 'targetVSparam', 0, 10).step(0.1).name("Target VS"); 
+paramFolder.add(settings, 'ownVSparam', 0, 10).step(0.1).name("Own VS"); 
+paramFolder.add(settings, 'parentVSparam', 0, 50).step(0.1).name("Parent VS"); 
+paramFolder.open();
+
+const displayFolder = gui.addFolder('Display')
+displayFolder.add(settings, 'root').name("Root").onChange(function (value) {
+    for(let k = 0; k < objects.length; k++) {
+        objects[k].root.visible = !objects[k].root.visible ;
+    }
+}); 
+displayFolder.add(settings, 'links').name("Links").onChange(function (value) {
+    for(let k = 0; k < objects.length; k++) {
+        for(let i = 0; i < objects[k].lengthLinks; i++) {
+            objects[k].links[i].visible = !objects[k].links[i].visible;
+        }
+    }
+}); 
+displayFolder.add(settings, 'axes').name("Axes helper").onChange(function (value) {
+    for(let k = 0; k < objects.length; k++) {
+        for(let i = 0; i < objects[k].lengthAxes; i++) {
+            objects[k].axesHelpers[i].visible = !objects[k].axesHelpers[i].visible;
+        }
+    }
+}); 
+displayFolder.add(settings, 'speeds').name("Speeds").onChange(function (value) {
+    for(let k = 0; k < objects.length; k++) {
+        for(let i = 0; i < objects[k].lengthLinks; i++) {
+            objects[k].speedDisplay[i].visible = !objects[k].speedDisplay[i].visible;
+        }
+        objects[k].axisDisplay.visible = !objects[k].axisDisplay.visible;
+    }
+}); 
+displayFolder.add(settings, 'path').name("Path").onChange(function (value) {
+    for(let k = 0; k < objects.length; k++) {
+        objects[k].pathDisplay.visible = !objects[k].pathDisplay.visible;
+        objects[k].timingDisplay.visible = !objects[k].timingDisplay.visible;
+    }
+}); 
+
+
+function updateGUI (targetGui)
+{
+    for (let i in targetGui.__folders) {
+        let subGui = targetGui.__folders[i];
+        for (let j in subGui.__controllers) {
+            subGui.__controllers[j].updateDisplay();
+        }
+    }
+}
+
+
 
 // SKETCH CANVAS
 let refTime = new Date().getTime(); // Time when we start drawing the line
@@ -43,6 +172,7 @@ stopButton.addEventListener("click", () => {
 // Update animation when moving the timeline
 var timeline = document.getElementById("timeline");
 timeline.oninput = function() {
+    console.log('timeline', this.value)
     global.animation.currentTime = parseInt(this.value); // Faux: ajouter à current time la diff entre previous et next timeline??
     updateAnimation(parseInt(this.value));
 
@@ -53,235 +183,24 @@ timeline.oninput = function() {
     }
 } 
 
-var paramSlider = document.getElementById("param");
+/*var paramSlider = document.getElementById("param");
 paramSlider.oninput = function() {
     param = parseFloat(this.value);
-} 
+} */
 
-var alphaSlider = document.getElementById("alpha");
-alphaSlider.oninput = function() {
-    a = parseFloat(this.value);
-} 
-
-// COMMANDS
-const drawButton = document.getElementById("draw");
-drawButton.addEventListener("click", drawingCanvas);
-
-const curveButton = document.getElementById("curve");
-curveButton.addEventListener("click", (e) => {
-    offsetcurve = true;
-    drawingCanvas(e);
-});
-
-const targetButton = document.getElementById("target");
-targetButton.addEventListener("click", () => {
-        console.log("Select target");
-        if(selectedObjects.length > 0 && selectedObjects[0].lengthPath > 0) {
-            //let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
-
-            let myTarget = null;
-            if (selectedObjects[0].hasTarget === false) {
-                //target = new THREE.Mesh(sphereGeometry, materials.root.clone());
-                let targetPos = new THREE.Vector3();
-                console.log(parent);
-                if (selectedObjects[0].parent.object != null) {
-                    targetPos = parent.bones[parent.lengthBones - 1].position.clone();
-                    targetPos = worldPos(targetPos, parent, parent.bones, parent.lengthBones - 2)
-                } else {
-                    let index = Math.floor(selectedObjects[0].lengthPath / 2)
-                    targetPos = selectedObjects[0].path.positions[index].clone();
-                    targetPos = worldPos(targetPos, selectedObjects[0], selectedObjects[0].bones, 0);
-                }
-
-                //target.position.set(targetPos.x, targetPos.y, targetPos.z);
-                myTarget = new MyTarget(targetPos);
-                //target.mesh.updateWorldMatrix(false, false);
-                global.scene.add(myTarget.mesh);
-                targets.push(myTarget);
-            } else  {
-                myTarget = selectedObjects[0].target;
-            }
-
-            // Update le tableau des targets
-
-            for (let i = 0; i < selectedObjects.length; i++) {
-                selectedObjects[i].target = myTarget;
-                myTarget.targeted.push(selectedObjects[i]);
-                addTarget(selectedObjects[i]);
-            }
-        }
-});
-
-const pasteButton = document.getElementById("paste");
-pasteButton.addEventListener("click", () => {
-    for (let k = 1; k < selectedObjects.length; k++) {
-        let scale = selectedObjects[k].height / selectedObjects[0].height; // scale
-        let pos = selectedObjects[0].bones[selectedObjects[0].effector + 1].position.clone();
-        pos = worldPos(pos, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].effector);
-        let distance = selectedObjects[0].distanceToRoot(pos);
-        distance = scale * distance;
-        selectedObjects[k].updateEffector(distance);
-        selectedObjects[k].path.paste(selectedObjects[0].path, scale);
-
-        if(selectedObjects[k].lengthPath != 0) {
-            console.log("print");
-            selectedObjects[k].display.updatePath();
-        }
-    }
-});
-
-const timingButton = document.getElementById("timingoffset");
-timingButton.addEventListener("click", () => {
-    console.log('selected', selectedObjects);
-    for (let k = 0; k < selectedObjects.length; k++) {
-        let randomOffset = getRandomInt(0, selectedObjects[k].path.timings[selectedObjects[k].lengthPath - 1]);
-        randomOffset = randomOffset - (randomOffset % 16);
-        selectedObjects[k].path.offsetTiming(randomOffset);
-        console.log(selectedObjects[k].path.timings);
-    }
-
-    // Update the timeline wrt the first selected object
-    updateTimeline();
-});
-
-const orientationButton = document.getElementById("orientationoffset");
-orientationButton.addEventListener("click", () => {
-    for(let k = 0; k < selectedObjects.length; k++) {
-        console.log('k', k);
-        let randomOffset = Math.random() * Math.PI * 2;
-        console.log('random Offset', randomOffset)
-        console.log('restAxis', selectedObjects[k].restAxis);
-        selectedObjects[k].path.offsetOrientation(selectedObjects[k].restAxis, randomOffset);
-
-        // Update path display
-        selectedObjects[k].display.updatePath();
-    }
-});
-
-const selectButton = document.getElementById("select");
-selectButton.addEventListener("click", autoSelect);
 
 // Display/Undisplay the 2D canvas when clicking on the Draw button
 function drawingCanvas(e) {
-    if(selectedObjects.length > 0) {
+    //if(selectedObjects.length > 0) {
         console.log("drawing Canvas");
-        if(canvas.style.display == "none") {
+        if(settings.draw || settings.curveTiming) {
             canvas2D.style.display = "block";
-            drawButton.innerText = "Move camera";
         } else {
             canvas2D.style.display = "none";
-            drawButton.innerText = "Draw";
         }
-    }
+    //}
 }
 
-const syncButton = document.getElementById("sync");
-syncButton.addEventListener("click", () => {
-    for (let k = 0; k < selectedObjects.length; k++) {
-        let parentPath = selectedObjects[k].parent.object.path;
-        selectedObjects[k].path.synchronize(parentPath);
-    }
-})
-
-// DISPLAY
-const rootButton = document.getElementById("root");
-rootButton.addEventListener("click", () => {
-    console.log("display");
-    for(let k = 0; k < objects.length; k++) {
-        objects[k].root.visible = !objects[k].root.visible ;
-    }
-});
-
-const linksButton = document.getElementById("links");
-linksButton.addEventListener("click", () => {
-    console.log("display");
-    for(let k = 0; k < objects.length; k++) {
-        for(let i = 0; i < objects[k].lengthLinks; i++) {
-            objects[k].links[i].visible = !objects[k].links[i].visible;
-        }
-    }
-});
-
-const bonesButton = document.getElementById("bones");
-bonesButton.addEventListener("click", () => {
-    console.log("display");
-    for(let k = 0; k < objects.length; k++) {
-        objects[k].skeletonHelper.visible = !objects[k].skeletonHelper.visible;
-    }
-});
-
-const axesHelperButton = document.getElementById("axes");
-axesHelperButton.addEventListener("click", () => {
-    console.log("display");
-    for(let k = 0; k < objects.length; k++) {
-        for(let i = 0; i < objects[k].lengthAxes; i++) {
-            objects[k].axesHelpers[i].visible = !objects[k].axesHelpers[i].visible;
-        }
-    }
-});
-
-const speedButton = document.getElementById("speed");
-speedButton.addEventListener("click", () => {
-    console.log("display");
-    for(let k = 0; k < objects.length; k++) {
-        for(let i = 0; i < objects[k].lengthLinks; i++) {
-            objects[k].speedDisplay[i].visible = !objects[k].speedDisplay[i].visible;
-        }
-        objects[k].axisDisplay.visible = !objects[k].axisDisplay.visible;
-    }
-});
-
-const pathButton = document.getElementById("path");
-pathButton.addEventListener("click", () => {
-    console.log("display");
-    for(let k = 0; k < objects.length; k++) {
-        objects[k].pathDisplay.visible = !objects[k].pathDisplay.visible;
-        objects[k].timingDisplay.visible = !objects[k].timingDisplay.visible;
-    }
-});
-
-// SCENES
-const scene1Button = document.getElementById("scene1");
-scene1Button.addEventListener("click", () => {
-    console.log("Scene 1");
-    loadScene(1);
-});
-
-const scene2Button = document.getElementById("scene2");
-scene2Button.addEventListener("click", () => {
-    console.log("Scene 2");
-    loadScene(2);
-});
-
-const scene3Button = document.getElementById("scene3");
-scene3Button.addEventListener("click", () => {
-    console.log("Scene 3");
-    loadScene(3);
-});
-
-const scene4Button = document.getElementById("scene4");
-scene4Button.addEventListener("click", () => {
-    console.log("Scene 4");
-    loadScene(4);
-});
-
-const scene5Button = document.getElementById("scene5");
-scene5Button.addEventListener("click", () => {
-    console.log("Scene 5");
-    loadScene(5);
-});
-
-const scene6Button = document.getElementById("scene6");
-scene6Button.addEventListener("click", () => {
-    console.log("Scene 6");
-    loadScene(6);
-});
-
-const scene7Button = document.getElementById("scene7");
-scene7Button.addEventListener("click", () => {
-    console.log("Scene 7");
-    loadScene(7);
-});
 
 
 // CANVAS
@@ -317,9 +236,6 @@ function setPosition(e) {
     if(e.type == "mousedown") {
         refTime = new Date().getTime();
         global.animation.isAnimating = false;
-        /*for (let k = 0; k < objects.length; k++) {
-            objects[k].pathIndex = null;
-        }*/
 
         let rect = canvas2D.getBoundingClientRect();
         pos.x = e.clientX - rect.left;
@@ -333,8 +249,8 @@ function setPosition(e) {
     }
 
     let pI;
-    if(offsetcurve) {
-        pI = project3D(e, canvas2D, new Vector3());
+    if(settings.curveTiming || selectedObjects.length == 0) {
+        pI = project3D(e, canvas2D, new THREE.Vector3());
     } else {
         let p = selectedObjects[0].bones[selectedObjects[0].path.effector + 1].position.clone();
         p = worldPos(p, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].path.effector);
@@ -350,56 +266,41 @@ function setPosition(e) {
 function updateScene(e) {
     global.sketch.isClean = false;
     
-    if(offsetcurve) {
-        // Retiming and reposition
-        let tempPos = [];
-        let tempT = [];
+    if(settings.curveTiming) {
+        let retimed = retime(global.sketch.timings, global.sketch.positions);
 
-        let dt = 16;
-        let t = 0;
-        while (t < global.sketch.timings[0]) {
-            t += dt;
-        }
-
-        while (t <= global.sketch.timings[global.sketch.timings.length - 1]) {
-            let info = findInArray(t, global.sketch.timings);
-            tempPos.push(interpolate(global.sketch.positions[info.i], global.sketch.positions[info.i + 1], info.alpha));
-
-            tempT.push(t);
-            t += dt;
-        }
-
-        const pathGeometry = new THREE.BufferGeometry().setFromPoints(global.sketch.positions);
-        let path = new THREE.Line(pathGeometry, materials.unselectedpath.clone());
-        global.scene.add(path)
-        console.log('offset',tempT)
+        //const pathGeometry = new THREE.BufferGeometry().setFromPoints(global.sketch.positions);
+        //let path = new THREE.Line(pathGeometry, materials.unselectedpath.clone());
+        //global.scene.add(path)
+        //console.log('offset',tempT)
         for (let k = 0; k < selectedObjects.length; k++) {
             let effector = selectedObjects[k].bones[selectedObjects[k].path.effector + 1].position.clone();
             effector = worldPos(effector, selectedObjects[k], selectedObjects[k].bones, selectedObjects[k].path.effector);
-            let effector_proj = new THREE.Vector3(effector.x, effector.y, 0);
             let d = Infinity;
             let closestId = 0;
-            for(let i = 0; i < tempPos.length; i++) {
-                let new_d = effector_proj.distanceTo(tempPos[i]);
+            for(let i = 0; i < retimed.tempPos.length; i++) {
+                let new_d = effector.distanceTo(retimed.tempPos[i]);
                 if (new_d < d) {
                     closestId = i;
                     d = new_d;
                 }
             }
             console.log('id', closestId)
-            let timingoffset = tempT[closestId];
-            /*for(let i = 0; i < selectedObjects[k].lengthPath; i++) {
-                selectedObjects[k].path.timings[i] += timingoffset;
-            }*/
+            let timingoffset = retimed.tempT[closestId];
+
             console.log('old timings', selectedObjects[k].path.timings)
             selectedObjects[k].path.offsetTiming(timingoffset);
             console.log('new timings', selectedObjects[k].path.timings)
+
+            drawingCanvas();
         }
     } else {
-        selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
+        if (selectedObjects.length > 0) {
+            selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
 
-        // Display path
-        selectedObjects[0].display.updatePath(); 
+            // Display path
+            selectedObjects[0].display.updatePath(); 
+        }
     }
 
     // Update timeline 
@@ -414,3 +315,4 @@ function updateScene(e) {
     ctx.clearRect(0, 0, canvas2D.width, canvas2D.height); // Clear the 2D canvas
 }
 
+export { settings }

@@ -12,13 +12,11 @@ body {
     flex: 2;
     display: flex;
 	flex-direction: column;
-    overflow: scroll;
 }
 
 #scenes {
     display: flex;
     flex-direction: column;
-    overflow: scroll;
 }
 
 .stack {

@@ -2,11 +2,9 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { materials } from './materials.js';
 import { unselectAll, updateSelection, addTarget } from './selection.js';
 import { localPos, project3D, worldPos } from './utils.js';
 import { orbitControls, updateChildren, updateTimeline } from './main.js';
-import { Vector3 } from 'three';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
 global.renderer.domElement.addEventListener('mousemove', moveObject);
@@ -53,8 +51,8 @@ function selectObject(event) {
         intersectedObject = raycaster.intersectObjects(selectableObjects);
     }
 
-    if(parent != null && (intersectedObject == null || intersectedObject.length == 0) && (intersectedTarget == null || intersectedTarget.length == 0)) {
-        intersectedParent = raycaster.intersectObject(parent.mesh);
+    if(root != null && (intersectedObject == null || intersectedObject.length == 0) && (intersectedTarget == null || intersectedTarget.length == 0)) {
+        intersectedParent = raycaster.intersectObject(root.mesh);
     }
 
 
@@ -90,11 +88,11 @@ function selectObject(event) {
         orbitControls.enabled = false;
 
         console.log("intersected");
-        p = parent.mesh.position.clone();
+        p = root.mesh.position.clone();
        
         let pos3D = project3D(event, global.renderer.domElement, p);
 
-        posOffset = pos3D.clone().sub(parent.mesh.position);
+        posOffset = pos3D.clone().sub(root.mesh.position);
     }
 
     if(intersectedTarget != null && intersectedTarget.length > 0) {
@@ -151,21 +149,21 @@ function moveObject(event) {
     if(intersectedParent != null && intersectedParent.length > 0) {
         const pI = project3D(event, global.renderer.domElement, p);
 
-        let axis = pI.clone().sub(parent.mesh.position.clone().add(posOffset)).normalize();
-        let distance = parent.mesh.position.clone().add(posOffset).distanceTo(pI);
+        let axis = pI.clone().sub(root.mesh.position.clone().add(posOffset)).normalize();
+        let distance = root.mesh.position.clone().add(posOffset).distanceTo(pI);
 
-        let oldRootPos = parent.bones[2].position.clone();
-        oldRootPos = worldPos(oldRootPos, parent, parent.bones, 1);
+        let oldRootPos = root.bones[2].position.clone();
+        oldRootPos = worldPos(oldRootPos, root, root.bones, 1);
 
-        parent.mesh.translateOnAxis(axis, distance);
-        parent.mesh.updateMatrixWorld(); // Important
+        root.mesh.translateOnAxis(axis, distance);
+        root.mesh.updateMatrixWorld(); // Important
 
-        let newRootPos = parent.bones[2].position.clone();
-        newRootPos = worldPos(oldRootPos, parent, parent.bones, 1);
+        let newRootPos = root.bones[2].position.clone();
+        newRootPos = worldPos(oldRootPos, root, root.bones, 1);
 
         // Update children TODO : Linear VS
         let speed = new THREE.Vector3();
-        updateChildren(parent, speed);
+        updateChildren(root, speed);
     }
 
     if(intersectedTarget != null && intersectedTarget.length > 0) {

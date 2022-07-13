@@ -22,7 +22,7 @@ var global = {
 // Store mesh info
 var objects = []; // All parts of the mesh
 
-var parent = null; // Parent mesh
+var root = null; // Parent mesh
 
 // Store selected objects
 var selectableObjects = []
@@ -33,4 +33,3 @@ var targets = [];
 var param = 0;
 var a = 0;
 
-var offsetcurve = false;

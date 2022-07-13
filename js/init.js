@@ -137,7 +137,7 @@ function loadScene(s) {
     }
 
     // Retrieve the parent if it exists + reset materials
-    parent = null;
+    root = null;
     for(let k = 0; k < objects.length; k++) {
         global.scene.add(objects[k].root);
         global.scene.add(objects[k].skeletonHelper);
@@ -151,7 +151,7 @@ function loadScene(s) {
             objects[k].linkMaterial(i, materials.links.clone());
         }
         if(objects[k].parent.object == null && objects[k].children.length != 0) {
-            parent = objects[k];
+            root = objects[k];
         }
     }
 
@@ -176,20 +176,20 @@ function loadScene(s) {
 // ATTENTION NE FONCTIONNE PAS APRES UN CHANGEMENT DE SCENE
 function findCorrespondences() {
     //console.log(parent);
-    if(parent != null) {
+    if(root != null) {
         console.log('find correspondences')
-        const positionAttribute = parent.positions;
+        const positionAttribute = root.positions;
 
         // Find closest point in parent mesh
         for ( let vertexIndex = 0; vertexIndex < positionAttribute.count; vertexIndex ++ ) {
-            let vertex = getVertex(parent, vertexIndex);
+            let vertex = getVertex(root, vertexIndex);
 
             // For every detail objects
-            for (let k = 0; k < parent.children.length; k++) {
+            for (let k = 0; k < root.children.length; k++) {
                 // Retrieve current closest point in parent mesh
-                let child = parent.children[k];
+                let child = root.children[k];
 
-                let currentCor = getVertex(parent, child.parent.anchor)
+                let currentCor = getVertex(root, child.parent.anchor)
 
                 // Retrieve root position
                 let worldRootPos = worldPos(child.bones[0].position.clone(), child, child.bones, -1);
@@ -208,10 +208,10 @@ function findCorrespondences() {
         }
 
         // Compute position/rotation offsets
-        for (let k = 0; k < parent.children.length; k++) {
-            let child = parent.children[k];
-            let vertex = getVertex(parent, child.parent.anchor)
-            let vertexRot = getRotation(parent, child.parent.anchor);
+        for (let k = 0; k < root.children.length; k++) {
+            let child = root.children[k];
+            let vertex = getVertex(root, child.parent.anchor)
+            let vertexRot = getRotation(root, child.parent.anchor);
 
             let worldRootPos = worldPos(child.bones[0].position.clone(), child, child.bones, -1);
 
@@ -220,10 +220,10 @@ function findCorrespondences() {
 
             child.parent.offsetQ = vertexRot.invert().multiply(child.bones[0].quaternion); // Global rotation offset
 
-            let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
+            /*let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
             let point = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
             point.position.set(vertex.x, vertex.y, vertex.z); // From cylinder local space to world
-            global.scene.add(point);
+            global.scene.add(point);*/
         }
     }
 }

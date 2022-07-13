@@ -1,7 +1,5 @@
 "use strict;"
 
-import { materials } from './materials.js';
-
 // Import libraries
 import * as THREE from 'three';
 
@@ -223,5 +221,31 @@ function updateMatrix(object) {
     object.matrix.compose(object.position, object.quaternion, object.scale);
 }
 
+function retime(time, position) {
+    // Retiming and reposition
+    let tempPos = [];
+    let tempT = [];
 
-export { resize, computeAngleAxis, localDir, rotate, fromLocalToGlobal, worldPos, localPos, project3D, getRandomInt, findInArray, interpolate, getVertex, getRotation, resizeCurve, updateMatrix };
+    let dt = 16;
+    let t = 0;
+    while (t < time[0]) {
+        t += dt;
+    }
+
+    while (t <= Math.round(time[time.length - 1])) {
+        let info = findInArray(t, time);
+        if(info.i + 1 < position.length) {
+            tempPos.push(interpolate(position[info.i], position[info.i + 1], info.alpha));
+        } else {
+            tempPos.push(position[info.i]);
+        }
+
+        tempT.push(t);
+        t += dt;
+    }
+
+    return { tempPos, tempT }
+}
+
+
+export { resize, computeAngleAxis, localDir, rotate, fromLocalToGlobal, worldPos, localPos, project3D, getRandomInt, findInArray, interpolate, getVertex, getRotation, resizeCurve, updateMatrix, retime };

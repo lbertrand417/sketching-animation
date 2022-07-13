@@ -4,8 +4,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../three.js/examples/jsm/controls/OrbitControls.js';
 import { loadScene } from './init.js'
-import { getRotation, getVertex, worldPos, localPos, updateMatrix } from './utils.js';
-import { addTarget } from './selection.js'
+import { getRotation, getVertex, worldPos, localPos } from './utils.js';
 
 // --------------- INIT ---------------
 
@@ -30,9 +29,6 @@ const orbitControls = new OrbitControls(global.camera, global.renderer.domElemen
 orbitControls.update();
 
 // ------------------------------------
-
-
-
 
 // --------------- ANIMATION ---------------
 
@@ -121,9 +117,9 @@ function updateAnimation(currentTime) {
             objects[k].speed = new_speed.clone().multiplyScalar(alpha).add(objects[k].speed.clone().multiplyScalar(1 - alpha));
 
             
-            /*if (objects[k].children.length == 0) {
+            if (objects[k].children.length == 0) {
                 objects[k].ownVS(); // Utiliser own speed
-            }*/
+            }
 
 
             // Update targets
@@ -134,13 +130,26 @@ function updateAnimation(currentTime) {
             }
         }
 
-        let alpha
         if(objects[k].parent.object == null) {
-            alpha = 0;
+            objects[k].alpha = 0;
         } else {
-            alpha = 0.5;
+            if (objects[k].path.lengthPath == 0) {
+                objects[k].alpha = 1;
+            } else {
+                //console.log(objects[k].parent.speed.length())
+                let newAlpha = objects[k].parent.speed.length() / 0.005;
+                let a = 0.05;
+                objects[k].alpha = a * newAlpha + (1 - a) * objects[k].alpha;
+
+                if(objects[k].alpha > 1) {
+                    objects[k].alpha = 1;
+                }
+                //console.log(objects[k].alpha);
+            }
+            //objects[k].alpha = 1;
         }
-        //objects[k].blend(alpha); // Ne blend plus...
+        
+        objects[k].blend(); // Ne blend plus...
     }
 }
 
@@ -180,7 +189,7 @@ function updateChildren(object, speed) {
 
 
         child.parent.speed = speed.clone().multiplyScalar(alpha).add(child.parent.speed.clone().multiplyScalar(1 - alpha));
-        //child.parentVS();
+        child.parentVS();
     }
 
     // Update targets (Adapt?) --> Add VS on the target too?
@@ -189,7 +198,7 @@ function updateChildren(object, speed) {
         let speed = object.getSpeed(object.lengthBones - 1, oldWorldPosA[i], newPos);
         targets[i].speed = speed.clone().multiplyScalar(alpha).add(targets[i].speed.clone().multiplyScalar(1 - alpha));
         targets[i].pos = newPos.clone();
-        targets[i].parentVS();
+        //targets[i].parentVS();
         //targets[i].updateWorldMatrix(false, false);
     }
 

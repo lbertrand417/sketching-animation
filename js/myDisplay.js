@@ -12,7 +12,18 @@ class MyDisplay {
         this._links = [];
         this._speeds = [];
         
+        this._scale = 1;
+        for (let i = 5; i > 0; i--) {
+            let orig = object.bones.length / i;
+            if (orig == Math.floor(orig) && this._scale < i) {
+                this._scale = i;
+            }
+        }
+        this._scale = 1
+
+        //for(let i = this._scale - 1; i < object.bones.length; i += this._scale) {
         for(let i = 1; i < object.bones.length; i++) {
+            console.log(i)
             let link = new THREE.Mesh( sphereGeometry, materials.links.clone() );
 
             let pos = object.bones[i].position.clone();
@@ -84,7 +95,11 @@ class MyDisplay {
             this.links[i].updateWorldMatrix(true, false);
             this.links[i].updateWorldMatrix(false, false);*/
 
+            //console.log(i * this._scale - 1)
+
+            //let pos = this._object.lbs[i * this._scale - 1].position.clone();
             let pos = this._object.lbs[i+1].position.clone();
+            //pos = worldPos(pos, this._object, this._object.lbs, i * this._scale - 2);
             pos = worldPos(pos, this._object, this._object.lbs, i);
             this.links[i].position.set(pos.x, pos.y, pos.z);
             //this.links[i].updateWorldMatrix(true, false);

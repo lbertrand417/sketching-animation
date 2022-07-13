@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MyPath } from './myPath.js'
 import { MyDisplay } from './myDisplay.js'
+import { settings } from './canvas.js'
 import { computeAngleAxis, localDir, rotate, resizeCurve, worldPos, localPos } from './utils.js'
 
 class MyObject {
@@ -8,6 +9,7 @@ class MyObject {
         this._mesh = mesh;
         this._bones = bones;
         this._angularSpeed = new THREE.Vector3();
+        this._alpha = 0;
 
         this._lbs = [];
         let restBones = [];
@@ -66,6 +68,8 @@ class MyObject {
 
     get speed() { return this._angularSpeed; }
     set speed(s) { this._angularSpeed = s; }
+    get alpha() { return this._alpha; }
+    set alpha(a) { this._alpha = a; }
 
     get height() { return this._restPose.height; }
     get restBones() { return this._restPose.bones; }
@@ -112,7 +116,7 @@ class MyObject {
     }
 
     ownVS() {
-        console.log('own VS')
+        //console.log('own VS')
         let sommeAlpha = 0;
         for (let i = this.effector + 2; i < this.lengthBones; i++) {
             let w = this._angularSpeed;
@@ -131,9 +135,10 @@ class MyObject {
             let new_pos = currentPos.clone().add(v.clone().multiplyScalar(10));
             points.push(new_pos.clone());
 
-            this._display.speeds[i - 1].geometry = new THREE.BufferGeometry().setFromPoints(points);
+            //this._display.speeds[i - 1].geometry = new THREE.BufferGeometry().setFromPoints(points);
             
-            let theta = - 0.5 * v.length();
+            let param = settings.ownVSparam / 10;
+            let theta = - param * v.length();
             
             let q = new THREE.Quaternion();
             let N = this.lengthBones - (this.effector + 1) - 1;
@@ -150,7 +155,7 @@ class MyObject {
     }
 
     parentVS() {
-        console.log('parent VS')
+        //console.log('parent VS')
         let parent = this._parent.object;
         let speed = this._parent.speed;
 
@@ -198,8 +203,9 @@ class MyObject {
             let v = w.clone().cross(parentDiff).multiplyScalar(boneIndex * detailDiff.length());
             speeds.push(v);
 
+            let param = settings.parentVSparam / 10000
             //let theta = - param * v.length();
-            let theta = - 0.02 * v.length();
+            let theta = - param * v.length();
 
             let R4 = new THREE.Matrix4();
             R4.makeRotationAxis(n, theta);
@@ -275,12 +281,12 @@ class MyObject {
         }
     } 
     
-    blend(alpha) {
+    blend() {
         for (let i = 0; i < this.lengthBones; i++) {
             let q1 = this.bones[i].quaternion.clone();
             let q2 = this._parent.motion[i].quaternion.clone();
 
-            let q = q1.clone().slerp(q2, alpha);
+            let q = q1.clone().slerp(q2, this.alpha);
 
 
             this.bones[i].quaternion.copy(q);

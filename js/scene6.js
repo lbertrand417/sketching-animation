@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { Vector3 } from 'three';
 import { MyObject } from './myObject.js'
 import { materials } from './materials.js';
 import { createCylinder } from './init.js'
@@ -25,7 +24,7 @@ let meshObjects = []; // Elements to animate
 const cylinderCount = 10;
 const radiusTop = 0.2;
 const radiusBottom = 3;
-const segmentCount = 5;
+const segmentCount = 20;
 
 let height = 40;
 

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { MyObject } from './myObject.js'
 import { materials } from './materials.js';
-import { getRandomInt, updateMatrix } from './utils.js'
+import { getRandomInt } from './utils.js'
 import { createCylinder } from './init.js'
 
 let allObjects = []; // All elements of the scene

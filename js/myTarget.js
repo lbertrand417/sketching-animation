@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { materials } from './materials.js'
 import { worldPos, localPos, computeAngleAxis, localDir } from './utils.js'
+import { settings } from './canvas.js'
 
 class MyTarget {
     constructor(pos) {
@@ -29,7 +30,7 @@ class MyTarget {
     }
     get targeted() { return this._targeted; } // must have the same parent so create a new target if it's not same parent
 
-    parentVS() {
+    /*parentVS() {
         //console.log(this.targeted[0]);
         //console.log(this.targeted[0].parent);
         let parent = this.targeted[0].parent.object;
@@ -53,7 +54,8 @@ class MyTarget {
         // Compute speed of the detail bone
         let v = w.clone().cross(parentDiff).multiplyScalar(boneIndex * detailDiff.length());
 
-        let theta = - param * v.length();
+        let param = settings.targetVSparam / 10000;
+        let theta = - param* v.length();
 
         let R4 = new THREE.Matrix4();
         R4.makeRotationAxis(n, theta);
@@ -85,7 +87,7 @@ class MyTarget {
             }
             this.targeted[i].path.VSpositions = newPos;
         }
-    }
+    }*/
 }
 
 export { MyTarget }
