@@ -225,47 +225,82 @@ class MyPath {
     }
 
     synchronize(path) {
+        // PUT MAX BEND IN SAME DIRECTION
         // Find extremum of this path
         console.log('detail')
+        console.log(this.timings)
         console.log(this.VSpositions)
         let info = this.findExtremum();
         let axis = info.axis;
 
         console.log('parent')
+        console.log(path.timings)
         console.log(path.VSpositions)
         let parentInfo = path.findExtremum();
         let parentAxis = parentInfo.axis;
 
         let newTimings = [...this.timings];
         let newPositions = [...this.positions];
-        if (axis.dot(parentAxis) > 0) {
+        if (axis.dot(parentAxis) < 0) {
             console.log('if')
             console.log('axis', axis);
             console.log('parentAxis', parentAxis)
             console.log(axis.dot(parentAxis))
             let maxTiming = Math.floor(this.VSpositions.length / 2);
-            for(let i = maxTiming; i < this.timings.length; i++) {
-                newTimings[i - maxTiming] = this.timings[i];
-                newPositions[i - maxTiming] = this.positions[i].clone();
+
+            for(let i = 0; i < maxTiming; i++) {
+                console.log('shift');
+                this.shift();
             }
 
-            for (let i = maxTiming + 1; i < newTimings.length - 1; i++) {
-                newPositions[i] = newPositions[newTimings.length - 1 - i].clone();
-                newTimings[i] = newTimings[i-1] + 16;
-            }
 
-            this.positions = [...newPositions];
-            this.VSpositions = [...newPositions];
-            this.timings = [...newTimings];
-
-            //console.log(newPositions);
-            //console.log(newTimings);
-            let temp = info.leftIndex;
-            info.leftIndex = info.rightIndex;
-            info.rightIndex = temp;
+            console.log('reverse timings', this.timings)
+            console.log('reverse pos', this.VSpositions)
         }
 
-        // Put same timings
+        // RETRIEVE 4 MAX 
+        // TODO : Vérifier que c'est bien toujours un copier coller de l'aller retour (si oui récupérer les 4 index ici et garder ceux-là tout du long)
+        // Recompute info
+        console.log('detail')
+        info = this.findExtremum();
+        let firstExt = info.leftIndex;
+        let secondExt = info.rightIndex;
+        let thirdExt = (this.timings.length - info.rightIndex) % this.timings.length;
+        let fourthExt = (this.timings.length - info.leftIndex) % this.timings.length;
+
+        console.log('1st', firstExt);
+        console.log('2nd', secondExt);
+        console.log('3rd', thirdExt);
+        console.log('4th', fourthExt);
+
+        console.log('parent')
+        parentInfo = path.findExtremum();
+        let parentFirstExt = parentInfo.leftIndex;
+        let parentSecondExt = parentInfo.rightIndex;
+        let parentThirdExt = (path.timings.length - parentInfo.rightIndex) % path.timings.length;
+        let parentFourthExt = (path.timings.length - parentInfo.leftIndex) % path.timings.length;
+
+        console.log('1st', parentFirstExt);
+        console.log('2nd', parentSecondExt);
+        console.log('3rd', parentThirdExt);
+        console.log('4th', parentFourthExt);
+
+
+        // PUT THE FIRST MAX AT PLACE 0 (SHIFT THE 4 MAX)
+
+
+        // Align the left variable
+        for(let i = 0; i < info.leftIndex; i++) {
+            console.log('shift');
+            this.shift();
+            info.rightIndex -= 1;
+        }
+        info.leftIndex = 0;
+
+        console.log('shift timings', this.timings);
+        console.log('shift positions', this.positions);
+
+        // PUT SAME TIMINGS
         // Synchronize left part
         let leftOffset = this.timings[0] - path.timings[0];
         this.offsetTiming(-leftOffset);
@@ -279,41 +314,44 @@ class MyPath {
             newTimings[i] = (this.timings[i] - this.timings[i-1]) / detailDenom * parentDenom + newTimings[i-1];
         }
 
-        // TODO : Vérifier que c'est bien toujours un copier coller de l'aller retour (si oui récupérer les 4 index ici et garder ceux-là tout du long)
 
         let retimed = retime(newTimings, this.positions)
 
-        console.log('original', this.timings);
         //console.log('new', newTimings)
         console.log('retiming', retimed.tempT)
+        console.log('repos', retimed.tempPos)
         //console.log('parent', path.timings);
 
         this.positions = [...retimed.tempPos];
         this.VSpositions = [...retimed.tempPos];
         this.timings = [...retimed.tempT];
 
-        // Recompute info
         console.log('detail')
         info = this.findExtremum();
+        firstExt = info.leftIndex;
+        secondExt = info.rightIndex;
+        thirdExt = (this.timings.length - info.rightIndex) % this.timings.length;
+        fourthExt = (this.timings.length - info.leftIndex) % this.timings.length;
+
+        console.log('1st', firstExt);
+        console.log('2nd', secondExt);
+        console.log('3rd', thirdExt);
+        console.log('4th', fourthExt);
 
         console.log('parent')
         parentInfo = path.findExtremum();
+        parentFirstExt = parentInfo.leftIndex;
+        parentSecondExt = parentInfo.rightIndex;
+        parentThirdExt = (path.timings.length - parentInfo.rightIndex) % path.timings.length;
+        parentFourthExt = (path.timings.length - parentInfo.leftIndex) % path.timings.length;
 
-        // Align the left variable
-        for(let i = 0; i < info.leftIndex; i++) {
-            this.shift();
-            info.rightIndex -= 1;
-        }
-        info.leftIndex = 0;
 
-        console.log(this.timings);
-        console.log(this.positions);
 
-        let leftTiming = this.timings[info.leftIndex];
+        /*let leftTiming = this.timings[info.leftIndex];
         let rightTiming = this.timings[info.rightIndex];
 
         let parentLeftTiming = path.timings[parentInfo.leftIndex];
-        let parentRightTiming = path.timings[parentInfo.rightIndex];
+        let parentRightTiming = path.timings[parentInfo.rightIndex];*/
 
     }
 }
