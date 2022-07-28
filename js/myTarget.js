@@ -30,7 +30,7 @@ class MyTarget {
     }
     get targeted() { return this._targeted; } // must have the same parent so create a new target if it's not same parent
 
-    /*parentVS() {
+    parentVS() {
         //console.log(this.targeted[0]);
         //console.log(this.targeted[0].parent);
         let parent = this.targeted[0].parent.object;
@@ -87,7 +87,7 @@ class MyTarget {
             }
             this.targeted[i].path.VSpositions = newPos;
         }
-    }*/
+    }
 }
 
 export { MyTarget }

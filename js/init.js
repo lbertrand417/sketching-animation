@@ -12,6 +12,8 @@ import { allObjects as allObjects4, meshObjects as meshObjects4 } from './scene4
 import { allObjects as allObjects5, meshObjects as meshObjects5 } from './scene5.js';
 import { allObjects as allObjects6, meshObjects as meshObjects6 } from './scene6.js';
 import { allObjects as allObjects7, meshObjects as meshObjects7 } from './scene7.js';
+import { allObjects as allObjects8, meshObjects as meshObjects8 } from './scene8.js';
+import { allObjects as allObjects9, meshObjects as meshObjects9 } from './scene9.js';
 
 function createCylinder(radiusTop, radiusBottom, height, segmentCount, materials) {
     let segmentHeight = height / segmentCount;
@@ -78,6 +80,12 @@ function createCylinder(radiusTop, radiusBottom, height, segmentCount, materials
 
 // Load a given scene
 function loadScene(s) {
+    savePathPositions = [];
+    savePathTimings = [];
+    saveHistory = [];
+    indexHistory = 0;
+    indexPath = 0;
+
     // Initialize scene
     global.scene = new THREE.Scene();
     global.scene.background = new THREE.Color( 0xEEEEEE );
@@ -132,6 +140,18 @@ function loadScene(s) {
             objects = [...meshObjects7];
             for (let i = 0; i < allObjects7.length; i++) {
                 global.scene.add(allObjects7[i]);
+            }
+            break;
+        case 8 :
+            objects = [...meshObjects8];
+            for (let i = 0; i < allObjects8.length; i++) {
+                global.scene.add(allObjects8[i]);
+            }
+            break;
+        case 9 :
+            objects = [...meshObjects9];
+            for (let i = 0; i < allObjects9.length; i++) {
+                global.scene.add(allObjects9[i]);
             }
             break;
     }

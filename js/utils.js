@@ -247,5 +247,67 @@ function retime(time, position) {
     return { tempPos, tempT }
 }
 
+function reverse() {
+    selectedObjects[0].path.reverse();
+}
 
-export { resize, computeAngleAxis, localDir, rotate, fromLocalToGlobal, worldPos, localPos, project3D, getRandomInt, findInArray, interpolate, getVertex, getRotation, resizeCurve, updateMatrix, retime };
+function compareNombres(a, b) {
+    return a - b;
+}
+
+function filter(p, t, filterSize) {
+    let positions = [];
+    let timings = [];
+    for(let i = 0; i < p.length; i++) {
+        let subPosArray = p.slice(Math.max(i - filterSize, 0), Math.min(p.length - 1, i + filterSize));
+
+        let posBar = new THREE.Vector3();
+        for(let i = 0; i < subPosArray.length; i++) {
+            posBar.add(subPosArray[i]);
+        }
+        posBar.multiplyScalar(1 / subPosArray.length);
+        positions.push(posBar);
+
+        let subTimingsArray = t.slice(Math.max(i - filterSize, 0), Math.min(t.length - 1, i + filterSize));
+        let timingBar = 0;
+        for(let i = 0; i < subTimingsArray.length; i++) {
+            timingBar += subTimingsArray[i];
+        }
+        timingBar /= subTimingsArray.length;
+        timings.push(timingBar);
+    }
+
+    p = positions;
+    t = timings;
+}
+
+function cleanPath(positions, timings) {
+    let angle = - Infinity;
+    let leftIndex;
+    let rightIndex;
+    for (let i = 0; i < positions.length; i++) {
+        for (let j = i; j < positions.length; j++) {
+            let worldRotation = computeAngleAxis(new THREE.Vector3(), positions[i], positions[j]);
+            if (worldRotation.angle > angle) {
+                leftIndex = i;
+                rightIndex = j;
+                angle = worldRotation.angle;
+            }
+        }
+    }
+
+    for(let j = 0; j < leftIndex; j++) {
+        positions.shift();
+        timings.shift();
+        rightIndex -= 1;
+    }
+
+    for(let j = positions.length; j > rightIndex; j--) {
+        positions.pop();
+        timings.pop();
+    }
+}
+
+export { resize, computeAngleAxis, localDir, rotate, fromLocalToGlobal, worldPos, localPos, project3D, 
+    getRandomInt, findInArray, interpolate, getVertex, getRotation, resizeCurve, updateMatrix, retime, 
+    reverse, compareNombres, filter, cleanPath };

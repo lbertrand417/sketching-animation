@@ -30,6 +30,9 @@ var selectedObjects = [];
 
 var targets = [];
 
-var param = 0;
-var a = 0;
-
+// History
+var savePathPositions = [];
+var savePathTimings = [];
+var saveHistory = [];
+var indexHistory = 0;
+var indexPath = 0;

@@ -2,9 +2,10 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { unselectAll, updateSelection, addTarget } from './selection.js';
-import { localPos, project3D, worldPos } from './utils.js';
+import { unselectAll, updateSelection, addTarget, retrieveObject } from './selection.js';
+import { localPos, project3D, worldPos, fromLocalToGlobal } from './utils.js';
 import { orbitControls, updateChildren, updateTimeline } from './main.js';
+import { materials } from './materials.js';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
 global.renderer.domElement.addEventListener('mousemove', moveObject);
@@ -18,6 +19,10 @@ let intersectedTarget = null;
 let posOffset = new THREE.Vector3();
 
 let p = new THREE.Vector3(); // Point in the plane
+let lineGeometry = new THREE.BufferGeometry().setFromPoints([]);
+let drawingLine = new THREE.Line(lineGeometry, materials.unselectedpath.clone());
+drawingLine.geometry.dynamic = true;
+global.scene.add(drawingLine);
 
 function selectObject(event) {
     console.log('select');
@@ -63,6 +68,8 @@ function selectObject(event) {
         updateTimeline();
         
         if(selectedObjects.length > 0) {
+            //let newT = new Date().getTime() - refTime;
+
             // Reset
             global.sketch.positions = [];
             global.sketch.timings = [];
@@ -74,12 +81,6 @@ function selectObject(event) {
             // Project on the plane in 3D space
             p = selectedObjects[0].bones[selectedObjects[0].path.effector + 1].position.clone();
             p = worldPos(p, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].path.effector);
-            let pI = project3D(event, global.renderer.domElement, p);
-            pI = localPos(pI, selectedObjects[0], selectedObjects[0].bones, 0);
-
-            global.sketch.positions.push(pI);
-            let newT = new Date().getTime() - refTime;
-            global.sketch.timings.push(newT);
         }
     }
 
@@ -138,15 +139,18 @@ function moveObject(event) {
         let newT = new Date().getTime() - refTime;
         global.sketch.timings.push(newT);
 
+        let globalPos = fromLocalToGlobal(global.sketch.positions, selectedObjects[0], 0);
+        drawingLine.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
+
+
         if(selectedObjects[0].children.length != 0) {
-            console.log('hey')
             let speed = selectedObjects[0].getSpeed(1, oldRootPos, newRootPos);
-            console.log('speed', speed.length())
+            //console.log('speed', speed.length())
             updateChildren(selectedObjects[0], speed);
         }
     }
 
-    if(intersectedParent != null && intersectedParent.length > 0) {
+    /*if(intersectedParent != null && intersectedParent.length > 0) {
         const pI = project3D(event, global.renderer.domElement, p);
 
         let axis = pI.clone().sub(root.mesh.position.clone().add(posOffset)).normalize();
@@ -164,7 +168,7 @@ function moveObject(event) {
         // Update children TODO : Linear VS
         let speed = new THREE.Vector3();
         updateChildren(root, speed);
-    }
+    }*/
 
     if(intersectedTarget != null && intersectedTarget.length > 0) {
         const pI = project3D(event, global.renderer.domElement, p);
@@ -202,10 +206,14 @@ function unselectObject(event) {
         intersectedObject = null;
         
         if (global.sketch.positions.length > 1) {
+            let indexes = retrieveObject(selectedObjects[0].links[selectedObjects[0].effector]);
+            saveHistory.push({"path": indexes})
             selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
 
             // Display path
             selectedObjects[0].display.updatePath();
+
+            drawingLine.geometry = new THREE.BufferGeometry().setFromPoints([]);
 
             // Start animation
             global.animation.isAnimating = true;

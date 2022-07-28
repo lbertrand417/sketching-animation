@@ -102,7 +102,7 @@ class MyObject {
 
     // Point as global variable
     distanceToRoot(point) {
-        point = localPos(point, this, this._bones, 0);
+        point = localPos(point, this, this.restBones, 0);
         let distance = point.distanceTo(new THREE.Vector3(0,0,0));
         
         return distance;
@@ -302,9 +302,9 @@ class MyObject {
         let bonePos = this.bones[0].position.clone();
         let current_d = bonePos.distanceTo(new THREE.Vector3(0,0,0));
         for (let i = 1; i < this.lengthLinks; i++) {
-            bonePos = this.bones[i+1].position.clone();
-            bonePos = worldPos(bonePos, this, this.bones, i);
-            bonePos = localPos(bonePos, this, this.bones, 0);
+            bonePos = this.restBones[i+1].position.clone();
+            bonePos = worldPos(bonePos, this, this.restBones, i);
+            bonePos = localPos(bonePos, this, this.restBones, 0);
             let new_d = bonePos.distanceTo(new THREE.Vector3(0,0,0));
     
             if (Math.abs(new_d - distance) < Math.abs(current_d - distance)) {

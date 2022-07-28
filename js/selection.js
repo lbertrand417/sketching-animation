@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { materials } from './materials.js';
 import { worldPos, getRandomInt } from './utils.js';
-import { updateTimeline } from './main.js'
+import { updateChildren, updateTimeline } from './main.js'
 import { MyTarget } from './myTarget.js'
 
 function unselectAll() {
@@ -64,8 +64,8 @@ function updateSelection(effector, event) {
         }
 
         const indexes = retrieveObject(effector);
-        const objectIndex = indexes.k;
-        const effectorIndex = indexes.i;
+        const objectIndex = indexes.objectIndex;
+        const effectorIndex = indexes.linkIndex;
 
         console.log('o', objectIndex);
         console.log('e', effectorIndex);
@@ -82,12 +82,14 @@ function updateSelection(effector, event) {
 function autoSelect(event) {
     console.log("auto select");
     for(let k = 0; k < objects.length; k++) {
-        console.log()
         if(selectedObjects.length != 0 && selectedObjects[0].parent.object === objects[k].parent.object) {
-            let pos = selectedObjects[0].bones[selectedObjects[0].effector + 1].position.clone();
-            pos = worldPos(pos, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].effector);
+            /*let scale = objects[k].height / selectedObjects[0].height; // scale
+            let pos = selectedObjects[0].restBones[selectedObjects[0].effector + 1].position.clone();
+            pos = worldPos(pos, selectedObjects[0], selectedObjects[0].restBones, selectedObjects[0].effector);
             let distance = selectedObjects[0].distanceToRoot(pos);
+            distance = scale * distance;
             objects[k].updateEffector(distance)
+            console.log(objects[k].effector);*/
             select(k, objects[k].effector);
         }
     }
@@ -98,7 +100,9 @@ function retrieveObject(effector) {
     for (let k = 0; k < objects.length; k++) {
         for (let i = 0; i < objects[k].lengthLinks; i++) {
             if (effector === objects[k].links[i]) {
-                return { k, i };
+                const objectIndex = k;
+                const linkIndex = i;
+                return { objectIndex, linkIndex };
             }
         }
     }
@@ -188,14 +192,32 @@ function targetOrientation() {
     }
 }
 
+// Sometimes doesn't work on some selected shapes?
 function paste() {
+    let indexesPaste = [];
+    let indexes = retrieveObject(selectedObjects[0].links[selectedObjects[0].effector]);
+    indexesPaste.push(indexes)
     for (let k = 1; k < selectedObjects.length; k++) {
+        // Useful (because we already computed it in auto select?
         let scale = selectedObjects[k].height / selectedObjects[0].height; // scale
-        let pos = selectedObjects[0].bones[selectedObjects[0].effector + 1].position.clone();
-        pos = worldPos(pos, selectedObjects[0], selectedObjects[0].bones, selectedObjects[0].effector);
+        let pos = selectedObjects[0].restBones[selectedObjects[0].effector + 1].position.clone();
+        pos = worldPos(pos, selectedObjects[0], selectedObjects[0].restBones, selectedObjects[0].effector);
         let distance = selectedObjects[0].distanceToRoot(pos);
         distance = scale * distance;
+        console.log(selectedObjects[k].effector)
+        if (selectedObjects[k].effector != null) {
+            selectedObjects[k].linkMaterial(selectedObjects[k].effector, materials.links.clone());
+        }
         selectedObjects[k].updateEffector(distance);
+        selectedObjects[k].linkMaterial(selectedObjects[k].effector, materials.effector.clone());
+
+        console.log('effector index', selectedObjects[k].effector)
+
+        let indexes = retrieveObject(selectedObjects[k].links[selectedObjects[k].effector]);
+        indexesPaste.push(indexes)
+        //console.log(indexes);
+
+        
         selectedObjects[k].path.paste(selectedObjects[0].path, scale);
 
         if(selectedObjects[k].lengthPath != 0) {
@@ -203,11 +225,45 @@ function paste() {
             selectedObjects[k].display.updatePath();
         }
     }
+
+    console.log(indexesPaste)
+    saveHistory.push({"paste": indexesPaste});
+}
+
+function deletePath() {
+    let indexesDelete = [];
+
+    for(let k = 0; k < selectedObjects.length; k++) {
+        selectedObjects[k].path.positions = [];
+        selectedObjects[k].path.VSpositions = [];
+        selectedObjects[k].path.timings = [];
+
+        let indexes = retrieveObject(selectedObjects[k].links[selectedObjects[k].effector]);
+        indexesDelete.push(indexes)
+
+        for(let i = 1; i < selectedObjects[k].bones.length; i++) {
+            let boneQ = selectedObjects[k].restBones[i].quaternion.clone();
+            //console.log('restPose', bonePos)
+            selectedObjects[k].bones[i].quaternion.copy(boneQ);
+            selectedObjects[k].lbs[i].quaternion.copy(boneQ);
+
+            selectedObjects[k].bones[i].updateWorldMatrix(false, false)
+            selectedObjects[k].lbs[i].updateWorldMatrix(false, false)
+
+            updateChildren(selectedObjects[k], new THREE.Vector3())
+        }
+
+        selectedObjects[k].display.updatePath();
+        selectedObjects[k].display.updateLinks();
+    }
+
+    saveHistory.push({"delete": indexesDelete});
 }
 
 function synchronize() {
     for (let k = 0; k < selectedObjects.length; k++) {
         let parentPath = selectedObjects[k].parent.object.path;
+        
         selectedObjects[k].path.synchronize(parentPath);
     }
 }
@@ -226,4 +282,4 @@ function randomTiming() {
 }
 
 
-export { autoSelect, isSelected, unselectAll, updateSelection, retrieveObject, randomOrientation, addTarget, targetOrientation, paste, synchronize, randomTiming }
+export { autoSelect, isSelected, unselectAll, updateSelection, retrieveObject, randomOrientation, addTarget, targetOrientation, paste, deletePath, synchronize, randomTiming }

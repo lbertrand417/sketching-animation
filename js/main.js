@@ -3,6 +3,7 @@
 // Import libraries
 import * as THREE from 'three';
 import { OrbitControls } from '../three.js/examples/jsm/controls/OrbitControls.js';
+import { settings } from './canvas.js';
 import { loadScene } from './init.js'
 import { getRotation, getVertex, worldPos, localPos } from './utils.js';
 
@@ -16,11 +17,11 @@ document.body.appendChild(global.renderer.domElement); // renderer.domElement cr
 
 // Initialize camera
 global.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500);
-global.camera.position.set(0, 0, 250);
-global.camera.lookAt(0, 0, 0);
+global.camera.position.set(0, 0, 350);
+global.camera.lookAt(0, 50, 0);
 
 // Initialize scene
-loadScene(6);
+loadScene(8);
 
 
 
@@ -130,24 +131,26 @@ function updateAnimation(currentTime) {
             }
         }
 
-        if(objects[k].parent.object == null) {
+        if(objects[k].parent.object == null || !settings.parentVS) {
             objects[k].alpha = 0;
         } else {
             if (objects[k].path.lengthPath == 0) {
                 objects[k].alpha = 1;
             } else {
                 //console.log(objects[k].parent.speed.length())
-                let newAlpha = objects[k].parent.speed.length() / 0.005;
-                let a = 0.05;
+                let newAlpha = objects[k].parent.speed.length() / 0.001;
+                //console.log('new alpha', newAlpha)
+                let a = 0.2;
                 objects[k].alpha = a * newAlpha + (1 - a) * objects[k].alpha;
 
-                if(objects[k].alpha > 1) {
-                    objects[k].alpha = 1;
+                if(objects[k].alpha > 0.7) {
+                    objects[k].alpha = 0.7;
                 }
-                //console.log(objects[k].alpha);
+                
             }
-            //objects[k].alpha = 1;
+            //objects[k].alpha = 0;
         }
+        //console.log(objects[k].alpha);
         
         objects[k].blend(); // Ne blend plus...
     }
@@ -198,7 +201,7 @@ function updateChildren(object, speed) {
         let speed = object.getSpeed(object.lengthBones - 1, oldWorldPosA[i], newPos);
         targets[i].speed = speed.clone().multiplyScalar(alpha).add(targets[i].speed.clone().multiplyScalar(1 - alpha));
         targets[i].pos = newPos.clone();
-        //targets[i].parentVS();
+        targets[i].parentVS();
         //targets[i].updateWorldMatrix(false, false);
     }
 
