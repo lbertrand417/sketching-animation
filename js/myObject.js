@@ -170,6 +170,14 @@ class MyObject {
         let origin = parent.bones[0].position.clone();
         origin = worldPos(origin, parent, parent.bones, -1);
 
+        let rootObject = parent;
+        while (rootObject.parent.object != null && rootObject.lengthPath == 0) {
+            this._parent.speed = rootObject.parent.speed;
+            rootObject = rootObject.parent.object;
+            origin = rootObject.bones[0].position.clone();
+            origin = worldPos(origin, rootObject, rootObject.bones, -1);
+        }
+
         for (let i = 2; i < this.lengthBones; i++) {
             let w = speed.clone();
             let n = w.clone().normalize();

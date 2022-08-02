@@ -42,7 +42,7 @@ var settings = {
 
 const gui = new GUI()
 const sceneFolder = gui.addFolder('Scenes')
-sceneFolder.add(settings, 'scenes', [ 'Basic', 'Orientation', 'Scale', 'Bones', 'Anemone', 'Flower', 'Pole', 'Test1', 'Test2' ] )
+sceneFolder.add(settings, 'scenes', [ 'Basic', 'Orientation', 'Scale', 'Bones', 'Anemone', 'Flower', 'Pole', 'Test1', 'Test2', 'Levels' ] )
     .name("Scenes").onChange(function (value) {
     switch (value) {
         case "Basic":
@@ -71,6 +71,9 @@ sceneFolder.add(settings, 'scenes', [ 'Basic', 'Orientation', 'Scale', 'Bones', 
             break;
         case "Test2":
             loadScene(9);
+            break;
+        case "Levels":
+            loadScene(10);
             break;
         default:
             break;

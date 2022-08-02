@@ -4,7 +4,7 @@ import { worldPos, localPos, computeAngleAxis, localDir } from './utils.js'
 import { settings } from './canvas.js'
 
 class MyTarget {
-    constructor(pos) {
+    constructor(pos, parent) {
         let sphereGeometry = new THREE.SphereGeometry( 1, 16, 8 );
         this._mesh = new THREE.Mesh(sphereGeometry, materials.root.clone());
         this._mesh.position.set(pos.x, pos.y, pos.z);
@@ -12,6 +12,7 @@ class MyTarget {
         this._pos = pos;
         this._speed = new THREE.Vector3();
         this._VSpos = pos;
+        this._parent = parent;
         this._targeted = [];
     }
 

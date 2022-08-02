@@ -19,10 +19,6 @@ let intersectedTarget = null;
 let posOffset = new THREE.Vector3();
 
 let p = new THREE.Vector3(); // Point in the plane
-let lineGeometry = new THREE.BufferGeometry().setFromPoints([]);
-let drawingLine = new THREE.Line(lineGeometry, materials.unselectedpath.clone());
-drawingLine.geometry.dynamic = true;
-global.scene.add(drawingLine);
 
 function selectObject(event) {
     console.log('select');
@@ -146,7 +142,8 @@ function moveObject(event) {
         if(selectedObjects[0].children.length != 0) {
             let speed = selectedObjects[0].getSpeed(1, oldRootPos, newRootPos);
             //console.log('speed', speed.length())
-            updateChildren(selectedObjects[0], speed);
+            //updateChildren(selectedObjects[0], speed);
+            recursiveChildrenUpdate(selectedObjects[0], speed)
         }
     }
 
@@ -227,4 +224,14 @@ function unselectObject(event) {
     intersectedObject = null;
     intersectedParent = null;
     intersectedTarget = null;
+}
+
+function recursiveChildrenUpdate(root, speed) {
+    root.bones[0].updateWorldMatrix(false, true);
+    updateChildren(root, speed);
+
+    for(let k = 0; k < root.children.length; k++) {
+        //root.children[k].bones[0].updateWorldMatrix(false, false);
+        recursiveChildrenUpdate(root.children[k], new THREE.Vector3());
+    }
 }
