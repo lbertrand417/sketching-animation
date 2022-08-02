@@ -1,0 +1,59 @@
+body { 
+    margin: 0;
+}
+
+.stack {
+    position:relative;
+    }
+.stack canvas {
+    position:absolute;
+    left:0;
+    top:0;
+}
+
+#flex-container {
+    display: flex;
+	flex-direction: row;
+    justify-content: left;
+    align-items: center;
+}
+
+#play, #pause, #stop {
+    font-size:25px;
+    margin:5px;
+    cursor: pointer;
+}
+
+#play:active, #pause:active, #stop:active {
+    color : grey;
+}
+
+.slider {
+    -webkit-appearance: none;
+    width: 70%;
+    height: 15px;
+    border-radius: 5px;  
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%; 
+    background: #04AA6D;
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #04AA6D;
+    cursor: pointer;
+}
