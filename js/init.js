@@ -14,6 +14,7 @@ import { allObjects as allObjects6, meshObjects as meshObjects6 } from './scene6
 import { allObjects as allObjects7, meshObjects as meshObjects7 } from './scene7.js';
 import { allObjects as allObjects8, meshObjects as meshObjects8 } from './scene8.js';
 import { allObjects as allObjects9, meshObjects as meshObjects9 } from './scene9.js';
+import { allObjects as allObjects10, meshObjects as meshObjects10 } from './scene10.js';
 
 function createCylinder(radiusTop, radiusBottom, height, segmentCount, materials) {
     let segmentHeight = height / segmentCount;
@@ -93,7 +94,12 @@ function loadScene(s) {
     axesHelper.position.set(30, 0, 0);
     axesHelper.updateWorldMatrix(false, false)
     global.scene.add( axesHelper );
-    //global.scene.autoUpdate = false;
+
+    let lineGeometry = new THREE.BufferGeometry().setFromPoints([]);
+    drawingLine = new THREE.Line(lineGeometry, materials.unselectedpath.clone());
+    drawingLine.geometry.dynamic = true;
+    global.scene.add(drawingLine);
+    global.scene.autoUpdate = false;
 
     // Deactivate animation
     global.animation.isAnimating = false;
@@ -154,6 +160,12 @@ function loadScene(s) {
                 global.scene.add(allObjects9[i]);
             }
             break;
+        case 10 :
+            objects = [...meshObjects10];
+            for (let i = 0; i < allObjects10.length; i++) {
+                global.scene.add(allObjects10[i]);
+            }
+            break;
     }
 
     // Retrieve the parent if it exists + reset materials
@@ -189,12 +201,12 @@ function loadScene(s) {
     selectedObjects = [];
     updateTimeline();
     
-    findCorrespondences();
+    findCorrespondences(root);
 }
 
 // Find correspondences between detail objects and the parent mesh
 // ATTENTION NE FONCTIONNE PAS APRES UN CHANGEMENT DE SCENE
-function findCorrespondences() {
+function findCorrespondences(root) {
     //console.log(parent);
     if(root != null) {
         console.log('find correspondences')
@@ -244,6 +256,8 @@ function findCorrespondences() {
             let point = new THREE.Mesh( sphereGeometry, materials.effector.clone() );
             point.position.set(vertex.x, vertex.y, vertex.z); // From cylinder local space to world
             global.scene.add(point);*/
+
+            findCorrespondences(root.children[k]);
         }
     }
 }

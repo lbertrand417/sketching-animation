@@ -36,3 +36,5 @@ var savePathTimings = [];
 var saveHistory = [];
 var indexHistory = 0;
 var indexPath = 0;
+
+var drawingLine;
