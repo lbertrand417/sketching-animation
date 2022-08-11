@@ -1,0 +1,58 @@
+[
+  {
+    "path": {
+      "objectIndex": 6,
+      "linkIndex": 15
+    }
+  },
+  {
+    "path": {
+      "objectIndex": 0,
+      "linkIndex": 15
+    }
+  },
+  {
+    "paste": [
+      {
+        "objectIndex": 6,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 1,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 2,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 3,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 4,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 5,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 7,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 8,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 9,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 10,
+        "linkIndex": 15
+      }
+    ]
+  }
+]

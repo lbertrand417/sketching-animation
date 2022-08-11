@@ -21,7 +21,7 @@ global.camera.position.set(0, 0, 350);
 global.camera.lookAt(0, 50, 0);
 
 // Initialize scene
-loadScene(10);
+loadScene(settings.scenes);
 
 
 
@@ -229,7 +229,7 @@ function updateAnimation(currentTime, object) {
             object.alpha = 0;
         }
     }
-    console.log(object.alpha);
+    //console.log(object.alpha);
     
     object.blend(); // Ne blend plus...
 
@@ -246,7 +246,7 @@ function updateAnimation(currentTime, object) {
         updateChildren(object, speed); // Utiliser parent speed
 
         for(let k = 0; k < object.children.length; k++) {
-            console.log(object.children[k])
+            //console.log(object.children[k])
             updateAnimation(currentTime, object.children[k])
         }
     }

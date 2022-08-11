@@ -113,7 +113,7 @@ class MyDisplay {
     }
 
     updatePath() {
-        let globalPos = fromLocalToGlobal(this._object.path.VSpositions, this._object, 0);
+        let globalPos = fromLocalToGlobal(this._object.path.positions, this._object, 0);
         this.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
     }
 

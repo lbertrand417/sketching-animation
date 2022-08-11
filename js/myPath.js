@@ -2,13 +2,24 @@
 
 import * as THREE from 'three'
 import { settings } from './canvas.js';
-import { compareNombres, computeAngleAxis, retime, filter, cleanPath } from './utils.js'
+import { compareNombres, computeAngleAxis, retime, filter, cleanPath, getCycles, computeCycle, getEffectorPositions } from './utils.js'
 
 class MyPath {
-    constructor() {
-        this._positions = [];  
-        this._VSpositions = [];      
-        this._timings = [];
+    constructor(object) {
+        // Final positions and timings
+        this._positions = []; 
+        this._timings = []; 
+
+        // Original inputs
+        this._rawPositions = [];
+        this._rawTimings = [];
+
+        // Positions after filtering and retiming
+        this._effectorPositions = [];
+        this._cleanPositions = [];
+        this._cleanTimings = [];
+
+        this._object = object;
         this._currentIndex = 0;
         this._startTime = new Date().getTime();
         this._effectorIndex = null;
@@ -19,17 +30,13 @@ class MyPath {
     get positions() { return this._positions; }
     set positions(p) { this._positions = p; }
 
-    get VSpositions() { return this._VSpositions; }
-    set VSpositions(p) { this._VSpositions = p; }
-
     get timings() { return this._timings; }
     set timings(t) { this._timings = t; }
 
     get index() { return this._currentIndex; }
     set index(i) { this._currentIndex = i; }
 
-    //get currentPosition() { return this._positions[this._currentIndex].clone(); }
-    get currentPosition() { return this._VSpositions[this._currentIndex].clone(); }
+    get currentPosition() { return this._positions[this._currentIndex].clone(); }
     get currentTime() { return this._timings[this._currentIndex]; }
 
     get startTime() { return this._startTime; }
@@ -59,41 +66,91 @@ class MyPath {
         }
     }
 
-    // Paste the drawn path to the first selected object
     update(positions, timings) {
         if(positions.length >= 2) {
             savePathPositions.push(positions);
             savePathTimings.push(timings);
 
-            filter(positions, timings, 10);
+            // Save raw positions and timings
+            this._rawPositions = [...positions];
+            this._rawTimings = [...timings];
 
+            // Filter and retime to clean the path
+            let filtered = filter(positions, timings, 1);
+            let retimed = retime(filtered.timings, filtered.positions)
+
+            this._cleanPositions = retimed.tempPos;
+            this._cleanTimings = retimed.tempT;
+
+            this._effectorPositions = getEffectorPositions(this._object, this._cleanPositions);
+
+            // Post-processing
+            if(settings.autoGenerate) {
+                let cycles = getCycles(this._cleanPositions, 1);
+                console.log(cycles);
+                let cycle = computeCycle(this._cleanPositions, this._cleanTimings, cycles);
+                this._positions = cycle.pos;
+                this._timings = cycle.t;
+            } else if (settings.autoGenerate2) {
+                let cycles = getCycles(this._effectorPositions, 1);
+                console.log('cycle', cycles);
+                let cycle = computeCycle(this._effectorPositions, this._cleanTimings, cycles);
+                this._positions = cycle.pos;
+                this._timings = cycle.t;
+            } else {
+                this._positions = [...this._cleanPositions];
+                this._timings = [...this._cleanTimings];
+            }
+            
+            console.log(this._positions);
+            console.log(this._timings);
+
+            // Create a cycle with the path
+            let tempT = [...this._timings];
+            for (let i = tempT.length - 2; i > 0; i--) {
+                console.log(i)
+                this._timings.push(this._timings[this._timings.length - 1] + (tempT[i + 1] - tempT[i]));
+                this._positions.push(this._positions[i].clone());
+            }
+
+            //this.findExtremum();
+            //this.align(this._extremums[0]);
+        }
+    }
+
+    // Paste the drawn path to the first selected object
+    /*update(positions, timings) {
+        if(positions.length >= 2) {
+            savePathPositions.push(positions);
+            savePathTimings.push(timings);
+
+            console.log(positions);
+
+            if(settings.autoGenerate) {
+                let cycles = getCycles(positions, 1);
+                console.log(cycles);
+                let cycle = computeCycle(positions, timings, cycles);
+                positions = cycle.pos;
+                timings = cycle.t;
+            }
+
+            console.log(positions)
+            //let filtered = filter(positions, timings, 1);
+            //let filtered = filter(cycle.pos, cycle.t, 1);
+            //console.log(filtered.positions)
+
+            //let cycles = getCycles(filtered.positions, 1);
+            //console.log(cycles);
+
+            //let cycle = computeCycle(filtered.positions, filtered.timings, cycles);
+
+            //let retimed = retime(filtered.timings, filtered.positions)
             let retimed = retime(timings, positions)
-            //let retimed = retime(timings, positions)
+            //let retimed = retime(cycle.t, cycle.pos)
             let tempPos = retimed.tempPos
             let tempT = retimed.tempT
 
-            /*savePathPositions.push(tempPos);
-            savePathTimings.push(tempT);*/
-
-            // Find the unwanted part at the beginning of the drawing (BUG!!)
-            /*let id = 1;
-
-            let v1 = tempPos[id - 1].clone().sub(tempPos[id]);
-            let v2 = tempPos[id].clone().sub(tempPos[id + 1]);
-
-            while (v1.dot(v2) > 0 && id < tempPos.length - 2) {
-                id++;
-                v1 = tempPos[id - 1].clone().sub(tempPos[id]);
-                v2 = tempPos[id].clone().sub(tempPos[id + 1]);
-            }
-
-            // Remove the unwanted part from the path
-            if (id != tempPos.length - 2) {
-                for(let j = 0; j < id; j++) {
-                    tempPos.shift();
-                    tempT.shift();
-                }
-            }*/
+            console.log(tempPos);
 
             if(settings.cleanPath) {
                 cleanPath(tempPos, tempT);
@@ -110,12 +167,10 @@ class MyPath {
                 this._positions.push(this._positions[i].clone());
             }
 
-            this._VSpositions = [...this._positions];
 
             /*savePathPositions.push(this._positions);
-            savePathTimings.push(this._timings);*/
+            savePathTimings.push(this._timings);
 
-            console.log(this._VSpositions)
             console.log(this._timings)
             this.findExtremum();
 
@@ -127,7 +182,7 @@ class MyPath {
 
             //this.saveToJSON();
         }
-    }
+    }*/
 
     // Paste path of the first selected object to the other selected objects
     paste(path, scale) {
@@ -150,7 +205,6 @@ class MyPath {
             this._positions.push(localPos); 
         }
 
-        this._VSpositions = [...this._positions];
         this._extremums = [...path.extremums];
     }
 
@@ -168,8 +222,6 @@ class MyPath {
             localPos.applyAxisAngle(axis, offset);
             this._positions[i] = localPos;
         }
-
-        this._VSpositions = [...this._positions];
     }
 
     findExtremum() {
@@ -177,10 +229,10 @@ class MyPath {
         let axis;
         let leftIndex;
         let rightIndex;
-        let L = Math.floor(this.VSpositions.length / 2);
+        let L = Math.floor(this.positions.length / 2);
         for (let i = 0; i <= L; i++) {
             for (let j = i; j <= L; j++) {
-                let worldRotation = computeAngleAxis(new THREE.Vector3(), this.VSpositions[i], this.VSpositions[j]);
+                let worldRotation = computeAngleAxis(new THREE.Vector3(), this.positions[i], this.positions[j]);
                 if (worldRotation.angle > angle) {
                     leftIndex = i;
                     rightIndex = j;
@@ -260,7 +312,6 @@ class MyPath {
         tempPos.push(this.positions[0].clone());
         this.timings = [...tempT];
         this.positions = [...tempPos];
-        this.VSpositions = [...tempPos]
     }
 
     align(index) {
@@ -315,15 +366,14 @@ class MyPath {
         // Find extremum of this path
         //console.log('detail')
         //console.log(this.timings)
-        //console.log(this.VSpositions)
         //console.log('extremums', this.extremums)
-        let info = computeAngleAxis(new THREE.Vector3(), this.VSpositions[this._extremums[0]], this.VSpositions[this._extremums[1]]);
+        let info = computeAngleAxis(new THREE.Vector3(), this.positions[this._extremums[0]], this.positions[this._extremums[1]]);
         let axis = info.axis;
 
         //console.log('parent')
         //console.log(path.timings)
         //console.log(path.VSpositions)
-        let parentInfo = computeAngleAxis(new THREE.Vector3(), path.VSpositions[path.extremums[0]], path.VSpositions[path.extremums[1]]);
+        let parentInfo = computeAngleAxis(new THREE.Vector3(), path.positions[path.extremums[0]], path.positions[path.extremums[1]]);
         let parentAxis = parentInfo.axis;
 
         let newTimings = [...this.timings];
@@ -406,7 +456,6 @@ class MyPath {
         //console.log('parent', path.timings);
 
         this.positions = [...retimed.tempPos];
-        this.VSpositions = [...retimed.tempPos];
         this.timings = [...retimed.tempT];
 
         this.findExtremum();

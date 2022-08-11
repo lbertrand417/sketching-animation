@@ -15,9 +15,11 @@ var settings = {
     axes: false,
     speeds: false,
     path: true,
-    scenes: "Test1",
+    scenes: "Orientation",
     draw: false,
     cleanPath: false,
+    autoGenerate: false,
+    autoGenerate2: false,
     autoSelect: autoSelect,
     paste: paste,
     delete: deletePath,
@@ -27,9 +29,7 @@ var settings = {
     randomTiming: randomTiming,
     curveTiming: false,
     targetVSparam: 2,
-    //ownVSparam: 5,
     ownVSparam: 3,
-    //parentVSparam: 25,
     parentVS: false,
     parentVSparam: 25,
     reverse: reverse,
@@ -44,7 +44,7 @@ const gui = new GUI()
 const sceneFolder = gui.addFolder('Scenes')
 sceneFolder.add(settings, 'scenes', [ 'Basic', 'Orientation', 'Scale', 'Bones', 'Anemone', 'Flower', 'Pole', 'Test1', 'Test2', 'Levels' ] )
     .name("Scenes").onChange(function (value) {
-    switch (value) {
+    /*switch (value) {
         case "Basic":
             loadScene(5);
             break;
@@ -77,7 +77,8 @@ sceneFolder.add(settings, 'scenes', [ 'Basic', 'Orientation', 'Scale', 'Bones', 
             break;
         default:
             break;
-    }
+    }*/
+    loadScene(value);
 });
 /*sceneFolder.add(settings, 'draw').name("Draw").onChange(function (value) {
     if (value) {
@@ -87,6 +88,8 @@ sceneFolder.add(settings, 'scenes', [ 'Basic', 'Orientation', 'Scale', 'Bones', 
     drawingCanvas()
 });*/
 sceneFolder.add(settings, 'cleanPath').name("Clean Path")
+sceneFolder.add(settings, 'autoGenerate').name("Cycle using input")
+sceneFolder.add(settings, 'autoGenerate2').name("Cycle using effector")
 sceneFolder.add(settings, 'autoSelect').name("Auto Select")
 sceneFolder.add(settings, 'paste').name("Paste")
 sceneFolder.add(settings, 'delete').name("Delete")
@@ -340,7 +343,6 @@ function next() {
                 let objectIndex = pathToDelete[k].objectIndex;
 
                 objects[objectIndex].path.positions = [];
-                objects[objectIndex].path.VSpositions = [];
                 objects[objectIndex].path.timings = [];
         
                 for(let i = 1; i < objects[objectIndex].bones.length; i++) {
@@ -410,7 +412,7 @@ var timeline = document.getElementById("timeline");
 timeline.oninput = function() {
     console.log('timeline', this.value)
     global.animation.currentTime = parseInt(this.value); // Faux: ajouter à current time la diff entre previous et next timeline??
-    updateAnimation(parseInt(this.value));
+    updateAnimation(parseInt(this.value), root);
 
     for (let k = 0; k < objects.length; k++) {
         objects[k].display.updateLinks();

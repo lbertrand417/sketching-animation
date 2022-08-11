@@ -106,61 +106,61 @@ function loadScene(s) {
 
     // Load scene elements
     switch(s) {
-        case 1 :
+        case "Orientation" :
             objects = [...meshObjects1];
             for (let i = 0; i < allObjects1.length; i++) {
                 global.scene.add(allObjects1[i]);
             }
             break;
-        case 2 :
+        case "Anemone" :
             objects = [...meshObjects2];
             for (let i = 0; i < allObjects2.length; i++) {
                 global.scene.add(allObjects2[i]);
             }
             break;
-        case 3 :
+        case "Scale" :
             objects = [...meshObjects3];
             for (let i = 0; i < allObjects3.length; i++) {
                 global.scene.add(allObjects3[i]);
             }
             break;
-        case 4 :
+        case "Bones" :
             objects = [...meshObjects4];
             for (let i = 0; i < allObjects4.length; i++) {
                 global.scene.add(allObjects4[i]);
             }
             break;
-        case 5 :
+        case "Basic" :
             objects = [...meshObjects5];
             for (let i = 0; i < allObjects5.length; i++) {
                 global.scene.add(allObjects5[i]);
             }
             break;
-        case 6 :
+        case "Flower" :
             objects = [...meshObjects6];
             for (let i = 0; i < allObjects6.length; i++) {
                 global.scene.add(allObjects6[i]);
             }
             break;
-        case 7 :
+        case "Pole" :
             objects = [...meshObjects7];
             for (let i = 0; i < allObjects7.length; i++) {
                 global.scene.add(allObjects7[i]);
             }
             break;
-        case 8 :
+        case "Test1" :
             objects = [...meshObjects8];
             for (let i = 0; i < allObjects8.length; i++) {
                 global.scene.add(allObjects8[i]);
             }
             break;
-        case 9 :
+        case "Test2" :
             objects = [...meshObjects9];
             for (let i = 0; i < allObjects9.length; i++) {
                 global.scene.add(allObjects9[i]);
             }
             break;
-        case 10 :
+        case "Levels" :
             objects = [...meshObjects10];
             for (let i = 0; i < allObjects10.length; i++) {
                 global.scene.add(allObjects10[i]);
@@ -176,7 +176,7 @@ function loadScene(s) {
         global.scene.add(objects[k].pathDisplay);
         global.scene.add(objects[k].timingDisplay);
         global.scene.add(objects[k].axisDisplay)
-        objects[k].material = materials.unselected.clone();
+        //objects[k].material = materials.unselected.clone();
         for (let i = 0; i < objects[k].lengthLinks; i++) {
             global.scene.add(objects[k].links[i]);
             global.scene.add(objects[k].speedDisplay[i]);
@@ -187,11 +187,17 @@ function loadScene(s) {
         }
     }
 
+    console.log(root.mesh.material);
+
     selectableObjects = [];
     for (let k = 0; k < objects.length; k++) {
-        for (let i = 0; i < objects[k].lengthLinks; i++) {
+        let selectable = Math.ceil(objects[k].lengthLinks / 5);
+        for(let i = objects[k].lengthLinks - 1; i >= 0; i-= selectable) {
             selectableObjects.push(objects[k].links[i]);
         }
+        /*for (let i = 0; i < objects[k].lengthLinks; i++) {
+            selectableObjects.push(objects[k].links[i]);
+        }*/
     }
 
     // Retrieve targets

@@ -49,7 +49,7 @@ class MyObject {
 
         this._children = [];
 
-        this._path = new MyPath();
+        this._path = new MyPath(this);
 
         this._display = new MyDisplay(this, materials);
     }

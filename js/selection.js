@@ -147,8 +147,6 @@ function addTarget(object) {
         object.path.positions[i] = localPos;
     }
 
-    object.path.VSpositions = [...object.path.positions]
-
     // Update path display
     object.display.updatePath();
     object.display.updateTiming();
@@ -235,7 +233,6 @@ function deletePath() {
 
     for(let k = 0; k < selectedObjects.length; k++) {
         selectedObjects[k].path.positions = [];
-        selectedObjects[k].path.VSpositions = [];
         selectedObjects[k].path.timings = [];
 
         let indexes = retrieveObject(selectedObjects[k].links[selectedObjects[k].effector]);
