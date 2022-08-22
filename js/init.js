@@ -2,6 +2,7 @@
 
 // Import libraries
 import * as THREE from 'three';
+import { settings } from './canvas.js';
 import { materials } from './materials.js';
 import { updateTimeline } from './main.js';
 import { getVertex, getRotation, worldPos } from './utils.js';
@@ -172,16 +173,35 @@ function loadScene(s) {
     root = null;
     for(let k = 0; k < objects.length; k++) {
         global.scene.add(objects[k].root);
-        global.scene.add(objects[k].skeletonHelper);
+        objects[k].root.visible = settings.root;
+        //global.scene.add(objects[k].skeletonHelper);
+        global.scene.add(objects[k].display.rawPath);
+        objects[k].display.rawPath.visible = settings.rawPath;
+        global.scene.add(objects[k].display.cleanPath);
+        objects[k].display.cleanPath.visible = settings.cleanPath;
+        global.scene.add(objects[k].display.effectorPath);
+        objects[k].display.effectorPath.visible = settings.effectorPath;
         global.scene.add(objects[k].pathDisplay);
+        objects[k].pathDisplay.visible = settings.path;
         global.scene.add(objects[k].timingDisplay);
+        objects[k].timingDisplay.visible = settings.path;
         global.scene.add(objects[k].axisDisplay)
+        objects[k].axisDisplay.visible = settings.speeds;
+
         //objects[k].material = materials.unselected.clone();
         for (let i = 0; i < objects[k].lengthLinks; i++) {
             global.scene.add(objects[k].links[i]);
+            
             global.scene.add(objects[k].speedDisplay[i]);
             objects[k].linkMaterial(i, materials.links.clone());
         }
+        let visible = Math.ceil(objects[k].lengthLinks / 5);
+        for(let i = objects[k].lengthLinks - 1; i >= 0; i-= visible) {
+            objects[k].links[i].visible = settings.links;
+            objects[k].axesHelpers[i].visible = settings.axes;
+            objects[k].speedDisplay[i].visible = settings.speeds;
+        }
+
         if(objects[k].parent.object == null && objects[k].children.length != 0) {
             root = objects[k];
         }
@@ -195,9 +215,6 @@ function loadScene(s) {
         for(let i = objects[k].lengthLinks - 1; i >= 0; i-= selectable) {
             selectableObjects.push(objects[k].links[i]);
         }
-        /*for (let i = 0; i < objects[k].lengthLinks; i++) {
-            selectableObjects.push(objects[k].links[i]);
-        }*/
     }
 
     // Retrieve targets

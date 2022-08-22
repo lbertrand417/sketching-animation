@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { loadScene } from './init.js'
 import { updateAnimation, updateTimeline, updateChildren } from './main.js'
 import { autoSelect, randomOrientation, targetOrientation, synchronize, randomTiming, paste, deletePath, retrieveObject } from './selection.js'
-import { resize, project3D, worldPos, localPos, retime, reverse } from './utils.js';
+import { resize, project3D, worldPos, localPos, retime, reverse, getCycles, computeCycle } from './utils.js';
 import { GUI } from '../node_modules/dat.gui/build/dat.gui.module.js'
 import { MyPath } from './myPath.js';
 
@@ -14,12 +14,16 @@ var settings = {
     links: true,
     axes: false,
     speeds: false,
+    rawPath: false,
+    cleanPath: false,
+    effectorPath: false,
     path: true,
     scenes: "Orientation",
     draw: false,
     cleanPath: false,
-    autoGenerate: false,
-    autoGenerate2: false,
+    originalPath: originalPath,
+    autoGenerate: cycleWithInput,
+    autoGenerate2: cycleWithEffector,
     autoSelect: autoSelect,
     paste: paste,
     delete: deletePath,
@@ -29,7 +33,9 @@ var settings = {
     randomTiming: randomTiming,
     curveTiming: false,
     targetVSparam: 2,
-    ownVSparam: 3,
+    ownVSparam: 2,
+    alpha: true,
+    theta: false,
     parentVS: false,
     parentVSparam: 25,
     reverse: reverse,
@@ -44,40 +50,6 @@ const gui = new GUI()
 const sceneFolder = gui.addFolder('Scenes')
 sceneFolder.add(settings, 'scenes', [ 'Basic', 'Orientation', 'Scale', 'Bones', 'Anemone', 'Flower', 'Pole', 'Test1', 'Test2', 'Levels' ] )
     .name("Scenes").onChange(function (value) {
-    /*switch (value) {
-        case "Basic":
-            loadScene(5);
-            break;
-        case "Orientation":
-            loadScene(1);
-            break;
-        case "Scale":
-            loadScene(3);
-            break;
-        case "Bones":
-            loadScene(4);
-            break;
-        case "Anemone":
-            loadScene(2);
-            break;
-        case "Flower":
-            loadScene(6);
-            break;
-        case "Pole":
-            loadScene(7);
-            break;
-        case "Test1":
-            loadScene(8);
-            break;
-        case "Test2":
-            loadScene(9);
-            break;
-        case "Levels":
-            loadScene(10);
-            break;
-        default:
-            break;
-    }*/
     loadScene(value);
 });
 /*sceneFolder.add(settings, 'draw').name("Draw").onChange(function (value) {
@@ -87,13 +59,89 @@ sceneFolder.add(settings, 'scenes', [ 'Basic', 'Orientation', 'Scale', 'Bones', 
     }
     drawingCanvas()
 });*/
-sceneFolder.add(settings, 'cleanPath').name("Clean Path")
-sceneFolder.add(settings, 'autoGenerate').name("Cycle using input")
-sceneFolder.add(settings, 'autoGenerate2').name("Cycle using effector")
 sceneFolder.add(settings, 'autoSelect').name("Auto Select")
 sceneFolder.add(settings, 'paste').name("Paste")
 sceneFolder.add(settings, 'delete').name("Delete")
 sceneFolder.open();
+
+const pathFolder = gui.addFolder('Path');
+pathFolder.add(settings, 'cleanPath').name("Clean Path")
+/*sceneFolder.add(settings, 'autoGenerate').name("Cycle using input").onChange(function (value) {
+    if(value) {
+        for(let k = 0; k < selectedObjects.length; k++) {
+            let cycles = getCycles(selectedObjects[k].path.cleanPositions, 1);
+            console.log(cycles);
+            let cycle = computeCycle(selectedObjects[k].path.cleanPositions, selectedObjects[k].path.cleanTimings, cycles);
+            selectedObjects[k].path.positions = cycle.pos;
+            selectedObjects[k].path.timings = cycle.t;
+
+            selectedObjects[k].display.updatePath();
+        }
+    }
+})*/
+pathFolder.add(settings, 'originalPath').name("Original Path")
+pathFolder.add(settings, 'autoGenerate').name("Cycle using input")
+pathFolder.add(settings, 'autoGenerate2').name("Cycle using effector")
+pathFolder.open()
+
+function originalPath() {
+    console.log("hey")
+    for(let k = 0; k < selectedObjects.length; k++) {
+        selectedObjects[k].path.positions = [...selectedObjects[k].path.cleanPositions];
+        selectedObjects[k].path.timings = [...selectedObjects[k].path.cleanTimings];
+        // Update cycle display
+
+        // Create a cycle with the path
+        let tempT = [...selectedObjects[k].path.timings];
+        for (let i = tempT.length - 2; i > 0; i--) {
+            selectedObjects[k].path.timings.push(selectedObjects[k].path.timings[selectedObjects[k].path.timings.length - 1] + (tempT[i + 1] - tempT[i]));
+            selectedObjects[k].path.positions.push(selectedObjects[k].path.positions[i].clone());
+        }
+
+        selectedObjects[k].display.updatePath();
+    }
+}
+
+function cycleWithInput() {
+    for(let k = 0; k < selectedObjects.length; k++) {
+        //console.log(selectedObjects[k].path.cleanPositions[0].clone());
+        let cycles = getCycles(selectedObjects[k].path.cleanPositions, 1);
+        // Update cycle display
+        console.log(cycles);
+        let cycle = computeCycle(selectedObjects[k].path.cleanPositions, selectedObjects[k].path.cleanTimings, cycles);
+        selectedObjects[k].path.positions = cycle.pos;
+        selectedObjects[k].path.timings = cycle.t;
+
+        // Create a cycle with the path
+        let tempT = [...selectedObjects[k].path.timings];
+        for (let i = tempT.length - 2; i > 0; i--) {
+            selectedObjects[k].path.timings.push(selectedObjects[k].path.timings[selectedObjects[k].path.timings.length - 1] + (tempT[i + 1] - tempT[i]));
+            selectedObjects[k].path.positions.push(selectedObjects[k].path.positions[i].clone());
+        }
+
+        selectedObjects[k].display.updatePath();
+    }
+}
+
+function cycleWithEffector() {
+    for(let k = 0; k < selectedObjects.length; k++) {
+        let cycles = getCycles(selectedObjects[k].path.effectorPositions, 1);
+        // Update cycle display
+        console.log(cycles);
+        let cycle = computeCycle(selectedObjects[k].path.effectorPositions, selectedObjects[k].path.cleanTimings, cycles);
+        selectedObjects[k].path.positions = cycle.pos;
+        selectedObjects[k].path.timings = cycle.t;
+
+        // Create a cycle with the path
+        let tempT = [...selectedObjects[k].path.timings];
+        for (let i = tempT.length - 2; i > 0; i--) {
+            selectedObjects[k].path.timings.push(selectedObjects[k].path.timings[selectedObjects[k].path.timings.length - 1] + (tempT[i + 1] - tempT[i]));
+            selectedObjects[k].path.positions.push(selectedObjects[k].path.positions[i].clone());
+        }
+
+        selectedObjects[k].display.updatePath();
+    }
+}
 
 const orientationFolder = gui.addFolder('Orientation');
 orientationFolder.add(settings, 'randomOrientation').name("Random")
@@ -115,6 +163,14 @@ timingFolder.add(settings, 'curveTiming').name("Curve").onChange(function (value
 const paramFolder = gui.addFolder("Parameters")
 paramFolder.add(settings, 'targetVSparam', 0, 10).step(0.1).name("Target VS"); 
 paramFolder.add(settings, 'ownVSparam', 0, 10).step(0.1).name("Own VS"); 
+paramFolder.add(settings, 'alpha').name("Alpha").onChange(function (value) {
+        settings.theta = !value;
+        updateGUI(gui);
+});
+paramFolder.add(settings, 'theta').name("Theta").onChange(function (value) {
+    settings.alpha = !value;
+    updateGUI(gui);
+}); 
 paramFolder.add(settings, 'parentVS').name("Activate parent VS").onChange(function (value) {
     if(!value) {
         for (let k = 0; k < objects.length; k++) {
@@ -131,36 +187,51 @@ paramFolder.add(settings, 'reverse').name('Reverse')
 const displayFolder = gui.addFolder('Display')
 displayFolder.add(settings, 'root').name("Root").onChange(function (value) {
     for(let k = 0; k < objects.length; k++) {
-        objects[k].root.visible = settings.root;
+        objects[k].root.visible = value;
     }
 }); 
 displayFolder.add(settings, 'links').name("Links").onChange(function (value) {
     for(let k = 0; k < objects.length; k++) {
         let visible = Math.ceil(objects[k].links.length / 5);
         for(let i = objects[k].links.length - 1; i >= 0; i-= visible) {
-            objects[k].links[i].visible = settings.links;
+            objects[k].links[i].visible = value;
         }
     }
 }); 
 displayFolder.add(settings, 'axes').name("Axes helper").onChange(function (value) {
     for(let k = 0; k < objects.length; k++) {
         for(let i = 0; i < objects[k].lengthAxes; i++) {
-            objects[k].axesHelpers[i].visible = settings.axes;
+            objects[k].axesHelpers[i].visible = value;
         }
     }
 }); 
 displayFolder.add(settings, 'speeds').name("Speeds").onChange(function (value) {
     for(let k = 0; k < objects.length; k++) {
         for(let i = 0; i < objects[k].lengthLinks; i++) {
-            objects[k].speedDisplay[i].visible = settings.speeds;
+            objects[k].speedDisplay[i].visible = value;
         }
-        objects[k].axisDisplay.visible = settings.speeds;
+        objects[k].axisDisplay.visible = value;
+    }
+}); 
+displayFolder.add(settings, 'rawPath').name("Raw Path").onChange(function (value) {
+    for(let k = 0; k < objects.length; k++) {
+        objects[k].display.rawPath.visible = value;
+    }
+}); 
+displayFolder.add(settings, 'cleanPath').name("Clean Path").onChange(function (value) {
+    for(let k = 0; k < objects.length; k++) {
+        objects[k].display.cleanPath.visible = value;
+    }
+}); 
+displayFolder.add(settings, 'effectorPath').name("Raw Effector Path").onChange(function (value) {
+    for(let k = 0; k < objects.length; k++) {
+        objects[k].display.effectorPath.visible = value;
     }
 }); 
 displayFolder.add(settings, 'path').name("Path").onChange(function (value) {
     for(let k = 0; k < objects.length; k++) {
-        objects[k].pathDisplay.visible = settings.path;
-        objects[k].timingDisplay.visible = settings.path;
+        objects[k].pathDisplay.visible = value;
+        objects[k].timingDisplay.visible = value;
     }
 }); 
 

@@ -27,6 +27,12 @@ class MyPath {
         this._extremums = Array(4).fill(0);
     }
 
+    get rawPositions() { return this._rawPositions; }
+    get rawTimings() { return this._rawTimings; }
+    get effectorPositions() { return this._effectorPositions; }
+    get cleanPositions() { return this._cleanPositions; }
+    get cleanTimings() { return this._cleanTimings; }
+
     get positions() { return this._positions; }
     set positions(p) { this._positions = p; }
 
@@ -66,6 +72,7 @@ class MyPath {
         }
     }
 
+    // Paste the drawn path to the first selected object
     update(positions, timings) {
         if(positions.length >= 2) {
             savePathPositions.push(positions);
@@ -85,7 +92,7 @@ class MyPath {
             this._effectorPositions = getEffectorPositions(this._object, this._cleanPositions);
 
             // Post-processing
-            if(settings.autoGenerate) {
+            /*if(settings.autoGenerate) {
                 let cycles = getCycles(this._cleanPositions, 1);
                 console.log(cycles);
                 let cycle = computeCycle(this._cleanPositions, this._cleanTimings, cycles);
@@ -100,7 +107,10 @@ class MyPath {
             } else {
                 this._positions = [...this._cleanPositions];
                 this._timings = [...this._cleanTimings];
-            }
+            }*/
+
+            this._positions = [...this._cleanPositions];
+            this._timings = [...this._cleanTimings];
             
             console.log(this._positions);
             console.log(this._timings);
@@ -108,7 +118,6 @@ class MyPath {
             // Create a cycle with the path
             let tempT = [...this._timings];
             for (let i = tempT.length - 2; i > 0; i--) {
-                console.log(i)
                 this._timings.push(this._timings[this._timings.length - 1] + (tempT[i + 1] - tempT[i]));
                 this._positions.push(this._positions[i].clone());
             }
@@ -118,93 +127,40 @@ class MyPath {
         }
     }
 
-    // Paste the drawn path to the first selected object
-    /*update(positions, timings) {
-        if(positions.length >= 2) {
-            savePathPositions.push(positions);
-            savePathTimings.push(timings);
-
-            console.log(positions);
-
-            if(settings.autoGenerate) {
-                let cycles = getCycles(positions, 1);
-                console.log(cycles);
-                let cycle = computeCycle(positions, timings, cycles);
-                positions = cycle.pos;
-                timings = cycle.t;
-            }
-
-            console.log(positions)
-            //let filtered = filter(positions, timings, 1);
-            //let filtered = filter(cycle.pos, cycle.t, 1);
-            //console.log(filtered.positions)
-
-            //let cycles = getCycles(filtered.positions, 1);
-            //console.log(cycles);
-
-            //let cycle = computeCycle(filtered.positions, filtered.timings, cycles);
-
-            //let retimed = retime(filtered.timings, filtered.positions)
-            let retimed = retime(timings, positions)
-            //let retimed = retime(cycle.t, cycle.pos)
-            let tempPos = retimed.tempPos
-            let tempT = retimed.tempT
-
-            console.log(tempPos);
-
-            if(settings.cleanPath) {
-                cleanPath(tempPos, tempT);
-            }
-
-            // Copy the path to the first selected object
-            this._positions = [...tempPos];
-            this._timings = [...tempT];
-
-            // Create a cycle with the path
-            //for (let i = tempT.length - 2; i >= 0; i--) {
-            for (let i = tempT.length - 2; i > 0; i--) {
-                this._timings.push(this._timings[this._timings.length - 1] + (tempT[i + 1] - tempT[i]));
-                this._positions.push(this._positions[i].clone());
-            }
-
-
-            /*savePathPositions.push(this._positions);
-            savePathTimings.push(this._timings);
-
-            console.log(this._timings)
-            this.findExtremum();
-
-            //console.log('old', this.extremums);
-
-            this.align(this._extremums[0]);
-
-            //console.log('aligned', this.extremums);
-
-            //this.saveToJSON();
-        }
-    }*/
-
     // Paste path of the first selected object to the other selected objects
     paste(path, scale) {
         console.log('paste');
         //console.log(path.timings)
 
         // Paste information of the selected object
+        this._rawPositions = [];
+        this._rawTimings = [...path.rawTimings];
+        for(let i = 0; i < path.rawPositions.length; i++) {
+            let localPos = path.rawPositions[i].clone();
+            localPos.multiplyScalar(scale);
+            this._rawPositions.push(localPos);
+        }
+
+        this._cleanPositions = [];
+        this._cleanTimings = [...path.cleanTimings];
+        for(let i = 0; i < path.cleanPositions.length; i++) {
+            let localPos = path.cleanPositions[i].clone();
+            localPos.multiplyScalar(scale);
+            this._cleanPositions.push(localPos);
+        }
+
         this._positions = [];
         this._timings = [...path.timings];
-        this._startTime = path.startTime; // Bug
-        this._index = path.index;
-
         // Put positions in local space
         for(let i = 0; i < path.positions.length; i++) {
             // Retrieve local position (wrt root of original object)
             let localPos = path.positions[i].clone();
-
-            // Scale the path
-            localPos.multiplyScalar(scale);
+            localPos.multiplyScalar(scale); // Scale the path
             this._positions.push(localPos); 
         }
 
+        this._startTime = path.startTime; // Bug
+        this._index = path.index;
         this._extremums = [...path.extremums];
     }
 

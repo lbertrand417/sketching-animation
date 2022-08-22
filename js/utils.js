@@ -432,7 +432,7 @@ function computeCycle(positions, timings, parts) {
         tempBar.divideScalar(parts[k].end - parts[k].beginning + 1);
         let difference = tempBar.clone().sub(bar);
 
-        var randomColor = "#" + Math.floor(Math.random()*16777215).toString(16);
+        /*var randomColor = "#" + Math.floor(Math.random()*16777215).toString(16);
         let cyclePos = positions.slice(parts[k].beginning, parts[k].end + 1);
         for(let i = 0; i < cyclePos.length; i++) {
             cyclePos[i] = cyclePos[i].clone().sub(difference);
@@ -446,7 +446,7 @@ function computeCycle(positions, timings, parts) {
             transparent: true
         } )
         const path = new THREE.Line(pathGeometry, cycleMaterial);
-        global.scene.add(path);
+        global.scene.add(path);*/
 
         //console.log('k', k);
         if (k == closestAngle) {
@@ -489,7 +489,7 @@ function computeCycle(positions, timings, parts) {
 
     let pos = [];
     for(let i = 0; i < regroupedCycle.length; i++) {
-        var randomColor = "#" + Math.floor(Math.random()*16777215).toString(16);
+        /*var randomColor = "#" + Math.floor(Math.random()*16777215).toString(16);
         let points = regroupedCycle[i];
         let globalCyclePos = fromLocalToGlobal(points, selectedObjects[0], 0);
         const pathGeometry = new THREE.BufferGeometry().setFromPoints(globalCyclePos);
@@ -500,7 +500,7 @@ function computeCycle(positions, timings, parts) {
             transparent: true
         } )
         const path = new THREE.Points(pathGeometry, cycleMaterial);
-        global.scene.add(path);
+        global.scene.add(path);*/
 
         let posMean = new THREE.Vector3();
         for(let j = 0; j < regroupedCycle[i].length; j++) {

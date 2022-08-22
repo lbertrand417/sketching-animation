@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { fromLocalToGlobal, worldPos } from './utils.js'
 import { isSelected } from './selection.js'
+import { settings } from './canvas.js';
 
 class MyDisplay {
     constructor(object, materials) {
@@ -11,7 +12,6 @@ class MyDisplay {
 
         this._links = [];
         this._speeds = [];
-
         for(let i = 1; i < object.bones.length; i++) {
             let link = new THREE.Mesh( sphereGeometry, materials.links.clone() );
 
@@ -37,21 +37,21 @@ class MyDisplay {
         const lineMaterial2 = new THREE.LineBasicMaterial( { color: 0xff0000 } );
         const geometry2 = new THREE.BufferGeometry().setFromPoints([]);
         this._axis = new THREE.Line( geometry2, lineMaterial2 );
-        this._axis.visible = false;
+        //this._axis.visible = false;
     
         this._root = new THREE.Mesh( sphereGeometry, materials.root.clone() );
 
         let pos = object.bones[0].position.clone();
         pos = worldPos(pos, object, object.bones, -1);
         this._root.position.set(pos.x, pos.y, pos.z);
-        this._root.visible = false;
+        //this._root.visible = false;
         this._root.updateWorldMatrix(false, false);
 
         // Skeleton ne fonctionne pas
         this._skeleton = new THREE.SkeletonHelper( object.bones[1]);
         this._skeleton.bones[0].updateMatrixWorld(true);
         this._skeleton.updateMatrixWorld();
-        this._skeleton.visible = false;
+        //this._skeleton.visible = false;
         this._axes = [];
         for (let i = 0; i < object.lengthBones; i++) {
             let axesHelper = new THREE.AxesHelper( 10 );
@@ -61,6 +61,25 @@ class MyDisplay {
             this._axes.push(axesHelper);
         }
 
+        // Raw path
+        const rawPathGeometry = new THREE.BufferGeometry().setFromPoints([]);
+        this._rawPath = new THREE.Line(rawPathGeometry, materials.unselectedpath.clone());
+        //this._rawPath.visible = false;
+
+        // Clean Path
+        const cleanPathGeometry = new THREE.BufferGeometry().setFromPoints([]);
+        this._cleanPath = new THREE.Line(cleanPathGeometry, materials.unselectedpath.clone());
+        //this._cleanPath.visible = false;
+
+        const effectorPathGeometry = new THREE.BufferGeometry().setFromPoints([]);
+        this._effectorPath = new THREE.Line(effectorPathGeometry, materials.unselectedpath.clone());
+        //this._effectorPath.visible = false;
+
+        // Cycles Path
+        this._cyclesPath = [];
+        this._pointClusters = [];
+
+        // Final path
         const pathGeometry = new THREE.BufferGeometry().setFromPoints([]);
         this._path = new THREE.Line(pathGeometry, materials.unselectedpath.clone());
     
@@ -75,6 +94,9 @@ class MyDisplay {
     get skeleton() { return this._skeleton; }
     get axes() { return this._axes; }
 
+    get rawPath() { return this._rawPath; }
+    get cleanPath() { return this._cleanPath; }
+    get effectorPath() { return this._effectorPath; }
     get path() { return this._path; }
     get timing() { return this._timing; }
     get speeds() { return this._speeds; }
@@ -113,6 +135,15 @@ class MyDisplay {
     }
 
     updatePath() {
+        let rawGlobalPos = fromLocalToGlobal(this._object.path.rawPositions, this._object, 0);
+        this._rawPath.geometry = new THREE.BufferGeometry().setFromPoints(rawGlobalPos);
+
+        let cleanGlobalPos = fromLocalToGlobal(this._object.path.cleanPositions, this._object, 0);
+        this._cleanPath.geometry = new THREE.BufferGeometry().setFromPoints(cleanGlobalPos);
+
+        let effectorGlobalPos = fromLocalToGlobal(this._object.path.effectorPositions, this._object, 0);
+        this._effectorPath.geometry = new THREE.BufferGeometry().setFromPoints(effectorGlobalPos);
+
         let globalPos = fromLocalToGlobal(this._object.path.positions, this._object, 0);
         this.path.geometry = new THREE.BufferGeometry().setFromPoints(globalPos);
     }
@@ -125,6 +156,9 @@ class MyDisplay {
         } else {
             this.timing.geometry = new THREE.BufferGeometry().setFromPoints([]);
         }
+    }
+
+    displayCycles() {
     }
 }
 

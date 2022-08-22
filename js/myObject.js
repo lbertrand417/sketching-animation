@@ -145,7 +145,11 @@ class MyObject {
             let alpha = 2 * N * theta / (N + 1) - sommeAlpha;
             sommeAlpha += alpha
             n.applyQuaternion(this.bones[0].quaternion.clone().invert());
-            q.setFromAxisAngle(n, alpha);        
+            if(settings.alpha) {
+                q.setFromAxisAngle(n, alpha); 
+            } else {
+                q.setFromAxisAngle(n, theta);  
+            }      
 
 
             // Here we apply q on bones[e + 1] space on bones[i - 1] which is not coherent (TO CHANGE)
@@ -208,10 +212,15 @@ class MyObject {
             let boneIndex = skinIndex.getComponent(weightMaxIndex);
 
             // Compute speed of the detail bone
+
+            // Replace bone index with the index bone closest in the object with trajectory???
             let v = w.clone().cross(parentDiff).multiplyScalar(boneIndex * detailDiff.length());
+            //v.divideScalar(parentDiff.length());
             speeds.push(v);
 
             let param = settings.parentVSparam / 10000
+            //let param = settings.parentVSparam / 100
+            //console.log(param)
             //let theta = - param * v.length();
             let theta = - param * v.length();
 
