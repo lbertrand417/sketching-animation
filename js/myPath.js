@@ -89,6 +89,18 @@ class MyPath {
             this._cleanPositions = retimed.tempPos;
             this._cleanTimings = retimed.tempT;
 
+            if(settings.cleanPath) {
+                console.log("hello")
+                let cycles = getCycles(this._cleanPositions, 1);
+                console.log(cycles);
+                if(cycles.length > 1) {
+                    for (let i = 0; i < cycles[0].end; i++) {
+                        this._cleanPositions.shift();
+                        this._cleanTimings.shift();
+                    }
+                }
+            }
+
             this._effectorPositions = getEffectorPositions(this._object, this._cleanPositions);
 
             // Post-processing
@@ -257,6 +269,55 @@ class MyPath {
         this.timings = [...retimed.tempT];
     }*/
 
+    // Synchronize this.path with path
+    synchronize(path){
+        // Find extremum of this path
+        /*console.log('detail')
+        let begin = 0;
+        let L = Math.floor(this.timings.length / 2);
+        let end = L;
+        let axis = this.positions[end].clone().sub(this.positions[begin])
+
+        console.log('parent')
+        let parentBegin = 0;
+        let parentEnd = Math.floor(path.timings.length / 2);
+        let parentAxis = path.positions[parentEnd].clone().sub(path.positions[parentBegin]);
+
+        if (axis.dot(parentAxis) < 0) {
+            begin = L;
+            end = this.timings.length;
+        }
+
+        let newTimings = [...this.timings];
+        newTimings[begin] = path.timings[parentBegin];
+        newTimings[end] = path.timings[parentEnd];
+        let parentDenom = path.timings[parentEnd] - path.timings[parentBegin];
+        let detailDenom = this.timings[end] - this.timings[];
+
+        for (let i = info.leftIndex + 1; i < info.rightIndex; i++) {
+            newTimings[i] = (this.timings[i] - this.timings[i-1]) / detailDenom * parentDenom + newTimings[i-1];
+        }
+
+        for (let i = info.rightIndex; i < this.timings.length; i++) {
+            newTimings[i] = (this.timings[i] - this.timings[i-1]) / detailDenom * parentDenom + newTimings[i-1];
+        }
+
+        for (let i = info.leftIndex; i >= 0; i--) {
+            newTimings[i] = newTimings[i+1] - (this.timings[i+1] - this.timings[i]) / detailDenom * parentDenom;
+        }
+
+        let retimed = retime(newTimings, this.positions)
+
+        console.log('original', this.timings);
+        console.log('new', newTimings)
+        console.log('retiming', retimed.tempT)
+        console.log('parent', path.timings);
+        
+        this.positions = [...retimed.tempPos];
+        this.VSpositions = [...retimed.tempPos];
+        this.timings = [...retimed.tempT];*/
+    }
+
     shift() {
         let tempT = [];
         let tempPos = [];
@@ -317,7 +378,7 @@ class MyPath {
         console.log('sorted extremums', this.extremums)
     }
 
-    synchronize(path) {
+    /*synchronize(path) {
         // PUT MAX BEND IN SAME DIRECTION
         // Find extremum of this path
         //console.log('detail')
@@ -337,7 +398,7 @@ class MyPath {
             /*console.log('if')
             console.log('axis', axis);
             console.log('parentAxis', parentAxis)
-            console.log(axis.dot(parentAxis))*/
+            console.log(axis.dot(parentAxis))
             this.reverse()
         }
 
@@ -347,7 +408,7 @@ class MyPath {
 
 
         console.log('shift timings', this.timings);
-        console.log('shift positions', this.positions);*/
+        console.log('shift positions', this.positions);
 
         // PUT SAME TIMINGS
         // Synchronize left part
@@ -415,7 +476,7 @@ class MyPath {
         this.timings = [...retimed.tempT];
 
         this.findExtremum();
-    }
+    }*/
 }
 
 export { MyPath }

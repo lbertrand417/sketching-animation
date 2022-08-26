@@ -178,8 +178,9 @@ class MyObject {
         while (rootObject.parent.object != null && rootObject.lengthPath == 0) {
             this._parent.speed = rootObject.parent.speed;
             rootObject = rootObject.parent.object;
-            origin = rootObject.bones[0].position.clone();
-            origin = worldPos(origin, rootObject, rootObject.bones, -1);
+            // Mieux sans
+            /*origin = rootObject.bones[0].position.clone();
+            origin = worldPos(origin, rootObject, rootObject.bones, -1);*/
         }
 
         for (let i = 2; i < this.lengthBones; i++) {

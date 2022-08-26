@@ -169,6 +169,8 @@ function loadScene(s) {
             break;
     }
 
+    console.log(objects);
+    
     // Retrieve the parent if it exists + reset materials
     root = null;
     for(let k = 0; k < objects.length; k++) {

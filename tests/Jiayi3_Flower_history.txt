@@ -1,0 +1,164 @@
+[
+  {
+    "path": {
+      "objectIndex": 0,
+      "linkIndex": 10
+    }
+  },
+  {
+    "delete": [
+      {
+        "objectIndex": 0,
+        "linkIndex": 10
+      }
+    ]
+  },
+  {
+    "path": {
+      "objectIndex": 0,
+      "linkIndex": 10
+    }
+  },
+  {
+    "delete": [
+      {
+        "objectIndex": 0,
+        "linkIndex": 10
+      }
+    ]
+  },
+  {
+    "path": {
+      "objectIndex": 0,
+      "linkIndex": 10
+    }
+  },
+  {
+    "path": {
+      "objectIndex": 6,
+      "linkIndex": 20
+    }
+  },
+  {
+    "path": {
+      "objectIndex": 6,
+      "linkIndex": 20
+    }
+  },
+  {
+    "delete": [
+      {
+        "objectIndex": 6,
+        "linkIndex": 20
+      }
+    ]
+  },
+  {
+    "path": {
+      "objectIndex": 6,
+      "linkIndex": 20
+    }
+  },
+  {
+    "delete": [
+      {
+        "objectIndex": 6,
+        "linkIndex": 20
+      }
+    ]
+  },
+  {
+    "delete": [
+      {
+        "objectIndex": 0,
+        "linkIndex": 15
+      }
+    ]
+  },
+  {
+    "path": {
+      "objectIndex": 7,
+      "linkIndex": 20
+    }
+  },
+  {
+    "paste": [
+      {
+        "objectIndex": 7,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 0,
+        "linkIndex": 20
+      }
+    ]
+  },
+  {
+    "delete": [
+      {
+        "objectIndex": 7,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 0,
+        "linkIndex": 20
+      }
+    ]
+  },
+  {
+    "path": {
+      "objectIndex": 0,
+      "linkIndex": 10
+    }
+  },
+  {
+    "path": {
+      "objectIndex": 7,
+      "linkIndex": 20
+    }
+  },
+  {
+    "paste": [
+      {
+        "objectIndex": 7,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 1,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 2,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 3,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 4,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 5,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 6,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 8,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 9,
+        "linkIndex": 20
+      },
+      {
+        "objectIndex": 10,
+        "linkIndex": 20
+      }
+    ]
+  }
+]

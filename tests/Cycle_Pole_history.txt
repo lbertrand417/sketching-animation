@@ -1,0 +1,8 @@
+[
+  {
+    "path": {
+      "objectIndex": 3,
+      "linkIndex": 15
+    }
+  }
+]

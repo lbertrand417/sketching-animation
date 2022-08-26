@@ -58,7 +58,7 @@ let parent = new MyObject(bodyCylinder.cylinderSkinnedMesh, bodyHeight,
 meshObjects.push(parent);
 
 
-const numberLine = 5;
+const numberLine = 4;
 let height;
 for(let i = 0; i < numberLine; i++) {
 
