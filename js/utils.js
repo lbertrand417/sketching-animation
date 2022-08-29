@@ -228,18 +228,22 @@ function retime(time, position) {
     let tempPos = [];
     let tempT = [];
 
+    //console.log();
+
     let dt = 16;
-    let t = 0;
+    let t = time[0] - (time[0] % 16);
+    console.log(t);
     while (t < time[0]) {
         t += dt;
     }
 
-    while (t <= Math.round(time[time.length - 1])) {
+    while (t <= Math.round(time[time.length - 1]) + 16) {
         let info = findInArray(t, time);
         //console.log(info);
         if(info.i + 1 < position.length) {
             tempPos.push(interpolate(position[info.i], position[info.i + 1], info.alpha));
         } else {
+            console.log("coucou")
             tempPos.push(position[info.i]);
         }
 

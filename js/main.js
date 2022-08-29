@@ -179,7 +179,7 @@ function updateAnimation(currentTime, object) {
             objectTime -= object.lengthPath * 16;
         }
 
-        //console.log('object Time', objectTime)
+        //console.log('objectTime', objectTime)
     
         // Old effector position
         let oldPos = object.lbs[object.effector + 1].position.clone();

@@ -62,7 +62,7 @@ class MyPath {
         // Find closest point in the timing array
         let i = 0;
         this._currentIndex = 0;
-        while (i < this._positions.length - 1) {
+        while (i < this._positions.length) {
             if(time == this._timings[i]) {
                 this._currentIndex = i;
                 i = this._positions.length;
@@ -70,6 +70,7 @@ class MyPath {
                 i++;
             }
         }
+        //console.log(this._currentIndex)
     }
 
     // Paste the drawn path to the first selected object
@@ -124,8 +125,7 @@ class MyPath {
             this._positions = [...this._cleanPositions];
             this._timings = [...this._cleanTimings];
             
-            console.log(this._positions);
-            console.log(this._timings);
+            
 
             // Create a cycle with the path
             let tempT = [...this._timings];
@@ -133,6 +133,9 @@ class MyPath {
                 this._timings.push(this._timings[this._timings.length - 1] + (tempT[i + 1] - tempT[i]));
                 this._positions.push(this._positions[i].clone());
             }
+
+            console.log(this._positions);
+            console.log(this._timings);
 
             //this.findExtremum();
             //this.align(this._extremums[0]);
@@ -272,7 +275,7 @@ class MyPath {
     // Synchronize this.path with path
     synchronize(path){
         // Find extremum of this path
-        /*console.log('detail')
+        console.log('detail')
         let begin = 0;
         let L = Math.floor(this.timings.length / 2);
         let end = L;
@@ -283,28 +286,68 @@ class MyPath {
         let parentEnd = Math.floor(path.timings.length / 2);
         let parentAxis = path.positions[parentEnd].clone().sub(path.positions[parentBegin]);
 
+        console.log('before', this._positions);
+
         if (axis.dot(parentAxis) < 0) {
-            begin = L;
-            end = this.timings.length;
+            /*begin = L;
+            end = this.timings.length;*/
+            for (let i = 0; i < L; i++) {
+                this.shift();
+            }
         }
+
+        console.log('after', this._positions);
+
+        console.log('begin', begin);
+        console.log('end', end);
+        console.log("parent begin", parentBegin);
+        console.log("parentEnd", parentEnd)
+
+        let leftOffset = this.timings[begin] - path.timings[parentBegin];
+        this.offsetTiming(-leftOffset);
+
+        console.log(this.timings);
 
         let newTimings = [...this.timings];
         newTimings[begin] = path.timings[parentBegin];
         newTimings[end] = path.timings[parentEnd];
+        //newTimings[end % newTimings.length] = path.timings[parentEnd];
         let parentDenom = path.timings[parentEnd] - path.timings[parentBegin];
-        let detailDenom = this.timings[end] - this.timings[];
 
-        for (let i = info.leftIndex + 1; i < info.rightIndex; i++) {
+        let detailDenom;
+        detailDenom = this.timings[end] - this.timings[begin];
+        /*if (end == this.timings.length) {
+            detailDenom = this.timings[end - 1] + 16 - this.timings[begin];
+        } else {
+            detailDenom = this.timings[end] - this.timings[begin];
+        }*/
+
+        console.log('parentDenom', parentDenom);
+        console.log('detailDenom', detailDenom);
+
+        for (let i = begin + 1; i < end; i++) {
             newTimings[i] = (this.timings[i] - this.timings[i-1]) / detailDenom * parentDenom + newTimings[i-1];
         }
 
-        for (let i = info.rightIndex; i < this.timings.length; i++) {
+        for (let i = end; i < this.timings.length; i++) {
+
             newTimings[i] = (this.timings[i] - this.timings[i-1]) / detailDenom * parentDenom + newTimings[i-1];
         }
 
-        for (let i = info.leftIndex; i >= 0; i--) {
+        for (let i = begin; i >= 0; i--) {
             newTimings[i] = newTimings[i+1] - (this.timings[i+1] - this.timings[i]) / detailDenom * parentDenom;
         }
+
+        console.log("new timings 1", newTimings)
+
+        /*if(newTimings[0] < 0) {
+            let offset = (newTimings[newTimings.length - 1] + 16) - newTimings[0];
+            newTimings = newTimings.map( function(value) { 
+                return value + offset; 
+            } );
+        }
+
+        console.log("new timings 2", newTimings)*/
 
         let retimed = retime(newTimings, this.positions)
 
@@ -314,8 +357,7 @@ class MyPath {
         console.log('parent', path.timings);
         
         this.positions = [...retimed.tempPos];
-        this.VSpositions = [...retimed.tempPos];
-        this.timings = [...retimed.tempT];*/
+        this.timings = [...retimed.tempT];
     }
 
     shift() {
