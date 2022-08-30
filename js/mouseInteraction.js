@@ -2,9 +2,9 @@
 
 // Import libraries
 import * as THREE from 'three';
-import { settings } from './canvas.js';
 import { unselectAll, updateSelection, addTarget, retrieveObject } from './selection.js';
-import { localPos, project3D, worldPos, fromLocalToGlobal, getEffectorPositions, filter, getCycles, computeCycle, retime } from './utils.js';
+import { localPos, project3D, worldPos } from './utils.js';
+import { fromLocalToGlobal } from './utilsArray.js';
 import { orbitControls, updateChildren, updateTimeline } from './main.js';
 
 global.renderer.domElement.addEventListener('mousedown', selectObject);
@@ -206,63 +206,6 @@ function unselectObject(event) {
             let indexes = retrieveObject(selectedObjects[0].links[selectedObjects[0].effector]);
             saveHistory.push({"path": indexes})
 
-            // Compute cycle
-            /*let filtered = filter(global.sketch.positions, global.sketch.timings, 2);
-            let retimed = retime(filtered.timings, filtered.positions);
-            filtered.positions = retimed.tempPos;
-            filtered.timings = retimed.tempT;
-            let effectorPos = getEffectorPositions(selectedObjects[0], filtered.positions);
-
-            console.log('effector Pos', effectorPos);*/
-
-            /*if(settings.autoGenerate2) {
-                let cycles = getCycles(effectorPos, 1);
-                console.log(cycles);
-                /*for(let i = 0; i < cycles.length; i++) {
-                    var randomColor = "#" + Math.floor(Math.random()*16777215).toString(16);
-                    let cyclePos = effectorPos.slice(cycles[i].beginning, cycles[i].end + 1);
-                    let globalCyclePos = fromLocalToGlobal(cyclePos, selectedObjects[0], 0);
-                    const pathGeometry = new THREE.BufferGeometry().setFromPoints(globalCyclePos);
-                    let cycleMaterial = new THREE.MeshBasicMaterial( {
-                        color: new THREE.Color(randomColor),
-                        depthTest: false,
-                        depthWrite: false,
-                        transparent: true
-                    } )
-                    const path = new THREE.Line(pathGeometry, cycleMaterial);
-                    global.scene.add(path);
-                }
-                let cycle = computeCycle(effectorPos, filtered.timings, cycles);
-
-                console.log('cycle', cycle.pos);
-                //filtered = filter(cycle.pos, cycle.t, 1);
-                filtered.positions = cycle.pos;
-                filtered.timings = cycle.t;
-            }*/
-
-            //console.log('final', filtered.positions)
-
-            //console.log('final positions', filtered.positions)
-
-            //selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
-
-            /*let cycles = getCycles(filtered.positions, 1);
-            for(let i = 0; i < cycles.length; i++) {
-                var randomColor = "#" + Math.floor(Math.random()*16777215).toString(16);
-                let cyclePos = filtered.positions.slice(cycles[i].beginning, cycles[i].end + 1);
-                let globalCyclePos = fromLocalToGlobal(cyclePos, selectedObjects[0], 0);
-                const pathGeometry = new THREE.BufferGeometry().setFromPoints(globalCyclePos);
-                let cycleMaterial = new THREE.MeshBasicMaterial( {
-                    color: new THREE.Color(randomColor),
-                    depthTest: false,
-                    depthWrite: false,
-                    transparent: true
-                } )
-                const path = new THREE.Line(pathGeometry, cycleMaterial);
-                global.scene.add(path);
-            }*/
-
-            //selectedObjects[0].path.update(filtered.positions, filtered.timings);
             selectedObjects[0].path.update(global.sketch.positions, global.sketch.timings);
 
             // Display path

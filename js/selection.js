@@ -259,9 +259,11 @@ function deletePath() {
 
 function synchronize() {
     for (let k = 0; k < selectedObjects.length; k++) {
-        let parentPath = selectedObjects[k].parent.object.path;
-        
-        selectedObjects[k].path.synchronize(parentPath);
+        if(selectedObjects[k].parent.object != null) {
+            let parentPath = selectedObjects[k].parent.object.path;
+            
+            selectedObjects[k].path.synchronize(parentPath);
+        }
     }
 }
 

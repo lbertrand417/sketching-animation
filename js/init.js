@@ -100,7 +100,7 @@ function loadScene(s) {
     drawingLine = new THREE.Line(lineGeometry, materials.unselectedpath.clone());
     drawingLine.geometry.dynamic = true;
     global.scene.add(drawingLine);
-    global.scene.autoUpdate = false;
+    //global.scene.autoUpdate = false;
 
     // Deactivate animation
     global.animation.isAnimating = false;
@@ -190,7 +190,7 @@ function loadScene(s) {
         global.scene.add(objects[k].axisDisplay)
         objects[k].axisDisplay.visible = settings.speeds;
 
-        //objects[k].material = materials.unselected.clone();
+        objects[k].material = materials.unselected.clone();
         for (let i = 0; i < objects[k].lengthLinks; i++) {
             global.scene.add(objects[k].links[i]);
             

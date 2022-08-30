@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { fromLocalToGlobal, worldPos } from './utils.js'
+import { worldPos } from './utils.js'
+import { fromLocalToGlobal } from './utilsArray.js';
 import { isSelected } from './selection.js'
-import { settings } from './canvas.js';
 
 class MyDisplay {
     constructor(object, materials) {

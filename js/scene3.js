@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MyObject } from './myObject.js'
 import { materials } from './materials.js';
+import { getRandomInt } from './utils.js'
 import { createCylinder } from './init.js'
 
 let allObjects = []; // All elements of the scene
@@ -22,12 +23,6 @@ allObjects.push(spotLight);
 
 const cylinderCount = 5;
 const segmentCount = 7;
-
-function getRandomInt(min, max) {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min)) + min;
-}
 
 // MESH
 

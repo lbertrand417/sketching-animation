@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { MyObject } from './myObject.js'
 import { createCylinder } from './init.js'
 import { materials } from './materials.js';
-import { localPos, worldPos } from './utils.js';
+import { worldPos } from './utils.js';
 
 let allObjects = []; // All elements of the scene
 

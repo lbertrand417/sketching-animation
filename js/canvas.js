@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import { loadScene } from './init.js'
 import { updateAnimation, updateTimeline, updateChildren } from './main.js'
 import { autoSelect, randomOrientation, targetOrientation, synchronize, randomTiming, paste, deletePath, retrieveObject } from './selection.js'
-import { resize, project3D, worldPos, localPos, retime, reverse, getCycles, computeCycle } from './utils.js';
+import { resize, project3D, worldPos, localPos } from './utils.js';
+import { retime, getCycles, computeCycle } from './utilsArray.js';
 import { GUI } from '../node_modules/dat.gui/build/dat.gui.module.js'
 import { MyPath } from './myPath.js';
 
@@ -15,10 +16,10 @@ var settings = {
     axes: false,
     speeds: false,
     rawPath: false,
-    cleanPath: false,
+    cleanedPath: false,
     effectorPath: false,
     path: true,
-    scenes: "Orientation",
+    scenes: "Test1",
     draw: false,
     cleanPath: false,
     originalPath: originalPath,
@@ -38,7 +39,6 @@ var settings = {
     theta: false,
     parentVS: false,
     parentVSparam: 25,
-    reverse: reverse,
     name: "Default",
     save: saveToTXT,
     load: loadFromJSON,
@@ -52,13 +52,6 @@ sceneFolder.add(settings, 'scenes', [ 'Basic', 'Orientation', 'Scale', 'Bones', 
     .name("Scenes").onChange(function (value) {
     loadScene(value);
 });
-/*sceneFolder.add(settings, 'draw').name("Draw").onChange(function (value) {
-    if (value) {
-        settings.curveTiming = false;
-        updateGUI(gui);
-    }
-    drawingCanvas()
-});*/
 sceneFolder.add(settings, 'autoSelect').name("Auto Select")
 sceneFolder.add(settings, 'paste').name("Paste")
 sceneFolder.add(settings, 'delete').name("Delete")
@@ -66,19 +59,6 @@ sceneFolder.open();
 
 const pathFolder = gui.addFolder('Path');
 pathFolder.add(settings, 'cleanPath').name("Clean Path")
-/*sceneFolder.add(settings, 'autoGenerate').name("Cycle using input").onChange(function (value) {
-    if(value) {
-        for(let k = 0; k < selectedObjects.length; k++) {
-            let cycles = getCycles(selectedObjects[k].path.cleanPositions, 1);
-            console.log(cycles);
-            let cycle = computeCycle(selectedObjects[k].path.cleanPositions, selectedObjects[k].path.cleanTimings, cycles);
-            selectedObjects[k].path.positions = cycle.pos;
-            selectedObjects[k].path.timings = cycle.t;
-
-            selectedObjects[k].display.updatePath();
-        }
-    }
-})*/
 pathFolder.add(settings, 'originalPath').name("Original Path")
 pathFolder.add(settings, 'autoGenerate').name("Cycle using input")
 pathFolder.add(settings, 'autoGenerate2').name("Cycle using effector")
@@ -105,7 +85,7 @@ function originalPath() {
 function cycleWithInput() {
     for(let k = 0; k < selectedObjects.length; k++) {
         //console.log(selectedObjects[k].path.cleanPositions[0].clone());
-        let cycles = getCycles(selectedObjects[k].path.cleanPositions, 1);
+        let cycles = getCycles(selectedObjects[k].path.cleanPositions);
         // Update cycle display
         console.log(cycles);
         let cycle = computeCycle(selectedObjects[k].path.cleanPositions, selectedObjects[k].path.cleanTimings, cycles);
@@ -125,7 +105,7 @@ function cycleWithInput() {
 
 function cycleWithEffector() {
     for(let k = 0; k < selectedObjects.length; k++) {
-        let cycles = getCycles(selectedObjects[k].path.effectorPositions, 1);
+        let cycles = getCycles(selectedObjects[k].path.effectorPositions);
         // Update cycle display
         console.log(cycles);
         let cycle = computeCycle(selectedObjects[k].path.effectorPositions, selectedObjects[k].path.cleanTimings, cycles);
@@ -181,7 +161,6 @@ paramFolder.add(settings, 'parentVS').name("Activate parent VS").onChange(functi
     }
 }); 
 paramFolder.add(settings, 'parentVSparam', 0, 50).step(0.1).name("Parent VS"); 
-paramFolder.add(settings, 'reverse').name('Reverse')
 //paramFolder.open();
 
 const displayFolder = gui.addFolder('Display')
@@ -218,7 +197,7 @@ displayFolder.add(settings, 'rawPath').name("Raw Path").onChange(function (value
         objects[k].display.rawPath.visible = value;
     }
 }); 
-displayFolder.add(settings, 'cleanPath').name("Clean Path").onChange(function (value) {
+displayFolder.add(settings, 'cleanedPath').name("Clean Path").onChange(function (value) {
     for(let k = 0; k < objects.length; k++) {
         objects[k].display.cleanPath.visible = value;
     }
@@ -396,11 +375,6 @@ function next() {
             for(let i = 1; i < objectsToPaste.length; i++) {
                 let scale = objects[objectsToPaste[i].objectIndex].height / objects[orig].height; // scale
                 objects[objectsToPaste[i].objectIndex].effector = objectsToPaste[i].linkIndex;
-                /*let pos = objects[orig].restBones[effectorIndex + 1].position.clone();
-                pos = worldPos(pos, objects[orig], objects[orig].restBones, effectorIndex);
-                let distance = objects[orig].distanceToRoot(pos);
-                distance = scale * distance;
-                objects[objectsToPaste[i].objectIndex].updateEffector(distance);*/
 
                 objects[objectsToPaste[i].objectIndex].path.paste(origPath, scale);
                 objects[objectsToPaste[i].objectIndex].display.updatePath();
@@ -418,7 +392,6 @@ function next() {
         
                 for(let i = 1; i < objects[objectIndex].bones.length; i++) {
                     let boneQ = objects[objectIndex].restBones[i].quaternion.clone();
-                    //console.log('restPose', bonePos)
                     objects[objectIndex].bones[i].quaternion.copy(boneQ);
                     objects[objectIndex].lbs[i].quaternion.copy(boneQ);
         

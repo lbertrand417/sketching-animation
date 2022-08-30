@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { MyPath } from './myPath.js'
 import { MyDisplay } from './myDisplay.js'
 import { settings } from './canvas.js'
-import { computeAngleAxis, localDir, rotate, resizeCurve, worldPos, localPos } from './utils.js'
+import { computeAngleAxis, localDir, rotate, worldPos, localPos } from './utils.js'
+import { resizeCurve } from './utilsArray.js'
 
 class MyObject {
     constructor(mesh, height, bones, restAxis, parent, materials) {
