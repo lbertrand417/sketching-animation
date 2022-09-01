@@ -21,14 +21,15 @@ spotLight.castShadow = true;
 spotLight.updateWorldMatrix(false, false);
 allObjects.push(spotLight);
 
-const cylinderCount = 2;
-const segmentHeight = 50 / 7;
-const segmentCount = 7;
+const cylinderCount = 1;
+const segmentHeight = 50 / 20;
+const segmentCount = 20;
 const height = segmentHeight * segmentCount;
 const halfHeight = height * 0.5;
 
-const bodyHeight = 70;
+const bodyHeight = 1;
 const bodyCylinder = createCylinder(75, 75, bodyHeight, 5, materials);
+
 
 let bones = bodyCylinder.bones;
 let rootBone = bones[0];
@@ -55,10 +56,10 @@ for(let k = 0; k < cylinderCount; k++) {
     let bones = bodyCylinder.bones;
     let rootBone = bones[0];
 
-    const x = getRandomInt(-50, 50);
+    /*const x = getRandomInt(-50, 50);
     const z = getRandomInt(-50, 50);
     rootBone.position.x = x;
-    rootBone.position.z = z;
+    rootBone.position.z = z;*/
     
 
     // Update joints
