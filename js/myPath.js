@@ -140,6 +140,8 @@ class MyPath {
             this._cleanPositions.push(localPos);
         }
 
+        this._effectorPositions = getEffectorPositions(this._object, this._cleanPositions);
+
         this._positions = [];
         this._timings = [...path.timings];
         // Put positions in local space
@@ -188,8 +190,6 @@ class MyPath {
             console.log('before', this._positions);
 
             if (axis.dot(parentAxis) < 0) {
-                /*begin = L;
-                end = this.timings.length;*/
                 for (let i = 0; i < L; i++) {
                     this.shift();
                 }
@@ -210,16 +210,10 @@ class MyPath {
             let newTimings = [...this.timings];
             newTimings[begin] = path.timings[parentBegin];
             newTimings[end] = path.timings[parentEnd];
-            //newTimings[end % newTimings.length] = path.timings[parentEnd];
             let parentDenom = path.timings[parentEnd] - path.timings[parentBegin];
 
             let detailDenom;
             detailDenom = this.timings[end] - this.timings[begin];
-            /*if (end == this.timings.length) {
-                detailDenom = this.timings[end - 1] + 16 - this.timings[begin];
-            } else {
-                detailDenom = this.timings[end] - this.timings[begin];
-            }*/
 
             console.log('parentDenom', parentDenom);
             console.log('detailDenom', detailDenom);
@@ -238,17 +232,6 @@ class MyPath {
             }
 
             console.log("new timings 1", newTimings)
-
-            /*if(newTimings[0] < 0) {
-                let offset = (newTimings[newTimings.length - 1] + 16) - newTimings[0];
-                newTimings = newTimings.map( function(value) { 
-                    return value + offset; 
-                } );
-            }
-
-            console.log("new timings 2", newTimings)*/
-
-            //let retimed = retime(newTimings, this.positions)
 
             let tempPos = [];
             let tempT = [];
@@ -273,7 +256,7 @@ class MyPath {
                         tempPos.unshift(this.positions[info.i]);
                     }
                     tempT.unshift(objectTime);
-                } else {
+                } else if (tempT.length > 0 && objectTime > tempT[tempT.length - 1]) {
                     if(info.i + 1 < this.positions.length) {
                         tempPos.push(interpolate(this.positions[info.i], this.positions[info.i + 1], info.alpha));
                     } else {
@@ -281,12 +264,24 @@ class MyPath {
                         tempPos.push(this.positions[info.i]);
                     }
                     tempT.push(objectTime);
+                } else {
+                    let index = findInArray(objectTime, tempT);
+                    console.log('index', index)
+                    console.log('before', tempT);
+                    tempT.splice(index, 0, objectTime);
+                    if(info.i + 1 < this.positions.length) {
+                        tempPos.splice(index + 1, 0, interpolate(this.positions[info.i], this.positions[info.i + 1], info.alpha));
+                    } else {
+                        tempPos.splice(index + 1, 0, this.positions[info.i]);
+                    }
+                    console.log('after', tempT);
                 }
             }
         
             console.log('original', this.timings);
             console.log('new', newTimings)
             //console.log('retiming', retimed.tempT)
+            console.log('retiming', tempPos)
             console.log('retiming', tempT)
             console.log('parent', path.timings);
             
