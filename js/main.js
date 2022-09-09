@@ -39,6 +39,7 @@ function animate() {
     // Animation
     if(global.animation.isAnimating) {
         // Update animation
+        console.log('start anim')
         updateAnimation(global.animation.currentTime, root);
 
         // Update displays
@@ -48,7 +49,7 @@ function animate() {
             objects[k].display.updatePath();
             objects[k].display.updateTiming();
         }
-        //global.animation.isAnimating = false;
+        global.animation.isAnimating = false;
 
         global.animation.currentTime += 16;
     }
@@ -81,19 +82,26 @@ function updateAnimation(currentTime, object) {
     let newRootPos;
     //newRootPos.copy(oldRootPos);
 
+    console.log("currentTime", currentTime)
+
     // Update current object
     if(object.lengthPath != 0) { 
         // Find the time in the object cycle
         let objectTime = currentTime;
+        //console.log(object.path.timings);
+        //console.log(object.path.positions);
+
         while (objectTime < object.path.timings[0]) {
+            //console.log("trop petit")
             objectTime += object.lengthPath * 16;
         }
 
         while (objectTime > object.path.timings[object.lengthPath - 1]) {
+            //console.log("trop grand")
             objectTime -= object.lengthPath * 16;
         }
 
-        //console.log('objectTime', objectTime)
+        console.log('objectTime', objectTime)
     
         // Old effector position
         let oldPos = object.lbs[object.effector + 1].position.clone();
@@ -106,6 +114,29 @@ function updateAnimation(currentTime, object) {
         }*/
 
         object.path.updateCurrentTime(objectTime);
+        console.log('current Index', object.path.index);
+        if(object.parent.object != null && object.parent.object.lengthPath != 0) {
+            //console.log("sync")
+            object.path.synchronize(object.parent.object.path);
+        }
+
+        /*console.log('object time', objectTime)
+        console.log('current Time', object.path.currentTime)
+        console.log('current Index', object.path.index);*/
+
+        while (objectTime < object.path.timings[0]) {
+            objectTime += object.lengthPath * 16;
+        }
+
+        while (objectTime > object.path.timings[object.lengthPath - 1]) {
+            objectTime -= object.lengthPath * 16;
+        }
+        object.path.updateCurrentTime(objectTime);
+
+        console.log('object time', objectTime)
+        console.log('current Time', object.path.currentTime)
+        console.log('current Index', object.path.index);
+
         let newTarget = object.path.currentPosition;
         object.bones[0].localToWorld(newTarget); 
         object.bend(object.bones, newTarget);

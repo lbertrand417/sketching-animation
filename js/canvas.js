@@ -6,7 +6,7 @@ import { loadScene } from './init.js'
 import { updateAnimation, updateTimeline, updateChildren } from './main.js'
 import { autoSelect, randomOrientation, targetOrientation, synchronize, randomTiming, paste, deletePath, retrieveObject } from './selection.js'
 import { resize, project3D, worldPos, localPos } from './utils.js';
-import { retime, getCycles, computeCycle } from './utilsArray.js';
+import { retime, extractCurves, computeCycle } from './utilsArray.js';
 import { GUI } from '../node_modules/dat.gui/build/dat.gui.module.js'
 import { MyPath } from './myPath.js';
 
@@ -84,12 +84,11 @@ function originalPath() {
 
 function cycleWithInput() {
     for(let k = 0; k < selectedObjects.length; k++) {
-        //console.log(selectedObjects[k].path.cleanPositions[0].clone());
-        let cycles = getCycles(selectedObjects[k].path.cleanPositions);
-        // Update cycle display
-        console.log(cycles);
-        let cycle = computeCycle(selectedObjects[k].path.cleanPositions, selectedObjects[k].path.cleanTimings, cycles);
+        console.log(selectedObjects[k].path.curves)
+        let curves = extractCurves(selectedObjects[k].path.cleanPositions, selectedObjects[k].path.cleanTimings);
+        let cycle = computeCycle(selectedObjects[k].path.cleanPositions, selectedObjects[k].path.cleanTimings, curves);
         selectedObjects[k].path.positions = cycle.pos;
+        selectedObjects[k].path.unsyncTimings = cycle.t;
         selectedObjects[k].path.timings = cycle.t;
 
         // Create a cycle with the path
@@ -105,10 +104,8 @@ function cycleWithInput() {
 
 function cycleWithEffector() {
     for(let k = 0; k < selectedObjects.length; k++) {
-        let cycles = getCycles(selectedObjects[k].path.effectorPositions);
-        // Update cycle display
-        console.log(cycles);
-        let cycle = computeCycle(selectedObjects[k].path.effectorPositions, selectedObjects[k].path.cleanTimings, cycles);
+        let curves = extractCurves(selectedObjects[k].path.effectorPositions, selectedObjects[k].path.cleanTimings);
+        let cycle = computeCycle(selectedObjects[k].path.effectorPositions, selectedObjects[k].path.cleanTimings, curves);
         selectedObjects[k].path.positions = cycle.pos;
         selectedObjects[k].path.timings = cycle.t;
 

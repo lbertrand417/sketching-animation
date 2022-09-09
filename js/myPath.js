@@ -1,15 +1,12 @@
 "use strict;"
 
+import * as THREE from 'three';
 import { settings } from './canvas.js';
 import { interpolate, getEffectorPositions } from './utils.js'
-import { findInArray, retime, filter, getCycles } from './utilsArray.js'
+import { findInArray, retime, filter, extractCurves } from './utilsArray.js'
 
 class MyPath {
     constructor(object) {
-        // Final positions and timings
-        this._positions = []; 
-        this._timings = []; 
-
         // Original inputs
         this._rawPositions = [];
         this._rawTimings = [];
@@ -18,6 +15,21 @@ class MyPath {
         this._effectorPositions = [];
         this._cleanPositions = [];
         this._cleanTimings = [];
+
+        // Timings of final positions but unsync
+        //this._unsyncPositions = [];
+        this._unsyncTimings = []
+
+        // Sync info to keep correspondence between before and after sync
+        /* curve = { beginning: beginning index in unsync array,
+                    end: end index in unsync array,
+                    unsyncPos, unsyncT, syncPod, syncT }*/
+        this._curves = [];
+        this._curveIndex = null;
+
+        // Final positions and timings
+        this._positions = []; 
+        this._timings = [];         
 
         this._object = object;
         this._currentIndex = 0;
@@ -35,8 +47,11 @@ class MyPath {
     get positions() { return this._positions; }
     set positions(p) { this._positions = p; }
 
+    get unsyncTimings() { return this._unsyncTimings; } // TODO: update unsync timings in timing offsets 
     get timings() { return this._timings; }
     set timings(t) { this._timings = t; }
+
+    get curves() { return this._curves; }
 
     get index() { return this._currentIndex; }
     set index(i) { this._currentIndex = i; }
@@ -89,7 +104,7 @@ class MyPath {
 
             if(settings.cleanPath) {
                 console.log("hello")
-                let cycles = getCycles(this._cleanPositions);
+                let cycles = extractCurves(this._cleanPositions, this.cleanTimings);
                 console.log(cycles);
                 if(cycles.length > 1) {
                     for (let i = 0; i < cycles[0].end; i++) {
@@ -104,14 +119,19 @@ class MyPath {
             this._positions = [...this._cleanPositions];
             this._timings = [...this._cleanTimings];
             
-            
 
             // Create a cycle with the path
-            let tempT = [...this._timings];
+            /*let tempT = [...this._timings];
             for (let i = tempT.length - 2; i > 0; i--) {
                 this._timings.push(this._timings[this._timings.length - 1] + (tempT[i + 1] - tempT[i]));
                 this._positions.push(this._positions[i].clone());
-            }
+            }*/
+
+            this._unsyncTimings = [...this._timings];
+
+            this._curves = extractCurves(this._positions, this._timings);
+            this._curveIndex = null;
+            console.log(this._curves);
 
             console.log(this._positions);
             console.log(this._timings);
@@ -172,122 +192,102 @@ class MyPath {
         }
     }
 
+    
+
     // Synchronize this.path with path
     synchronize(path){
         if(path.positions.length != 0) {
-            // Find extremum of this path
-            console.log('detail')
-            let begin = 0;
-            let L = Math.floor(this.timings.length / 2);
-            let end = L;
-            let axis = this.positions[end].clone().sub(this.positions[begin])
+            console.log(this._curves)
+            let currentCurve = this._curves.findIndex(value => 
+                (value.syncT[0] <= this.currentTime) && (value.syncT[value.syncT.length - 1]>= this.currentTime));
+            //console.log('detail curves', this._curves)
+            console.log('curve', currentCurve);
 
-            console.log('parent')
-            let parentBegin = 0;
-            let parentEnd = Math.floor(path.timings.length / 2);
-            let parentAxis = path.positions[parentEnd].clone().sub(path.positions[parentBegin]);
-
-            console.log('before', this._positions);
-
-            if (axis.dot(parentAxis) < 0) {
-                for (let i = 0; i < L; i++) {
-                    this.shift();
-                }
-            }
-
-            console.log('after', this._positions);
-
-            console.log('begin', begin);
-            console.log('end', end);
-            console.log("parent begin", parentBegin);
-            console.log("parentEnd", parentEnd)
-
-            let leftOffset = this.timings[begin] - path.timings[parentBegin];
-            this.offsetTiming(-leftOffset);
-
-            console.log(this.timings);
-
-            let newTimings = [...this.timings];
-            newTimings[begin] = path.timings[parentBegin];
-            newTimings[end] = path.timings[parentEnd];
-            let parentDenom = path.timings[parentEnd] - path.timings[parentBegin];
-
-            let detailDenom;
-            detailDenom = this.timings[end] - this.timings[begin];
-
-            console.log('parentDenom', parentDenom);
-            console.log('detailDenom', detailDenom);
-
-            for (let i = begin + 1; i < end; i++) {
-                newTimings[i] = (this.timings[i] - this.timings[i-1]) / detailDenom * parentDenom + newTimings[i-1];
-            }
-
-            for (let i = end; i < this.timings.length; i++) {
-
-                newTimings[i] = (this.timings[i] - this.timings[i-1]) / detailDenom * parentDenom + newTimings[i-1];
-            }
-
-            for (let i = begin; i >= 0; i--) {
-                newTimings[i] = newTimings[i+1] - (this.timings[i+1] - this.timings[i]) / detailDenom * parentDenom;
-            }
-
-            console.log("new timings 1", newTimings)
-
-            let tempPos = [];
-            let tempT = [];
-            for(let i = 0; i < path.timings.length; i++) {
-
-                let objectTime = path.timings[i];
-                while (objectTime < newTimings[0]) {
-                    objectTime += path.timings.length * 16;
-                }
-
-                while (objectTime > newTimings[newTimings.length - 1]) {
-                    objectTime -= path.timings.length * 16;
-                }
-
-
-                let info = findInArray(objectTime, newTimings);
-                if(tempT.length > 0 && objectTime < tempT[0]) {
-                    if(info.i + 1 < this.positions.length) {
-                        tempPos.unshift(interpolate(this.positions[info.i], this.positions[info.i + 1], info.alpha));
-                    } else {
-                        console.log("coucou")
-                        tempPos.unshift(this.positions[info.i]);
-                    }
-                    tempT.unshift(objectTime);
-                } else if (tempT.length > 0 && objectTime > tempT[tempT.length - 1]) {
-                    if(info.i + 1 < this.positions.length) {
-                        tempPos.push(interpolate(this.positions[info.i], this.positions[info.i + 1], info.alpha));
-                    } else {
-                        console.log("coucou")
-                        tempPos.push(this.positions[info.i]);
-                    }
-                    tempT.push(objectTime);
-                } else {
-                    let index = findInArray(objectTime, tempT);
-                    console.log('index', index)
-                    console.log('before', tempT);
-                    tempT.splice(index, 0, objectTime);
-                    if(info.i + 1 < this.positions.length) {
-                        tempPos.splice(index + 1, 0, interpolate(this.positions[info.i], this.positions[info.i + 1], info.alpha));
-                    } else {
-                        tempPos.splice(index + 1, 0, this.positions[info.i]);
-                    }
-                    console.log('after', tempT);
-                }
-            }
         
-            console.log('original', this.timings);
-            console.log('new', newTimings)
-            //console.log('retiming', retimed.tempT)
-            console.log('retiming', tempPos)
-            console.log('retiming', tempT)
-            console.log('parent', path.timings);
+            let currentParentCurve = path.curves.filter(value => 
+                (value.syncT[0] <= path.currentTime) && (value.syncT[value.syncT.length - 1]>= path.currentTime))[0];
+            console.log("parent curves", path.curves);
+            console.log("parent Index", path.curves.findIndex(value => 
+                (value.syncT[0] <= path.currentTime) && (value.syncT[value.syncT.length - 1]>= path.currentTime)))
             
-            this.positions = [...tempPos];
-            this.timings = [...tempT];
+            if(this._curves[currentCurve].syncT[0] != currentParentCurve.syncT[0] || 
+                        this._curves[currentCurve].syncT[this._curves[currentCurve].syncT.length - 1] != currentParentCurve.syncT[currentParentCurve.syncT.length - 1]) { // TODO or if parent curve change cur donc je dois tester les extremums aussi
+                console.log("change curve");
+                this._curveIndex = currentCurve;
+
+                let parentDenom = currentParentCurve.syncT[currentParentCurve.syncT.length - 1] - currentParentCurve.syncT[0];
+
+                let detailDenom = this._curves[currentCurve].unsyncT[this._curves[currentCurve].unsyncT.length - 1] - this._curves[currentCurve].unsyncT[0];
+
+                console.log('parentDenom', parentDenom);
+                console.log('detailDenom', detailDenom);
+
+                // Synchronize THE curve
+                let theCurve = this._curves[currentCurve];
+                theCurve.syncT = [...theCurve.unsyncT];
+                theCurve.syncT[0] = currentParentCurve.syncT[0];
+                for (let i = 1; i < theCurve.unsyncT.length; i++) {
+                    theCurve.syncT[i] = (theCurve.unsyncT[i] - theCurve.unsyncT[i-1]) / detailDenom * parentDenom + theCurve.syncT[i-1];
+                }
+
+                for (let l = currentCurve + 1; l < this._curves.length; l++) {
+                    this._curves[l].syncT = [...this._curves[l].unsyncT];
+                    this._curves[l].syncT[0] = (this._curves[l].unsyncT[0] - this._curves[l-1].unsyncT[this._curves[l-1].unsyncT.length - 1]) 
+                                            / detailDenom * parentDenom + this._curves[l-1].syncT[this._curves[l-1].syncT.length - 1];
+                    for (let i = 1; i < this._curves[l].syncT.length; i++) {
+                        this._curves[l].syncT[i] = (this._curves[l].unsyncT[i] - this._curves[l].unsyncT[i-1]) / detailDenom * parentDenom + this._curves[l].syncT[i-1];
+                    }
+                }
+
+                for (let l = currentCurve - 1; l >= 0; l--) {
+                    this._curves[l].syncT = [...this._curves[l].unsyncT];
+                    this._curves[l].syncT[this._curves[l].syncT.length - 1] = this._curves[l+1].syncT[0] 
+                                                                        - (this._curves[l+1].unsyncT[0] - this._curves[l].unsyncT[this._curves[l].syncT.length - 1]) 
+                                                                        / detailDenom * parentDenom;
+                    for (let i = this._curves[l].syncT.length - 2; i >= 0; i--) {
+                        this._curves[l].syncT[i] = this._curves[l].syncT[i+1] - (this._curves[l].unsyncT[i+1] - this._curves[l].unsyncT[i]) / detailDenom * parentDenom;
+                    }
+                }
+
+                this.positions = [];
+                this.timings = [];
+                for(let l = 0; l < this._curves.length; l++) {
+                    this._curves[l].syncT = this._curves[l].syncT.map( function(value) { 
+                        return Math.round((value + Number.EPSILON) * 100) / 100; 
+                    } );
+
+                    console.log('round', this._curves[l].syncT);
+    
+                    let retimed = retime(this._curves[l].syncT, this._curves[l].syncPos);
+
+                    this._curves[l].syncT = [...retimed.tempT];
+                    this._curves[l].syncPos = [...retimed.tempPos]
+
+                    console.log('retimed', this._curves[l].syncT);
+
+                    if (l != currentCurve && l > 0) {
+                        this._curves[l].syncT.unshift(this._curves[l].syncT[0] - 16);
+                        this._curves[l].syncPos.unshift(interpolate(this._curves[l-1].syncPos[this._curves[l-1].syncPos.length - 1], this._curves[l].syncPos[0], 0.5))
+                    } 
+                    if (l == currentCurve && l > 0) {
+                        this._curves[l-1].syncT.push(this._curves[l].syncT[0] - 16);
+                        this._curves[l-1].syncPos.push(interpolate(this._curves[l-1].syncPos[this._curves[l-1].syncPos.length - 1], this._curves[l].syncPos[0], 0.5))
+                    }
+
+                    this.positions = this.positions.concat(retimed.tempPos);
+                    this.timings = this.timings.concat(retimed.tempT)
+                }
+
+                /*let retimed = retime(this.timings, this.positions);
+
+                this.positions = [...retimed.tempPos];
+                this.timings = [...retimed.tempT];*/
+            }
         }
+
+        console.log('positions', this.positions);
+        console.log('timings', this.timings);
+        console.log('parent timings', path.timings)
     }
 
     shift() {

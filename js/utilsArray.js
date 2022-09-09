@@ -57,7 +57,8 @@ function retime(time, position) {
         t += dt;
     }
 
-    while (t <= Math.round(time[time.length - 1]) + 16) {
+    //while (t <= Math.round(time[time.length - 1]) + 16) {
+    while (t <= Math.round(time[time.length - 1])) {
         let info = findInArray(t, time);
         //console.log(info);
         if(info.i + 1 < position.length) {
@@ -98,55 +99,89 @@ function filter(p, t, filterSize) {
     return { positions, timings };
 }
 
-function getCycles(positions) {
-    const localSize = 3;
+function extractCurves(positions, timings) {
+    console.log(positions)
+    const localSize = 5;
 
-    let angle = - Infinity;
     let axis = new THREE.Vector3();
-    
-    let parts = [];
+
+    let curves = [];
 
     let i = 0;
     while(i < positions.length) {
+        let angle = - Infinity;
         let leftPosBar = positions[i].clone();
 
         let j = i + 1;
-        let localCount = 0;
-        while(j < positions.length) {
+        //let localCount = 0;
+        let notFound = true;
+        while(j < positions.length && notFound) {
             let rightPosBar = positions[j].clone();
 
             let worldRotation = computeAngleAxis(new THREE.Vector3(), leftPosBar, rightPosBar);
             if (worldRotation.angle > angle) {
+                //console.log('i', i)
                 angle = worldRotation.angle;
                 j++;
             } else {
-                /*if(localCount == 0) {
-                    console.log('max', j - 1);
-                }*/
-                if(localCount == localSize){
+                //console.log('j', j);
+                let check = true;
+                /*let tempWorldRotation = computeAngleAxis(new THREE.Vector3(), leftPosBar, positions[j - 1].clone());
+                let maxLocal = tempWorldRotation.angle;*/
+                for(let l = j; l < Math.min(j + localSize, positions.length); l++) {
+                    let worldRotation = computeAngleAxis(new THREE.Vector3(), leftPosBar, positions[l].clone());
+                    if(worldRotation.angle > angle) {
+                        check = false;
+                    }
+                }
+                console.log(check);
+
+                if(check) {
+                    //curves.push({"beginning": i, "end": j - 1, "angle": angle, "axis": axis});
+                    let slicePos = positions.slice(i, j);
+                    let sliceT = timings.slice(i, j);
+                    curves.push({"beginning": i, "end": j - 1, "unsyncPos": slicePos, "unsyncT": sliceT, "syncPos": slicePos, "syncT": sliceT});
+                    angle = - Infinity;
+                    i = j;
+                    notFound = false;
+                    //j = positions.length;
+                } else {
+                    j++;
+                }
+                /*if(localCount == localSize){
                     axis = positions[j - localSize].clone().sub(positions[i]);
                     axis.normalize();
-                    //console.log("computed", j - localSize - 1);
-                    parts.push({"beginning": i, "end": (j - 1) - localSize, "angle": angle, "axis": axis});
+                    curves.push({"beginning": i, "end": (j - 1) - localSize, "angle": angle, "axis": axis});
                     angle = - Infinity;
                     i = j - localSize;
                     j = positions.length;
                 } else {
                     j++;
                     localCount++;
-                }
+                }*/
             }
         }
+        //console.log('hey')
 
-        if(localCount != localSize) {
-            axis = positions[j - localCount - 1].clone().sub(positions[i]);
-            axis.normalize();
-            parts.push({"beginning": i, "end": j - localCount - 1, "angle": angle, "axis": axis});
+        if(j == positions.length) {
+            let slicePos = positions.slice(i, j);
+            let sliceT = timings.slice(i, j);
+            //curves.push({"beginning": i, "end": j - 1, "angle": angle, "axis": axis});
+            curves.push({"beginning": i, "end": j - 1, "unsyncPos": slicePos, "unsyncT": sliceT, "syncPos": slicePos, "syncT": sliceT});
             i = positions.length;
         }
+
+        /*if(localCount != localSize) {
+            axis = positions[j - localCount - 1].clone().sub(positions[i]);
+            axis.normalize();
+            curves.push({"beginning": i, "end": j - localCount - 1, "angle": angle, "axis": axis});
+            i = positions.length;
+        }*/
     }
 
-    return parts;
+    console.log(curves);
+
+    return curves;
 }
 
 function computeCycle(positions, timings, parts) {
@@ -183,6 +218,7 @@ function computeCycle(positions, timings, parts) {
     // Compute barycenter of the base
     let baseBar = new THREE.Vector3();
     for(let i = parts[closestAngle].beginning; i <= parts[closestAngle].end; i++) {
+        console.log(i);
         baseBar.add(positions[i]);
     }
     baseBar.divideScalar(parts[closestAngle].end - parts[closestAngle].beginning + 1);
@@ -203,6 +239,8 @@ function computeCycle(positions, timings, parts) {
     for(let k = 0; k < parts.length; k++) {
         let tempBar = new THREE.Vector3();
         for(let i = parts[k].beginning; i <= parts[k].end; i++) {
+            console.log(i)
+            console.log(positions.length);
             tempBar.add(positions[i]);
         }
         tempBar.divideScalar(parts[k].end - parts[k].beginning + 1);
@@ -300,5 +338,5 @@ function computeCycle(positions, timings, parts) {
     return { pos, t };
 }
 
-export { fromLocalToGlobal, resizeCurve, findInArray, retime, filter, getCycles, computeCycle }
+export { fromLocalToGlobal, resizeCurve, findInArray, retime, filter, extractCurves, computeCycle }
 
