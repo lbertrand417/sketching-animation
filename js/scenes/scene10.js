@@ -1,12 +1,13 @@
 import * as THREE from 'three';
-import { MyObject } from './myObject.js'
-import { createCylinder } from './init.js'
-import { materials } from './materials.js';
-import { worldPos } from './utils.js';
+import { MyObject } from '../myObject.js'
+import { createCylinder } from '../init.js'
+import { materials } from '../materials.js';
+import { worldPos } from '../utils.js';
 
 let allObjects = []; // All elements of the scene
+let meshObjects = []; // Elements to animate
 
-// Lights
+// --------------- LIGHTS --------------- 
 const ambientColor = 0xFFFFFF;
 const ambientIntensity = 0.2;
 const ambientLight = new THREE.AmbientLight(ambientColor, ambientIntensity);
@@ -19,74 +20,58 @@ spotLight.castShadow = true;
 spotLight.updateWorldMatrix(true, false);
 allObjects.push(spotLight);
 
-
-let meshObjects = []; // Elements to animate
+// --------------- CYLINDERS --------------- 
 
 const cylinderCount = 3;
 const radiusTop = 3;
 const radiusBottom = 3;
 const segmentCount = 20;
+const height = 40;
+const numberLine = 3;
 
-let height = 40;
+// --------------- Root object --------------- 
 
-// MESH
-
-
+// Create the skinned mesh
 const bodyHeight = 75;
 const bodyRadius = 25;
-
 const bodyCylinder = createCylinder(bodyRadius, bodyRadius, bodyHeight, segmentCount, materials);
-allObjects.push(bodyCylinder.cylinderSkinnedMesh);
 
+// Set position
 let bones = bodyCylinder.bones;
 let rootBone = bones[0];
-
 let q = new THREE.Quaternion()
 let rotationAxis = new THREE.Vector3(0, 1, 0);
 q.setFromAxisAngle(rotationAxis, Math.PI / 2);
 rootBone.applyQuaternion(q);
-
-let Q = new THREE.Quaternion();
-let axis = rootBone.position.clone().sub(new THREE.Vector3(0, bodyHeight, 0));
-axis.normalize();
-rotationAxis = new THREE.Vector3(1, 0, 0);
-rotationAxis.cross(axis);
-rotationAxis.normalize();
-Q.setFromAxisAngle(rotationAxis, Math.PI / 4);
-
-
 bodyCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
-
+// Compute rest axis
 let endPoint = new THREE.Vector3();
 endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
 let restAxis = bones[0].worldToLocal(endPoint);
 restAxis.normalize();
 
+// Store the object
 let parent = new MyObject(bodyCylinder.cylinderSkinnedMesh, bodyHeight,
     bodyCylinder.bones, restAxis, null, materials);
+allObjects.push(bodyCylinder.cylinderSkinnedMesh);
 meshObjects.push(parent);
 
 
-const numberLine = 3;
 for(let i = 0; i < numberLine; i++) {
 
-    let thetaPas = 2 * Math.PI / cylinderCount;
+    let thetaStep = 2 * Math.PI / cylinderCount;
     let theta = 0;
 
     for(let k = 0; k < cylinderCount; k++) {
-
+        // Create the skinned mesh
         const detailCylinder = createCylinder(radiusTop, radiusBottom, height, segmentCount, materials);
         allObjects.push(detailCylinder.cylinderSkinnedMesh);
 
-
-        // Position correctly
+        // Set position
         let bones = detailCylinder.bones;
         let rootBone = bones[0];
-
         rootBone.position.set(bodyRadius * Math.cos(theta), bodyHeight / 2 - radiusBottom - (i * 35), bodyRadius * Math.sin(theta));
-
-        //rootBone.applyQuaternion(Q);
 
         let q = new THREE.Quaternion();
         let axis = rootBone.position.clone().sub(new THREE.Vector3(0, height, 0));
@@ -97,23 +82,16 @@ for(let i = 0; i < numberLine; i++) {
         q.setFromAxisAngle(rotationAxis, Math.PI / 2);
         rootBone.applyQuaternion(q);
 
-        theta += thetaPas;
-
+        theta += thetaStep;
 
         // Update joints
-        /*for(let j = 0; j < bones.length; j++) {
-            bones[j].updateMatrixWorld(true);
-        }*/
-
         detailCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
+        // Compute rest axis
         let endPoint = new THREE.Vector3();
-        console.log(bones[bones.length - 1].matrixWorld)
         endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
         let restAxis = bones[0].worldToLocal(endPoint);
-        restAxis.normalize(); // Loca rest Axis
-
-        console.log(restAxis)
+        restAxis.normalize(); 
 
         // Store object
         let object = new MyObject(detailCylinder.cylinderSkinnedMesh, height,
@@ -121,30 +99,31 @@ for(let i = 0; i < numberLine; i++) {
         meshObjects.push(object);
         parent.addChild(object);
 
+        // --------------- Children children objects --------------- 
         let numberLeaf = 4; 
         let alphaPas = 2 * Math.PI / numberLeaf;
         let alpha = 0
         for (let j = 0; j < numberLeaf; j++) {
+            // Create the skinned mesh
             const radiusTopLeaf = 0.2;
             const radiusBottomLeaf = 1;
             const leafHeight = 20;
-
             const leafCylinder = createCylinder(radiusTopLeaf, radiusBottomLeaf, leafHeight, segmentCount, materials);
             allObjects.push(leafCylinder.cylinderSkinnedMesh);
 
+            // Set position
             let bones = leafCylinder.bones;
             let rootBone = bones[0];
-
             let leafPos = worldPos(new THREE.Vector3(radiusTop * Math.cos(alpha), 0, radiusTop * Math.sin(alpha)), object, object.restBones, object.lengthBones - 1);
-            //console.log(leafPos);
-
             rootBone.position.copy(leafPos);
             rootBone.applyQuaternion(q);
 
             alpha += alphaPas;
 
+            // Update joints
             leafCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
+            // Compute rest axis
             let endPoint = new THREE.Vector3();
             endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
             let restAxis = bones[0].worldToLocal(endPoint);

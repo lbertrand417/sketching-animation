@@ -3,30 +3,29 @@
 // Import libraries
 import * as THREE from 'three';
 import { OrbitControls } from '../three.js/examples/jsm/controls/OrbitControls.js';
-import { settings } from './canvas.js';
+import { settings } from './gui.js';
 import { loadScene } from './init.js'
+import { MyObject } from './myObject.js';
 import { getRotation, getVertex, worldPos, localPos } from './utils.js';
 
 // --------------- INIT ---------------
 
 // Initalize renderer
-global.renderer = new THREE.WebGLRenderer();
-global.renderer.setSize(window.innerWidth, window.innerHeight);
-//global.renderer.shadowMap.enabled = true;
-document.body.appendChild(global.renderer.domElement); // renderer.domElement creates a canvas
+renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+//renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement); // renderer.domElement creates a canvas
 
 // Initialize camera
-global.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500);
-global.camera.position.set(0, 0, 350);
-global.camera.lookAt(0, 50, 0);
+camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500);
+camera.position.set(0, 0, 350);
+camera.lookAt(0, 50, 0);
 
 // Initialize scene
 loadScene(settings.scenes);
 
-
-
 // Controls
-const orbitControls = new OrbitControls(global.camera, global.renderer.domElement);
+const orbitControls = new OrbitControls(camera, renderer.domElement);
 orbitControls.update();
 
 // ------------------------------------
@@ -37,10 +36,23 @@ orbitControls.update();
 function animate() {
     
     // Animation
-    if(global.animation.isAnimating) {
+    if(animation.isAnimating) {
+        // Store local position of targets
+        let localPosA = [];
+        for (let i = 0; i < targets.length; i++) {
+            let pos = targets[i].pos.clone(); // World position
+            pos = localPos(pos, objects[1], objects[1].bones, 0); // Local position
+            localPosA.push(pos);
+        }
+
         // Update animation
-        console.log('start anim')
-        updateAnimation(global.animation.currentTime, root);
+        updateAnimation(animation.currentTime, root);
+
+        // Update targets position
+        for (let i = 0; i < targets.length; i++) {
+            let newPos = worldPos(localPosA[i], objects[1], objects[1].bones, 0);
+            targets[i].pos = newPos.clone();
+        }
 
         // Update displays
         updateTimeline();
@@ -49,11 +61,12 @@ function animate() {
             objects[k].display.updatePath();
             objects[k].display.updateTiming();
         }
-        global.animation.isAnimating = false;
+        //animation.isAnimating = false; // For debugging purposes
 
-        global.animation.currentTime += 16;
+        animation.currentTime += 16;
     }
 
+    // Update matrices
     for (let k = 0; k < objects.length; k++) {
         for(let i = 0; i < objects[k].lengthBones; i++) {
             objects[k].bones[i].updateWorldMatrix(false, false);
@@ -62,7 +75,7 @@ function animate() {
 
     requestAnimationFrame(animate);
     orbitControls.update();
-    global.renderer.render(global.scene, global.camera);
+    renderer.render(scene, camera);
 }
 animate();
 
@@ -72,156 +85,124 @@ animate();
 // --------------- UPDATE FUNCTIONS ---------------
 
 // Recursive animation
-function updateAnimation(currentTime, object) {    
-    let oldRootPos;
-    oldRootPos = object.lbs[2].position.clone();
-    //oldRootPos = object.bones[2].position.clone();
-    oldRootPos = worldPos(oldRootPos, object, object.lbs, 1);
-    //oldRootPos = worldPos(oldRootPos, object, object.bones, 1);
+/**
+ * Recursive function that updates an object and its children
+ * @param {number} currentTime - Current time of the animation
+ * @param {MyObject} object - Object to be updated
+ */
+function updateAnimation(currentTime, object) {
 
-    let newRootPos;
-    //newRootPos.copy(oldRootPos);
+    // --------------- DEFORM OBJECT ---------------
 
-    console.log("currentTime", currentTime)
+    // Retrieve the bone pos of the object (old because object not updated yet)
+    // (used to compute the speed at the root of the object)
+    let oldBonePos = object.lbs[2].position.clone(); // Local position
+    oldBonePos = worldPos(oldBonePos, object, object.lbs, 1); // World position
+
+    let newBonePos; // Store the new bone position
 
     // Update current object
     if(object.lengthPath != 0) { 
-        // Find the time in the object cycle
+        // --------------- Find the time in the object cycle ---------------
+        /* For each object only one cycle is stored but "current time" is a linear value
+        so we must find the "object time", proper to an object, which give the time in the cycle. */
         let objectTime = currentTime;
-        //console.log(object.path.timings);
-        //console.log(object.path.positions);
 
+        // TODO: Put this part in updateCurrentTime function?
         while (objectTime < object.path.timings[0]) {
-            //console.log("trop petit")
             objectTime += object.lengthPath * 16;
         }
 
         while (objectTime > object.path.timings[object.lengthPath - 1]) {
-            //console.log("trop grand")
             objectTime -= object.lengthPath * 16;
         }
+        object.path.updateCurrentTime(objectTime);
 
-        console.log('objectTime', objectTime)
+        // --------------- Update LBS + VS ---------------
     
-        // Old effector position
-        let oldPos = object.lbs[object.effector + 1].position.clone();
-        oldPos = worldPos(oldPos, object, object.lbs, object.effector);
+        // Old effector position (used to compute speed at effector)
+        let oldEffectorPos = object.lbs[object.effector + 1].position.clone(); // Local position
+        oldEffectorPos = worldPos(oldEffectorPos, object, object.lbs, object.effector); // World position
 
-        
-        /*if(object.children.length != 0) {
-            oldRootPos = object.lbs[2].position.clone();
-            oldRootPos = worldPos(oldRootPos, object, object.lbs, 1);
-        }*/
+        // Retrieve target
+        let newTarget = object.path.currentPosition; // New local position in the input stroke
+        object.bones[0].localToWorld(newTarget); // World position
 
-        object.path.updateCurrentTime(objectTime);
-        console.log('current Index', object.path.index);
-        if(object.parent.object != null && object.parent.object.lengthPath != 0) {
-            //console.log("sync")
-            object.path.synchronize(object.parent.object.path);
-        }
-
-        /*console.log('object time', objectTime)
-        console.log('current Time', object.path.currentTime)
-        console.log('current Index', object.path.index);*/
-
-        while (objectTime < object.path.timings[0]) {
-            objectTime += object.lengthPath * 16;
-        }
-
-        while (objectTime > object.path.timings[object.lengthPath - 1]) {
-            objectTime -= object.lengthPath * 16;
-        }
-        object.path.updateCurrentTime(objectTime);
-
-        console.log('object time', objectTime)
-        console.log('current Time', object.path.currentTime)
-        console.log('current Index', object.path.index);
-
-        let newTarget = object.path.currentPosition;
-        object.bones[0].localToWorld(newTarget); 
+        // Bend the object towards the target
         object.bend(object.bones, newTarget);
         object.bend(object.lbs, newTarget);
 
-        let newPos = object.lbs[object.effector + 1].position.clone();
-        newPos = worldPos(newPos, object, object.lbs, object.effector);
+        // New effector position
+        let newEffectorPos = object.lbs[object.effector + 1].position.clone(); // Local position
+        newEffectorPos = worldPos(newEffectorPos, object, object.lbs, object.effector); // World position
 
-
-        let new_speed = object.getSpeed(object.effector, oldPos, newPos);
+        // Compute speed at effector position
+        let new_speed = object.getSpeed(object.effector, oldEffectorPos, newEffectorPos);
         let alpha = 0.05;
         object.speed = new_speed.clone().multiplyScalar(alpha).add(object.speed.clone().multiplyScalar(1 - alpha));
 
-        
+        // Don't apply velocity skinning if the object is the main body
         if (object.parent.object != null) {
-            object.ownVS(); // Utiliser own speed
+            object.ownVS();
         }
     }
 
-    if(object.parent.object == null || !settings.parentVS) {
+    // --------------- Blend between object deformation (LBS + VS) and hiearchical VS (h-VS) deformation ---------------
+    // TODO: Must be improved because threshold is chosen arbitrarly
+
+    // Don't apply hierarchical VS on the main body (root of the hierarchy) or when h-VS deactivated
+    if(object.parent.object == null || !settings.parentVS) { 
         object.alpha = 0;
     } else {
-        if (object.lengthPath == 0) {
+        if (object.lengthPath == 0) { // If no input, only h-VS
             object.alpha = 1;
         } else {
-            //console.log(objects[k].parent.speed.length())
-            let newAlpha = object.parent.speed.length() / 0.001;
-            //console.log('new alpha', newAlpha)
+            // TODO: improve the computation of alpha (blending parameter)
+            let newAlpha = object.parent.speed.length() / 0.001; 
             let a = 0.2;
             object.alpha = a * newAlpha + (1 - a) * object.alpha;
 
             if(object.alpha > 0.7) {
                 object.alpha = 0.7;
             }
-            object.alpha = 0;
+            object.alpha = 0; // Uncomment to deactivate the blending
         }
     }
-    //console.log(object.alpha);
-    
-    object.blend(); // Ne blend plus...
+    object.blend();
 
-    
-    newRootPos = object.lbs[2].position.clone();
-    //newRootPos = object.bones[2].position.clone();
-    newRootPos = worldPos(newRootPos, object, object.lbs, 1);
-    //newRootPos = worldPos(newRootPos, object, object.bones, 1);
+    // Retrieve the new bone pos 
+    newBonePos = object.lbs[2].position.clone();
+    newBonePos = worldPos(newBonePos, object, object.lbs, 1);
 
-    // Update targets
+    // --------------- UPDATE CHILDREN ---------------
+
     if(object.children.length != 0) {
-        let speed = object.getSpeed(1, oldRootPos, newRootPos); // TODO : prendre la vitesse du premier élément avec path
-        //console.log('speed 2', speed.length())
-        updateChildren(object, speed); // Utiliser parent speed
+        // Compute speed at the root of the object (the parent of the children)
+        let speed = object.getSpeed(1, oldBonePos, newBonePos); 
 
+        // Update children's rigid position/rotation
+        updateChildren(object, speed);
+
+        // Update children deformation
         for(let k = 0; k < object.children.length; k++) {
-            //console.log(object.children[k])
             updateAnimation(currentTime, object.children[k])
         }
     }
 }
     
-// Update children position/rotation wrt parent deformation (object is the parent)
+/**
+ * Update the position/rotation (rigid transformation) of all the children of the object
+ * @param {MyObject} object - Parent whose children are transformed
+ * @param {THREE.Vector3} speed - Speed at the root bone of the object (i.e. parent)
+ */
 function updateChildren(object, speed) { 
-    /*let p = new THREE.Vector3();
-    p.setFromMatrixPosition(object.bones[0].matrixWorld)
-    console.log(p.clone())*/
     const alpha = 0.05;
-
-    // Store local position of targets
-    let localPosA = [];
-    let oldWorldPosA = [];
-    for (let i = 0; i < targets.length; i++) {
-        let pos = targets[i].pos.clone();
-        oldWorldPosA.push(pos.clone());
-        pos = localPos(pos, objects[1], objects[1].bones, 0);
-        localPosA.push(pos);
-    }
-
 
     for(let k = 0; k < object.children.length; k++) { 
         let child = object.children[k];
 
+        // Retrieve info of the correspondence
         let vertex = getVertex(object, child.parent.anchor);
-        /*let p = new THREE.Vector3();
-        p.setFromMatrixPosition(child.parent.bones[child.parent.lengthBones - 1].matrixWorld)
-        console.log(p.clone());*/
         let newRot = getRotation(object, child.parent.anchor);
 
         // Compute new position
@@ -231,36 +212,22 @@ function updateChildren(object, speed) {
         newPos = localPos(newPos, child, child.bones, -1);
         child.bones[0].position.set(newPos.x, newPos.y, newPos.z);
 
-
         // Compute new rotation
         newRot.multiply(child.parent.offsetQ);
         child.bones[0].setRotationFromQuaternion(newRot);
         child.bones[0].updateWorldMatrix(false, false);
 
-
+        // Update speed for h-VS (based on speed at the root of the parent)
         child.parent.speed = speed.clone().multiplyScalar(alpha).add(child.parent.speed.clone().multiplyScalar(1 - alpha));
+
+        // Apply h-VS
         child.parentVS();
     }
-
-    // Update targets (Adapt?) --> Add VS on the target too?
-    for (let i = 0; i < targets.length; i++) {
-        let newPos = worldPos(localPosA[i], objects[1], objects[1].bones, 0);
-        let speed = object.getSpeed(object.lengthBones - 1, oldWorldPosA[i], newPos);
-        targets[i].speed = speed.clone().multiplyScalar(alpha).add(targets[i].speed.clone().multiplyScalar(1 - alpha));
-        targets[i].pos = newPos.clone();
-        //targets[i].parentVS();
-        //targets[i].updateWorldMatrix(false, false);
-    }
-
-    /*for (let i = 0; i < objects.length; i++) {
-        if(objects[i].hasTarget) {
-            addTarget(objects[i]);
-        }
-    }*/
-
-
 }
 
+/**
+ * Update the timeline based on the cycle of the first selected object.
+ */
 function updateTimeline() {
     if(selectedObjects.length > 0 && selectedObjects[0].lengthPath > 0) {
         timeline.min = selectedObjects[0].path.timings[0];

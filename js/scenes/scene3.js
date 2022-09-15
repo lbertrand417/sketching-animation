@@ -1,14 +1,13 @@
 import * as THREE from 'three';
-import { MyObject } from './myObject.js'
-import { materials } from './materials.js';
-import { getRandomInt } from './utils.js'
-import { createCylinder } from './init.js'
+import { MyObject } from '../myObject.js'
+import { materials } from '../materials.js';
+import { getRandomInt } from '../utils.js'
+import { createCylinder } from '../init.js'
 
 let allObjects = []; // All elements of the scene
 let meshObjects = []; // Elements to animate
 
-
-// Lights
+// --------------- LIGHTS --------------- 
 const ambientColor = 0xFFFFFF;
 const ambientIntensity = 0.2;
 const ambientLight = new THREE.AmbientLight(ambientColor, ambientIntensity);
@@ -21,43 +20,49 @@ spotLight.castShadow = true;
 spotLight.updateWorldMatrix(false, false);
 allObjects.push(spotLight);
 
+// --------------- CYLINDERS --------------- 
+
 const cylinderCount = 5;
 const segmentCount = 7;
-
-// MESH
-
 const maxHeight = 50;
 
-const bodyHeight = 70;
-const bodyCylinder = createCylinder(75, 75, bodyHeight, 5, materials);
+// --------------- Root object --------------- 
 
+// Create the skinned mesh
+const bodyHeight = 70;
+const bodyRadius = 75;
+const bodyCylinder = createCylinder(bodyRadius, bodyRadius, bodyHeight, 5, materials);
+
+// Set position
 let bones = bodyCylinder.bones;
 let rootBone = bones[0];
-
 rootBone.position.set(0, - bodyHeight, 0);
 bodyCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
+// Compute rest axis
 let endPoint = new THREE.Vector3();
 endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
 let restAxis = bones[0].worldToLocal(endPoint);
 restAxis.normalize();
 
+// Store the object
 let parent = new MyObject(bodyCylinder.cylinderSkinnedMesh, bodyHeight,
     bodyCylinder.bones, restAxis, null, materials)
 allObjects.push(bodyCylinder.cylinderSkinnedMesh);
 meshObjects.push(parent);
 
-let height;
+// --------------- Children objects --------------- 
 for(let k = 0; k < cylinderCount; k++) {
 
-    height = maxHeight * (k + 1) / cylinderCount;
+    let height = maxHeight * (k + 1) / cylinderCount;
     
+    // Create the skinned mesh
     const bodyCylinder = createCylinder(5, 5, height, segmentCount, materials);
     allObjects.push(bodyCylinder.cylinderSkinnedMesh);
 
+    // Set position
     let bones = bodyCylinder.bones;
     let rootBone = bones[0];
-
     const x = getRandomInt(-50, 50);
     const z = getRandomInt(-50, 50);
     rootBone.position.x = x;
@@ -65,12 +70,9 @@ for(let k = 0; k < cylinderCount; k++) {
     rootBone.position.z = z;
 
     // Update joints
-    /*for(let i = 0; i < bones.length; i++) {
-        bones[i].updateMatrixWorld(true);
-    }*/
-
     bodyCylinder.cylinderSkinnedMesh.updateMatrixWorld(true);
 
+    // Compute rest axis
     let endPoint = new THREE.Vector3();
     endPoint.setFromMatrixPosition(bones[bones.length - 1].matrixWorld);
     let restAxis = bones[0].worldToLocal(endPoint);
@@ -82,14 +84,5 @@ for(let k = 0; k < cylinderCount; k++) {
     meshObjects.push(object);
     parent.addChild(object);
 }
-
-// Plane
-/*const planeGeometry = new THREE.PlaneGeometry(100, 100);
-const planeMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff });
-const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-plane.rotation.x = Math.PI * -.5;
-plane.receiveShadow = true;
-plane.updateWorldMatrix(false, false);
-allObjects.push(plane);*/
 
 export { allObjects, meshObjects };

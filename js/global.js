@@ -1,40 +1,44 @@
 "use strict;"
-var global = {
-    camera : null,
-    renderer : null,
-    scene : null,
-    sketch : {
-        isClean : true,
-        positions: [],
-        timings: [],
-        root: null,
-        mesh : null
-    },
-    animation : {
-        isAnimating : false,
-        currentTime : 0,
-        startTime : new Date().getTime(),
-        stop : false,
-        maxTimeline : 100,
-    }
-};
+
+// WebGL elements
+var camera = null
+var renderer = null
+var scene = null
+
+// Sketching input
+var sketch = {
+    isClean: true, // TODO: probably removable
+    positions: [], 
+    timings: [],
+    line3D : null // 3D line displayed when drawing
+}
+
+// Animation info
+var animation = {
+    isAnimating : false, // true if animation is playing
+    currentTime : 0, // global timing value
+    stop : false, // Detect whether it's paused or stopped
+}
 
 // Store mesh info
 var objects = []; // All parts of the mesh
 
-var root = null; // Parent mesh
+var root = null; // root object in the hierarchy
 
 // Store selected objects
-var selectableObjects = []
-var selectedObjects = [];
+var selectableLinks = []; // Selectable links 
+var selectedObjects = []; // Selected objects
 
+// Array of target points
+/* TODO: has to be adapted because rn works only if each object has the main body as its parent.
++ multiple bugs with it (like adding a target with an object wo path*/
 var targets = [];
 
-// History
+// Historic of actions (those are the info that are downloaded when downloading the files)
 var savePathPositions = [];
 var savePathTimings = [];
-var saveHistory = [];
-var indexHistory = 0;
-var indexPath = 0;
+var saveHistoric = []; // Save the name of the action (path, paste, delete) with the corresponding objects and effector
+var indexHistoric = 0; // Index used to read the history file
+var indexPath = 0; // Index used to read the positions/timings file
 
-var drawingLine;
+

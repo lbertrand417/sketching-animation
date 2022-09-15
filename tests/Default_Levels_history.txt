@@ -1,0 +1,180 @@
+[
+  {
+    "path": {
+      "objectIndex": 6,
+      "linkIndex": 15
+    }
+  },
+  {
+    "paste": [
+      {
+        "objectIndex": 6,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 1,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 11,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 16,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 21,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 26,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 31,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 36,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 41,
+        "linkIndex": 15
+      }
+    ]
+  },
+  {
+    "delete": [
+      {
+        "objectIndex": 6,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 1,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 11,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 16,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 21,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 26,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 31,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 36,
+        "linkIndex": 15
+      },
+      {
+        "objectIndex": 41,
+        "linkIndex": 15
+      }
+    ]
+  },
+  {
+    "path": {
+      "objectIndex": 7,
+      "linkIndex": 20
+    }
+  },
+  {
+    "path": {
+      "objectIndex": 6,
+      "linkIndex": 10
+    }
+  },
+  {
+    "paste": [
+      {
+        "objectIndex": 6,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 1,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 11,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 16,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 21,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 26,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 31,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 36,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 41,
+        "linkIndex": 10
+      }
+    ]
+  },
+  {
+    "delete": [
+      {
+        "objectIndex": 6,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 1,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 11,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 16,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 21,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 26,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 31,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 36,
+        "linkIndex": 10
+      },
+      {
+        "objectIndex": 41,
+        "linkIndex": 10
+      }
+    ]
+  }
+]
